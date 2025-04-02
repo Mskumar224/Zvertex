@@ -7,11 +7,12 @@ require('dotenv').config();
 
 const app = express();
 
-// Update CORS to allow Netlify domain
+// Configure CORS to allow requests from the Netlify domain
 app.use(cors({
-  origin: ['http://zvertexai.com/', 'http://localhost:3000'], // Add your Netlify URL
+  origin: ['https://zvertexai.com', 'http://localhost:3000'], // Allow Netlify and local dev
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'x-auth-token'],
+  credentials: true, // If you need to send cookies or auth headers
 }));
 
 app.use(express.json());

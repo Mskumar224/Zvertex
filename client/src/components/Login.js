@@ -9,6 +9,7 @@ function Login({ setUser }) {
   const history = useHistory();
 
   const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+  console.log('API URL being used:', apiUrl); // Debug the API URL
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,6 +19,7 @@ function Login({ setUser }) {
       setUser({ subscriptionType: res.data.subscriptionType });
       history.push('/dashboard');
     } catch (err) {
+      console.error('Login Error:', err.response); // Log full error details
       alert(err.response?.data.msg || 'Login failed');
     }
   };
