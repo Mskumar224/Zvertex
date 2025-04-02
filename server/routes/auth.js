@@ -8,14 +8,12 @@ const path = require('path');
 const authMiddleware = require('../middleware/auth');
 const fs = require('fs');
 
-// Ensure uploads directory exists
 const uploadDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
   console.log('Created uploads directory');
 }
 
-// Setup file upload for resume
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
@@ -26,18 +24,38 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Register
 router.post('/register', async (req, res) => {
   const { email, password, subscriptionType } = req.body;
   try {
     let user = await User.findOne({ email });
-    if (user) return res.status(400).json({ msg: 'User already exists' });
 
-    user = new User({
-      email,
-      password: await bcrypt.hash(password, 10),
-      subscriptionType,
-    });
+    // If user exists and has paid, block registration
+    if (user && user.paid) {
+      return res.status(400).json({ msg: 'User already exists and is subscribed. Please log in.' });
+    }
+
+    // If user exists but hasn’t paid, overwrite them
+    if (user && !user.paid) {
+      user = await User.findOneAndUpdate(
+        { email },
+        {
+          email,
+          password: await bcrypt.hash(password, 10),
+          subscriptionType,
+          paid: false, // Reset paid status for new registration
+        },
+        { new: true, overwrite: true }
+      );
+    } else {
+      // New user registration
+      user = new User({
+        email,
+        password: await bcrypt.hash(password, 10),
+        subscriptionType,
+        paid: false, // Initially unpaid until payment is verified
+      });
+    }
+
     await user.save();
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
@@ -48,12 +66,11 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ msg: 'Invalid email or password' });
+    if (!user || !user.paid) return res.status(400).json({ msg: 'User not found or not subscribed. Please register and complete payment.' });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ msg: 'Invalid email or password' });
@@ -66,12 +83,11 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Forgot Password
 router.post('/forgot-password', async (req, res) => {
   const { email } = req.body;
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ msg: 'User not found' });
+    if (!user || !user.paid) return res.status(400).json({ msg: 'User not found or not subscribed' });
 
     const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '15m' });
     user.resetToken = resetToken;
@@ -83,13 +99,12 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
-// Reset Password
 router.post('/reset-password', async (req, res) => {
   const { token, newPassword } = req.body;
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id);
-    if (!user || user.resetToken !== token) return res.status(400).json({ msg: 'Invalid or expired token' });
+    if (!user || user.resetToken !== token || !user.paid) return res.status(400).json({ msg: 'Invalid or expired token, or user not subscribed' });
 
     user.password = await bcrypt.hash(newPassword, 10);
     user.resetToken = null;
@@ -101,7 +116,6 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
-// Upload Resume
 router.post('/upload-resume', authMiddleware, upload.single('resume'), async (req, res) => {
   try {
     if (!req.file) {
@@ -109,10 +123,10 @@ router.post('/upload-resume', authMiddleware, upload.single('resume'), async (re
     }
 
     const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ msg: 'User not found' });
+    if (!user || !user.paid) return res.status(404).json({ msg: 'User not found or not subscribed' });
 
     user.resume = req.file.path;
-    await user.save({ validateModifiedOnly: true }); // Only validate modified fields
+    await user.save({ validateModifiedOnly: true });
     res.json({ msg: 'Resume uploaded', path: req.file.path });
   } catch (err) {
     console.error('Upload Resume Error:', err);
