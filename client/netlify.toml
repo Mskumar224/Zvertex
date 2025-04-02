@@ -19,3 +19,9 @@
   to = "https://zvertexai.com/:splat"
   status = 301
   force = true
+
+[[redirects]]
+  from = "http://www.zvertexai.com/*"
+  to = "https://zvertexai.com/:splat"
+  status = 301
+  force = true

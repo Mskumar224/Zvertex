@@ -3,8 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Zvertexai</title>
+    <title>ZvertexAI</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <script>
+      if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+        window.location.href = 'https://' + window.location.hostname + window.location.pathname + window.location.search;
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

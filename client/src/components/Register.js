@@ -34,8 +34,9 @@ function Register() {
       }
     } catch (err) {
       console.error('Register Error:', err.message, err.response?.data);
-      const errorMsg = err.response?.data?.error || err.response?.data?.msg || err.message || 'Registration failed. Check server logs.';
-      alert(`Error: ${errorMsg}`);
+      const errorMsg = err.response?.data?.error || err.response?.data?.msg || err.message || 'Registration failed';
+      const errorDetails = err.response?.data?.details || '';
+      alert(`Error: ${errorMsg}${errorDetails ? ` - ${errorDetails}` : ''}`);
     }
   };
 

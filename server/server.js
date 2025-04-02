@@ -5,12 +5,13 @@ const authRoutes = require('./routes/auth');
 const jobRoutes = require('./routes/job');
 require('dotenv').config();
 
-// Validate Stripe key before initialization
-if (!process.env.STRIPE_SECRET_KEY) {
+// Check for Stripe key at startup
+const stripeKey = process.env.STRIPE_SECRET_KEY;
+if (!stripeKey) {
   console.error('Error: STRIPE_SECRET_KEY is not set in environment variables');
   process.exit(1); // Exit if key is missing
 }
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe = require('stripe')(stripeKey);
 const User = require('./models/User');
 
 const app = express();
@@ -40,7 +41,7 @@ mongoose.connect(process.env.MONGO_URI, {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK' });
+  res.status(200).json({ status: 'OK', stripeConfigured: !!stripeKey });
 });
 
 // Routes
@@ -63,11 +64,13 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
 
   try {
     if (subscriptionType === 'BUSINESS') {
+      console.log(`Redirecting ${email} to mailto for BUSINESS plan`);
       return res.json({ url: 'mailto:support@zvertexai.com' });
     }
 
-    if (!priceMap[subscriptionType]) {
-      return res.status(400).json({ error: 'Invalid subscription type' });
+    const unitAmount = priceMap[subscriptionType];
+    if (!unitAmount) {
+      return res.status(400).json({ error: `Invalid subscription type: ${subscriptionType}` });
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -78,7 +81,7 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
           product_data: {
             name: `${subscriptionType} Plan`,
           },
-          unit_amount: priceMap[subscriptionType],
+          unit_amount: unitAmount,
         },
         quantity: 1,
       }],
@@ -88,6 +91,7 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
       customer_email: email,
     });
 
+    console.log(`Created Stripe session for ${email}: ${session.url}`);
     res.json({ url: session.url });
   } catch (error) {
     console.error('Stripe Error:', error.message, error.stack);
@@ -100,6 +104,10 @@ app.get('/api/payment/verify', async (req, res) => {
   const { session_id } = req.query;
 
   try {
+    if (!session_id) {
+      return res.status(400).json({ error: 'Session ID is required' });
+    }
+
     const session = await stripe.checkout.sessions.retrieve(session_id);
     if (session.payment_status === 'paid') {
       const user = await User.findOneAndUpdate(
@@ -110,6 +118,7 @@ app.get('/api/payment/verify', async (req, res) => {
       if (!user) {
         return res.status(404).json({ error: 'User not found after payment' });
       }
+      console.log(`Payment verified for ${session.customer_email}`);
       res.json({ success: true, user });
     } else {
       res.status(400).json({ error: 'Payment not completed' });
