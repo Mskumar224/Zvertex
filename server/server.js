@@ -7,10 +7,10 @@ require('dotenv').config();
 
 const app = express();
 
-// Configure CORS to allow requests from the Netlify domain
+// Configure CORS to allow requests from multiple origins
 const corsOptions = {
-  origin: ['https://zvertexai.com', 'http://localhost:3000'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Explicitly include OPTIONS
+  origin: ['https://zvertexai.com', 'http://zvertexai.com', 'http://localhost:3000'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-auth-token'],
   credentials: true,
   optionsSuccessStatus: 200, // For legacy browser support
@@ -20,7 +20,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Handle preflight OPTIONS requests explicitly
-app.options('*', cors(corsOptions)); // This ensures preflight requests are handled
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
