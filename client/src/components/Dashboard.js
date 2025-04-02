@@ -10,6 +10,8 @@ function Dashboard({ user, setUser }) {
   const [filter, setFilter] = useState('');
   const history = useHistory();
 
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -19,10 +21,10 @@ function Dashboard({ user, setUser }) {
 
     const fetchData = async () => {
       try {
-        const jobsRes = await axios.get('/api/jobs');
+        const jobsRes = await axios.get(`${apiUrl}/api/jobs`);
         setJobs(Array.isArray(jobsRes.data) ? jobsRes.data : []);
 
-        const appliedRes = await axios.get('/api/jobs/applied', {
+        const appliedRes = await axios.get(`${apiUrl}/api/jobs/applied`, {
           headers: { 'x-auth-token': token },
         });
         setAppliedJobs(Array.isArray(appliedRes.data) ? appliedRes.data : []);
@@ -50,7 +52,7 @@ function Dashboard({ user, setUser }) {
 
   const handleAutoApply = async () => {
     try {
-      const res = await axios.post('/api/jobs/auto-apply', {}, {
+      const res = await axios.post(`${apiUrl}/api/jobs/auto-apply`, {}, {
         headers: { 'x-auth-token': localStorage.getItem('token') },
       });
       alert(res.data.msg);
@@ -63,7 +65,7 @@ function Dashboard({ user, setUser }) {
   const handlePostJob = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('/api/jobs/post', newJob, {
+      const res = await axios.post(`${apiUrl}/api/jobs/post`, newJob, {
         headers: { 'x-auth-token': localStorage.getItem('token') },
       });
       setJobs([...jobs, res.data]);

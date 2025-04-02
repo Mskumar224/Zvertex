@@ -9,10 +9,12 @@ function Register() {
   const [subscriptionType, setSubscriptionType] = useState('STUDENT');
   const history = useHistory();
 
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/api/auth/register', { email, password, subscriptionType });
+      await axios.post(`${apiUrl}/api/auth/register`, { email, password, subscriptionType });
       alert('Registration successful! Please login.');
       history.push('/');
     } catch (err) {

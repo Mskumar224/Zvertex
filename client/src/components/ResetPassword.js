@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TextField, Button, Typography } from '@mui/material';
+import { TextField, Button, Typography, Link } from '@mui/material';
 import axios from 'axios';
 import { useHistory } from 'react-router-dom';
 
@@ -8,10 +8,12 @@ function ResetPassword() {
   const [newPassword, setNewPassword] = useState('');
   const history = useHistory();
 
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/api/auth/reset-password', { token, newPassword });
+      await axios.post(`${apiUrl}/api/auth/reset-password`, { token, newPassword });
       alert('Password reset successful! Please login.');
       history.push('/');
     } catch (err) {
@@ -24,7 +26,7 @@ function ResetPassword() {
       <div className="header">
         <h1>ZvertexAGI</h1>
         <div className="nav-links">
-          <a href="/">Login</a>
+          <Link href="/">Login</Link>
         </div>
       </div>
       <div className="hero">
@@ -51,6 +53,9 @@ function ResetPassword() {
           <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
             Reset Password
           </Button>
+          <Typography align="center" sx={{ mt: 2 }}>
+            <Link href="/forgot-password">Forgot Password?</Link>
+          </Typography>
         </form>
       </div>
     </div>

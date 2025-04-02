@@ -8,10 +8,12 @@ function Login({ setUser }) {
   const [password, setPassword] = useState('');
   const history = useHistory();
 
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000'; // Fallback for local dev
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('/api/auth/login', { email, password });
+      const res = await axios.post(`${apiUrl}/api/auth/login`, { email, password });
       localStorage.setItem('token', res.data.token);
       setUser({ subscriptionType: res.data.subscriptionType });
       history.push('/dashboard');

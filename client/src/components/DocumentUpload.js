@@ -7,13 +7,15 @@ function DocumentUpload() {
   const [file, setFile] = useState(null);
   const history = useHistory();
 
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData();
     formData.append('resume', file);
 
     try {
-      await axios.post('/api/auth/upload-resume', formData, {
+      await axios.post(`${apiUrl}/api/auth/upload-resume`, formData, {
         headers: { 
           'x-auth-token': localStorage.getItem('token'),
           'Content-Type': 'multipart/form-data'
