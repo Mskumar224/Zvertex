@@ -3,9 +3,15 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const jobRoutes = require('./routes/job');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || ''); // Fallback to avoid crash
-const User = require('./models/User');
 require('dotenv').config();
+
+// Validate Stripe key before initialization
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.error('Error: STRIPE_SECRET_KEY is not set in environment variables');
+  process.exit(1); // Exit if key is missing
+}
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const User = require('./models/User');
 
 const app = express();
 
@@ -45,8 +51,8 @@ app.use('/api/jobs', jobRoutes);
 app.post('/api/payment/create-checkout-session', async (req, res) => {
   const { email, subscriptionType } = req.body;
 
-  if (!process.env.STRIPE_SECRET_KEY) {
-    return res.status(500).json({ error: 'Stripe secret key not configured' });
+  if (!email || !subscriptionType) {
+    return res.status(400).json({ error: 'Email and subscriptionType are required' });
   }
 
   const priceMap = {
@@ -58,6 +64,10 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
   try {
     if (subscriptionType === 'BUSINESS') {
       return res.json({ url: 'mailto:support@zvertexai.com' });
+    }
+
+    if (!priceMap[subscriptionType]) {
+      return res.status(400).json({ error: 'Invalid subscription type' });
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -80,7 +90,7 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
 
     res.json({ url: session.url });
   } catch (error) {
-    console.error('Stripe Error:', error.message);
+    console.error('Stripe Error:', error.message, error.stack);
     res.status(500).json({ error: 'Failed to create checkout session', details: error.message });
   }
 });
@@ -97,12 +107,15 @@ app.get('/api/payment/verify', async (req, res) => {
         { subscriptionType: session.line_items.data[0].description.split(' ')[0], paid: true },
         { new: true }
       );
+      if (!user) {
+        return res.status(404).json({ error: 'User not found after payment' });
+      }
       res.json({ success: true, user });
     } else {
       res.status(400).json({ error: 'Payment not completed' });
     }
   } catch (error) {
-    console.error('Verification Error:', error.message);
+    console.error('Verification Error:', error.message, error.stack);
     res.status(500).json({ error: 'Verification failed', details: error.message });
   }
 });
