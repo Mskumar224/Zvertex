@@ -34,27 +34,18 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ msg: 'User already exists and is subscribed. Please log in.' });
     }
 
-    // If user exists but hasn’t paid, overwrite them
+    // If user exists but hasn’t paid, overwrite as a new user
     if (user && !user.paid) {
-      user = await User.findOneAndUpdate(
-        { email },
-        {
-          email,
-          password: await bcrypt.hash(password, 10),
-          subscriptionType,
-          paid: false, // Reset paid status for new registration
-        },
-        { new: true, overwrite: true }
-      );
-    } else {
-      // New user registration
-      user = new User({
-        email,
-        password: await bcrypt.hash(password, 10),
-        subscriptionType,
-        paid: false, // Initially unpaid until payment is verified
-      });
+      await User.deleteOne({ email }); // Remove the unpaid user
     }
+
+    // Create a new user (either fresh or overwriting unpaid)
+    user = new User({
+      email,
+      password: await bcrypt.hash(password, 10),
+      subscriptionType,
+      paid: false, // Initially unpaid until payment is verified
+    });
 
     await user.save();
 
