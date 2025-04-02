@@ -1,0 +1,17 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Environment variables
+.env
+
+# Build output
+client/build/
+
+# Dependency lock files (optional, include if you commit them)
+# package-lock.json
+
+# OS-specific files
+.DS_Store
+Thumbs.db
