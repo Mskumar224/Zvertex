@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useHistory } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 
-const stripePromise = loadStripe('pk_live_51R0u7fRr16KPJ9OnPwlpNKyHkwGHnvtZqibd2PWsxgkgqyzYOmx4AZE69YTmsrqpI5fk5aCSj04972mddYaBR8da004FxbliCE'); // Replace with your live publishable key
+const stripePromise = loadStripe('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'); // Replace with your live publishable key
 
 function Register() {
   const [email, setEmail] = useState('');
@@ -12,21 +12,26 @@ function Register() {
   const [subscriptionType, setSubscriptionType] = useState('STUDENT');
   const history = useHistory();
 
-  const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
+  const apiUrl = 'https://zvertexai-orzv.onrender.com'; // Hardcoded for consistency
   console.log('API URL being used:', apiUrl);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('Starting registration process:', { email, subscriptionType });
     try {
       // Register the user
+      console.log('Sending registration request to:', `${apiUrl}/api/auth/register`);
       await axios.post(`${apiUrl}/api/auth/register`, { email, password, subscriptionType });
-      
+      console.log('User registered successfully');
+
       // Create Stripe Checkout session
+      console.log('Creating Stripe Checkout session at:', `${apiUrl}/api/payment/create-checkout-session`);
       const response = await axios.post(`${apiUrl}/api/payment/create-checkout-session`, {
         email,
         subscriptionType,
       });
 
+      console.log('Stripe session response:', response.data);
       if (subscriptionType === 'BUSINESS') {
         window.location.href = response.data.url; // Redirect to email for Business plan
       } else {
@@ -34,8 +39,8 @@ function Register() {
       }
     } catch (err) {
       console.error('Register Error:', err.message, err.response?.data);
-      const errorMsg = err.response?.data?.error || err.response?.data?.msg || err.message || 'Registration failed';
-      const errorDetails = err.response?.data?.details || '';
+      const errorMsg = err.response?.data?.error || err.response?.data?.msg || 'Registration failed';
+      const errorDetails = err.response?.data?.details || err.message;
       alert(`Error: ${errorMsg}${errorDetails ? ` - ${errorDetails}` : ''}`);
     }
   };

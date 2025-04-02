@@ -9,8 +9,13 @@ require('dotenv').config();
 const stripeKey = process.env.STRIPE_SECRET_KEY;
 if (!stripeKey) {
   console.error('Error: STRIPE_SECRET_KEY is not set in environment variables');
-  process.exit(1); // Exit if key is missing
+  process.exit(1);
 }
+if (!stripeKey.startsWith('sk_')) {
+  console.error('Error: STRIPE_SECRET_KEY appears invalid (should start with "sk_")');
+  process.exit(1);
+}
+console.log('Stripe secret key configured successfully');
 const stripe = require('stripe')(stripeKey);
 const User = require('./models/User');
 
@@ -51,8 +56,10 @@ app.use('/api/jobs', jobRoutes);
 // Stripe Checkout Session Endpoint
 app.post('/api/payment/create-checkout-session', async (req, res) => {
   const { email, subscriptionType } = req.body;
+  console.log('Received request to create checkout session:', { email, subscriptionType });
 
   if (!email || !subscriptionType) {
+    console.error('Missing required fields:', { email, subscriptionType });
     return res.status(400).json({ error: 'Email and subscriptionType are required' });
   }
 
@@ -70,9 +77,11 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
 
     const unitAmount = priceMap[subscriptionType];
     if (!unitAmount) {
+      console.error('Invalid subscription type:', subscriptionType);
       return res.status(400).json({ error: `Invalid subscription type: ${subscriptionType}` });
     }
 
+    console.log('Creating Stripe Checkout session for:', { email, subscriptionType, unitAmount });
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{
@@ -94,7 +103,12 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
     console.log(`Created Stripe session for ${email}: ${session.url}`);
     res.json({ url: session.url });
   } catch (error) {
-    console.error('Stripe Error:', error.message, error.stack);
+    console.error('Stripe Error:', {
+      message: error.message,
+      type: error.type,
+      code: error.code,
+      stack: error.stack,
+    });
     res.status(500).json({ error: 'Failed to create checkout session', details: error.message });
   }
 });
@@ -105,26 +119,35 @@ app.get('/api/payment/verify', async (req, res) => {
 
   try {
     if (!session_id) {
+      console.error('Session ID missing in verification request');
       return res.status(400).json({ error: 'Session ID is required' });
     }
 
+    console.log('Verifying payment for session:', session_id);
     const session = await stripe.checkout.sessions.retrieve(session_id);
     if (session.payment_status === 'paid') {
       const user = await User.findOneAndUpdate(
         { email: session.customer_email },
-        { subscriptionType: session.line_items.data[0].description.split(' ')[0], paid: true },
+        { subscriptionType: session.line_items.data[0].price.product.name.split(' ')[0], paid: true },
         { new: true }
       );
       if (!user) {
+        console.error('User not found after payment:', session.customer_email);
         return res.status(404).json({ error: 'User not found after payment' });
       }
       console.log(`Payment verified for ${session.customer_email}`);
       res.json({ success: true, user });
     } else {
+      console.error('Payment not completed for session:', session_id);
       res.status(400).json({ error: 'Payment not completed' });
     }
   } catch (error) {
-    console.error('Verification Error:', error.message, error.stack);
+    console.error('Verification Error:', {
+      message: error.message,
+      type: error.type,
+      code: error.code,
+      stack: error.stack,
+    });
     res.status(500).json({ error: 'Verification failed', details: error.message });
   }
 });
