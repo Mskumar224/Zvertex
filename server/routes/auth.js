@@ -24,7 +24,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Test email for bypassing payment
+// Test email for full access across all subscriptions
 const TEST_EMAIL = 'test@zvertexai.com';
 const TEST_PASSWORD = 'test1234'; // Predefined password for test account
 
@@ -33,7 +33,7 @@ router.post('/register', async (req, res) => {
   try {
     let user = await User.findOne({ email });
 
-    if (user && user.paid) {
+    if (user && user.paid && email !== TEST_EMAIL) {
       return res.status(400).json({ msg: 'User already exists and is subscribed. Please log in.' });
     }
 
@@ -51,7 +51,11 @@ router.post('/register', async (req, res) => {
 
     await user.save();
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign(
+      { id: user._id, isTestUser }, // Include isTestUser in token for full access
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
     res.json({ token, subscriptionType: user.subscriptionType });
   } catch (err) {
     console.error('Register Error:', err);
@@ -65,18 +69,19 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email });
     const isTestUser = email === TEST_EMAIL;
 
-    if (!user) {
-      return res.status(400).json({ msg: 'User not found. Please register.' });
-    }
-
-    if (!isTestUser && !user.paid) {
-      return res.status(400).json({ msg: 'User not subscribed. Please complete payment.' });
-    }
+    if (!user) return res.status(400).json({ msg: 'User not found or not subscribed. Please register and complete payment.' });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ msg: 'Invalid email or password' });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    // Allow test user to log in regardless of paid status
+    if (!isTestUser && !user.paid) return res.status(400).json({ msg: 'User not subscribed. Please complete payment.' });
+
+    const token = jwt.sign(
+      { id: user._id, isTestUser }, // Include isTestUser in token
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
     res.json({ token, subscriptionType: user.subscriptionType });
   } catch (err) {
     console.error('Login Error:', err);
