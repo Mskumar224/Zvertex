@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useHistory } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 
-const stripePromise = loadStripe('pk_live_51R0u7fRr16KPJ9OnPwlpNKyHkwGHnvtZqibd2PWsxgkgqyzYOmx4AZE69YTmsrqpI5fk5aCSj04972mddYaBR8da004FxbliCE'); // Replace with your live publishable key
+const stripePromise = loadStripe('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'); // Replace with your live publishable key
 
 function Register() {
   const [email, setEmail] = useState('');
