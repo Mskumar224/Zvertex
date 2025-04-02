@@ -71,7 +71,6 @@ body {
   background-color: #e07b30;
 }
 
-/* New Styles for Subscription Cards and Zgpt */
 .subscription-card {
   transition: transform 0.3s;
 }
@@ -80,8 +79,35 @@ body {
   transform: scale(1.05);
 }
 
-.zgpt-section {
+.zgpt-container {
   animation: fadeIn 1s ease-in;
+}
+
+.zgpt-search-form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.zgpt-results {
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.zgpt-results::-webkit-scrollbar {
+  width: 8px;
+}
+
+.zgpt-results::-webkit-scrollbar-thumb {
+  background-color: #f28c38;
+  border-radius: 4px;
+}
+
+.zgpt-results::-webkit-scrollbar-track {
+  background-color: #f5f6fa;
 }
 
 @keyframes fadeIn {

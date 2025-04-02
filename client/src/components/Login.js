@@ -7,7 +7,7 @@ function Login({ setUser }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResult, setSearchResult] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
   const history = useHistory();
 
   const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
@@ -29,18 +29,29 @@ function Login({ setUser }) {
   const handleSearch = (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) {
-      setSearchResult('Please enter a search term!');
+      setSearchResults([{ type: 'error', content: 'Please enter a search term!' }]);
       return;
     }
 
-    // Simulate a search response with job-related suggestions
-    const jobSuggestions = [
-      `Looking for "${searchQuery}"? How about exploring job opportunities in this field? Subscribe to our STUDENT plan for $59.99/month and submit your resume to 35 jobs daily!`,
-      `Your search for "${searchQuery}" could lead to a great career! Our VENDOR plan at $99.99/month lets you manage 4 resumes with 175 submissions per day.`,
-      `Interested in "${searchQuery}"? Businesses can hire top talent with our BUSINESS plan—contact us for custom pricing!`,
+    // Simulated professional job search responses
+    const mockResponses = [
+      {
+        type: 'job',
+        content: `Found a job match for "${searchQuery}": Software Engineer at TechCorp. Location: Remote. Salary: $90k-$120k. Apply now with our STUDENT plan ($59.99/month) for 35 daily submissions!`,
+      },
+      {
+        type: 'advice',
+        content: `Searching for "${searchQuery}"? Tailor your resume with keywords like "teamwork" and "innovation" to stand out. Upgrade to VENDOR ($99.99/month) to manage 4 resumes!`,
+      },
+      {
+        type: 'market',
+        content: `Market insight for "${searchQuery}": Demand for this skill is up 15% this year. Businesses can hire talent with our BUSINESS plan—contact us for details!`,
+      },
     ];
-    const randomSuggestion = jobSuggestions[Math.floor(Math.random() * jobSuggestions.length)];
-    setSearchResult(randomSuggestion);
+
+    // Randomly select 1-3 responses for variety
+    const shuffled = mockResponses.sort(() => 0.5 - Math.random());
+    setSearchResults(shuffled.slice(0, Math.floor(Math.random() * 3) + 1));
   };
 
   const goHome = () => history.push('/');
@@ -54,17 +65,14 @@ function Login({ setUser }) {
         </div>
       </div>
 
-      {/* Hero Section */}
       <div className="hero">
         <Typography variant="h2">Welcome to ZvertexAI</Typography>
         <Typography variant="body1">Your gateway to smarter job applications</Typography>
       </div>
 
-      {/* Subscription Plans Section */}
       <Box sx={{ padding: '40px', textAlign: 'center' }}>
         <Typography variant="h4" gutterBottom>Choose Your Plan</Typography>
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
-          {/* Student Plan */}
           <Card sx={{ width: 300, backgroundColor: '#fff', boxShadow: 3 }}>
             <CardContent>
               <Typography variant="h5" color="primary">Student</Typography>
@@ -77,7 +85,6 @@ function Login({ setUser }) {
             </CardContent>
           </Card>
 
-          {/* Vendor Plan */}
           <Card sx={{ width: 300, backgroundColor: '#fff', boxShadow: 3 }}>
             <CardContent>
               <Typography variant="h5" color="primary">Vendor</Typography>
@@ -90,7 +97,6 @@ function Login({ setUser }) {
             </CardContent>
           </Card>
 
-          {/* Business Plan */}
           <Card sx={{ width: 300, backgroundColor: '#fff', boxShadow: 3 }}>
             <CardContent>
               <Typography variant="h5" color="primary">Business</Typography>
@@ -105,33 +111,37 @@ function Login({ setUser }) {
         </Box>
       </Box>
 
-      {/* Zgpt Mini Search Bot Section */}
-      <Box sx={{ padding: '40px', textAlign: 'center', backgroundColor: '#1a2a44', color: 'white', borderRadius: '10px', maxWidth: '600px', margin: '0 auto 40px' }}>
-        <Typography variant="h4" gutterBottom>Meet Zgpt - Your Job Search Companion</Typography>
-        <Typography variant="body1" sx={{ mb: 2 }}>
-          Ask Zgpt anything and get job-related insights to boost your career!
+      <Box className="zgpt-container" sx={{ padding: '40px', textAlign: 'center', backgroundColor: '#fff', maxWidth: '800px', margin: '0 auto 40px', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+        <Typography variant="h4" gutterBottom sx={{ color: '#1a2a44' }}>Zgpt - Job Search Assistant</Typography>
+        <Typography variant="body1" sx={{ mb: 3, color: '#666' }}>
+          Ask Zgpt anything about jobs, careers, or skills, and get instant insights!
         </Typography>
-        <form onSubmit={handleSearch}>
+        <form onSubmit={handleSearch} className="zgpt-search-form">
           <TextField
-            label="Search with Zgpt"
+            label="Ask Zgpt (e.g., 'software engineer jobs')"
             variant="outlined"
             fullWidth
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            sx={{ backgroundColor: 'white', borderRadius: '5px', mb: 2 }}
+            sx={{ mb: 2, backgroundColor: '#f5f6fa', borderRadius: '5px' }}
           />
-          <Button type="submit" variant="contained" color="secondary" sx={{ padding: '10px 20px' }}>
+          <Button type="submit" variant="contained" color="primary" sx={{ padding: '12px 24px', fontSize: '16px' }}>
             Search
           </Button>
         </form>
-        {searchResult && (
-          <Typography variant="body2" sx={{ mt: 2, backgroundColor: '#f28c38', padding: '10px', borderRadius: '5px', display: 'inline-block' }}>
-            {searchResult}
-          </Typography>
+        {searchResults.length > 0 && (
+          <Box className="zgpt-results" sx={{ mt: 3, textAlign: 'left' }}>
+            {searchResults.map((result, index) => (
+              <Box key={index} sx={{ p: 2, mb: 2, backgroundColor: '#f9f9f9', borderRadius: '8px', borderLeft: '4px solid #f28c38' }}>
+                <Typography variant="body1" sx={{ color: '#1a2a44' }}>
+                  {result.content}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
         )}
       </Box>
 
-      {/* Login Section */}
       <div className="card" style={{ maxWidth: '400px', margin: '40px auto' }}>
         <Typography variant="h5" align="center">Welcome Back</Typography>
         <Typography variant="body2" align="center" sx={{ mb: 2 }}>Log in to manage your job applications</Typography>
@@ -161,6 +171,9 @@ function Login({ setUser }) {
             <Link href="/forgot-password">Forgot Password?</Link>
           </Typography>
         </form>
+        <Typography align="center" sx={{ mt: 2, color: '#666' }}>
+          For testing: Use <strong>test@zvertexai.com</strong> with password <strong>test1234</strong>
+        </Typography>
       </div>
     </div>
   );
