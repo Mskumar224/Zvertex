@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { TextField, Button, Typography, MenuItem } from '@mui/material';
 import axios from 'axios';
 import { useHistory } from 'react-router-dom';
+import { loadStripe } from '@stripe/stripe-js'; // For Stripe.js
+
+const stripePromise = loadStripe('pk_live_51R0u7fRr16KPJ9OnPwlpNKyHkwGHnvtZqibd2PWsxgkgqyzYOmx4AZE69YTmsrqpI5fk5aCSj04972mddYaBR8da004FxbliCE'); // Replace with your live publishable key
 
 function Register() {
   const [email, setEmail] = useState('');
@@ -15,9 +18,20 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Register the user
       await axios.post(`${apiUrl}/api/auth/register`, { email, password, subscriptionType });
-      alert('Registration successful! Please login.');
-      history.push('/');
+      
+      // Create Stripe Checkout session
+      const response = await axios.post(`${apiUrl}/api/payment/create-checkout-session`, {
+        email,
+        subscriptionType,
+      });
+
+      if (subscriptionType === 'BUSINESS') {
+        window.location.href = response.data.url; // Redirect to email for Business plan
+      } else {
+        window.location.href = response.data.url; // Redirect to Stripe Checkout
+      }
     } catch (err) {
       console.error('Register Error:', err.response ? err.response.data : err.message);
       alert(err.response?.data.msg || 'Registration failed. Check console for details.');
@@ -66,12 +80,12 @@ function Register() {
             value={subscriptionType}
             onChange={(e) => setSubscriptionType(e.target.value)}
           >
-            <MenuItem value="STUDENT">Student (Free)</MenuItem>
-            <MenuItem value="RECRUITER">Recruiter (Free)</MenuItem>
-            <MenuItem value="BUSINESS">Business (Free)</MenuItem>
+            <MenuItem value="STUDENT">Student ($59.99/Month)</MenuItem>
+            <MenuItem value="VENDOR">Vendor ($99.99/Month)</MenuItem>
+            <MenuItem value="BUSINESS">Business (Contact Us)</MenuItem>
           </TextField>
           <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
-            Register
+            Register & Pay
           </Button>
         </form>
       </div>
