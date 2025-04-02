@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { TextField, Button, Typography, MenuItem } from '@mui/material';
 import axios from 'axios';
 import { useHistory } from 'react-router-dom';
-import { loadStripe } from '@stripe/stripe-js'; // For Stripe.js
+import { loadStripe } from '@stripe/stripe-js';
 
 const stripePromise = loadStripe('pk_live_51R0u7fRr16KPJ9OnPwlpNKyHkwGHnvtZqibd2PWsxgkgqyzYOmx4AZE69YTmsrqpI5fk5aCSj04972mddYaBR8da004FxbliCE'); // Replace with your live publishable key
 
@@ -33,8 +33,8 @@ function Register() {
         window.location.href = response.data.url; // Redirect to Stripe Checkout
       }
     } catch (err) {
-      console.error('Register Error:', err.response ? err.response.data : err.message);
-      alert(err.response?.data.msg || 'Registration failed. Check console for details.');
+      console.error('Register Error:', err.message, err.response?.data);
+      alert(err.response?.data?.msg || err.message || 'Registration failed. Check network or server status.');
     }
   };
 

@@ -3,8 +3,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const jobRoutes = require('./routes/job');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY); // Add Stripe
-const User = require('./models/User'); // Assuming you have a User model
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || ''); // Fallback to avoid crash
+const User = require('./models/User');
 require('dotenv').config();
 
 const app = express();
@@ -32,6 +32,11 @@ mongoose.connect(process.env.MONGO_URI, {
   .then(() => console.log('MongoDB Connected'))
   .catch(err => console.error('MongoDB Connection Error:', err));
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK' });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
@@ -40,10 +45,14 @@ app.use('/api/jobs', jobRoutes);
 app.post('/api/payment/create-checkout-session', async (req, res) => {
   const { email, subscriptionType } = req.body;
 
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return res.status(500).json({ error: 'Stripe secret key not configured' });
+  }
+
   const priceMap = {
     STUDENT: 5999, // $59.99 in cents
     VENDOR: 9999,  // $99.99 in cents
-    BUSINESS: 0,   // Custom pricing, redirect to contact
+    BUSINESS: 0,   // Custom pricing
   };
 
   try {
@@ -63,7 +72,7 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
         },
         quantity: 1,
       }],
-      mode: 'payment', // One-time payment; use 'subscription' for recurring
+      mode: 'payment',
       success_url: `https://zvertexai.com/payment-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: 'https://zvertexai.com/register',
       customer_email: email,
@@ -71,12 +80,12 @@ app.post('/api/payment/create-checkout-session', async (req, res) => {
 
     res.json({ url: session.url });
   } catch (error) {
-    console.error('Stripe Error:', error);
-    res.status(500).json({ error: 'Failed to create checkout session' });
+    console.error('Stripe Error:', error.message);
+    res.status(500).json({ error: 'Failed to create checkout session', details: error.message });
   }
 });
 
-// Verify Payment and Update User Subscription
+// Verify Payment
 app.get('/api/payment/verify', async (req, res) => {
   const { session_id } = req.query;
 
@@ -93,8 +102,8 @@ app.get('/api/payment/verify', async (req, res) => {
       res.status(400).json({ error: 'Payment not completed' });
     }
   } catch (error) {
-    console.error('Verification Error:', error);
-    res.status(500).json({ error: 'Verification failed' });
+    console.error('Verification Error:', error.message);
+    res.status(500).json({ error: 'Verification failed', details: error.message });
   }
 });
 
