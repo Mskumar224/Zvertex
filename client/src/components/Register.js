@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useHistory } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 
-const stripePromise = loadStripe('pk_live_51R0u7fRr16KPJ9OnPwlpNKyHkwGHnvtZqibd2PWsxgkgqyzYOmx4AZE69YTmsrqpI5fk5aCSj04972mddYaBR8da004FxbliCE'); // Replace with your live publishable key
+const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
 function Register() {
   const [email, setEmail] = useState('');
@@ -19,12 +19,10 @@ function Register() {
     e.preventDefault();
     console.log('Starting registration process:', { email, subscriptionType });
     try {
-      // Register the user
       console.log('Sending registration request to:', `${apiUrl}/api/auth/register`);
       await axios.post(`${apiUrl}/api/auth/register`, { email, password, subscriptionType });
       console.log('User registered successfully');
 
-      // Create Stripe Checkout session
       console.log('Creating Stripe Checkout session at:', `${apiUrl}/api/payment/create-checkout-session`);
       const response = await axios.post(`${apiUrl}/api/payment/create-checkout-session`, {
         email,
@@ -39,7 +37,7 @@ function Register() {
       }
     } catch (err) {
       console.error('Register Error:', err.message, err.response?.data);
-      const errorMsg = err.response?.data?.error || err.response?.data?.msg || 'Registration failed';
+      const errorMsg = err.response?.data?.msg || err.response?.data?.error || 'Registration failed';
       const errorDetails = err.response?.data?.details || err.message;
       alert(`Error: ${errorMsg}${errorDetails ? ` - ${errorDetails}` : ''}`);
     }

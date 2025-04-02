@@ -24,12 +24,23 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Test email for full access across all subscriptions
+// Test email for full access
 const TEST_EMAIL = 'test@zvertexai.com';
-const TEST_PASSWORD = 'test1234'; // Predefined password for test account
+const TEST_PASSWORD = 'test1234';
 
 router.post('/register', async (req, res) => {
   const { email, password, subscriptionType } = req.body;
+
+  // Input validation
+  if (!email || !password) {
+    return res.status(400).json({ msg: 'Email and password are required' });
+  }
+
+  if (!process.env.JWT_SECRET) {
+    console.error('JWT_SECRET is not defined in environment variables');
+    return res.status(500).json({ msg: 'Server configuration error' });
+  }
+
   try {
     let user = await User.findOne({ email });
 
@@ -38,7 +49,7 @@ router.post('/register', async (req, res) => {
     }
 
     if (user && !user.paid && email !== TEST_EMAIL) {
-      await User.deleteOne({ email }); // Remove unpaid user unless it's the test account
+      await User.deleteOne({ email });
     }
 
     const isTestUser = email === TEST_EMAIL;
@@ -46,19 +57,22 @@ router.post('/register', async (req, res) => {
       email,
       password: await bcrypt.hash(password, 10),
       subscriptionType: subscriptionType || 'STUDENT',
-      paid: isTestUser ? true : false, // Test user is automatically "paid"
+      paid: isTestUser ? true : false,
     });
 
     await user.save();
 
     const token = jwt.sign(
-      { id: user._id, isTestUser }, // Include isTestUser in token for full access
+      { id: user._id, isTestUser },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
     res.json({ token, subscriptionType: user.subscriptionType });
   } catch (err) {
-    console.error('Register Error:', err);
+    console.error('Register Error:', {
+      message: err.message,
+      stack: err.stack,
+    });
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
@@ -74,11 +88,10 @@ router.post('/login', async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ msg: 'Invalid email or password' });
 
-    // Allow test user to log in regardless of paid status
     if (!isTestUser && !user.paid) return res.status(400).json({ msg: 'User not subscribed. Please complete payment.' });
 
     const token = jwt.sign(
-      { id: user._id, isTestUser }, // Include isTestUser in token
+      { id: user._id, isTestUser },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
