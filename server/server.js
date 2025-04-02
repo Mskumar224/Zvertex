@@ -7,11 +7,16 @@ require('dotenv').config();
 
 const app = express();
 
-app.use(cors());
+// Update CORS to allow Netlify domain
+app.use(cors({
+  origin: ['http://zvertexai.com/', 'http://localhost:3000'], // Add your Netlify URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'x-auth-token'],
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Set Mongoose strictQuery to suppress deprecation warning
 mongoose.set('strictQuery', false);
 
 mongoose.connect(process.env.MONGO_URI, {

@@ -10,6 +10,7 @@ function Register() {
   const history = useHistory();
 
   const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+  console.log('API URL being used:', apiUrl); // Add this for debugging
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,6 +19,7 @@ function Register() {
       alert('Registration successful! Please login.');
       history.push('/');
     } catch (err) {
+      console.error('Register Error:', err.response); // Log the full error response
       alert(err.response?.data.msg || 'Registration failed');
     }
   };
