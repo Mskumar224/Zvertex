@@ -55,7 +55,7 @@ function Dashboard({ user, setUser }) {
       const res = await axios.post(`${apiUrl}/api/jobs/auto-apply`, {}, {
         headers: { 'x-auth-token': localStorage.getItem('token') },
       });
-      alert(res.data.msg);
+      alert(res.data.msg + ' Check your email for confirmation.');
       setAppliedJobs([...appliedJobs, ...jobs]);
     } catch (err) {
       alert(err.response?.data.msg || 'Auto-apply failed');
@@ -85,10 +85,12 @@ function Dashboard({ user, setUser }) {
     );
   });
 
+  const goHome = () => history.push('/');
+
   return (
     <div>
       <div className="header">
-        <h1>ZvertexAGI</h1>
+        <h1 onClick={goHome}>ZvertexAI</h1>
         <div className="nav-links">
           <a href="#" onClick={handleLogout}>Logout</a>
         </div>
@@ -98,6 +100,9 @@ function Dashboard({ user, setUser }) {
         <Typography variant="body1">Manage your job applications or postings</Typography>
       </div>
       <div style={{ padding: '40px' }}>
+        <button className="back-button" onClick={() => history.goBack()}>
+          Back
+        </button>
         {user?.subscriptionType === 'STUDENT' && (
           <div className="card">
             <Button variant="contained" color="secondary" onClick={() => history.push('/upload')}>

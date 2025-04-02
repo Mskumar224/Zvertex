@@ -21,10 +21,12 @@ function ResetPassword() {
     }
   };
 
+  const goHome = () => history.push('/');
+
   return (
     <div>
       <div className="header">
-        <h1>ZvertexAGI</h1>
+        <h1 onClick={goHome}>ZvertexAI</h1>
         <div className="nav-links">
           <Link href="/">Login</Link>
         </div>
@@ -34,6 +36,9 @@ function ResetPassword() {
         <Typography variant="body1">Enter your new password</Typography>
       </div>
       <div className="card" style={{ maxWidth: '400px', margin: '40px auto' }}>
+        <button className="back-button" onClick={() => history.goBack()}>
+          Back
+        </button>
         <form onSubmit={handleSubmit}>
           <TextField
             label="Reset Token"

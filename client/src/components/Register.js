@@ -22,10 +22,12 @@ function Register() {
     }
   };
 
+  const goHome = () => history.push('/');
+
   return (
     <div>
       <div className="header">
-        <h1>ZvertexAGI</h1>
+        <h1 onClick={goHome}>ZvertexAI</h1>
         <div className="nav-links">
           <a href="/">Login</a>
         </div>
@@ -35,6 +37,9 @@ function Register() {
         <Typography variant="body1">Create an account to get started</Typography>
       </div>
       <div className="card" style={{ maxWidth: '400px', margin: '40px auto' }}>
+        <button className="back-button" onClick={() => history.goBack()}>
+          Back
+        </button>
         <form onSubmit={handleSubmit}>
           <TextField
             label="Email"

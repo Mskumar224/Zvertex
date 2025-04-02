@@ -16,6 +16,7 @@ body {
   .header h1 {
     margin: 0;
     font-size: 24px;
+    cursor: pointer; /* Make ZvertexAI clickable */
   }
   
   .nav-links a {
@@ -52,4 +53,20 @@ body {
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     padding: 20px;
     margin-bottom: 20px;
+  }
+  
+  .back-button {
+    background-color: #f28c38;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-bottom: 20px;
+    transition: background-color 0.3s;
+  }
+  
+  .back-button:hover {
+    background-color: #e07b30;
   }

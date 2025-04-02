@@ -8,7 +8,7 @@ function Login({ setUser }) {
   const [password, setPassword] = useState('');
   const history = useHistory();
 
-  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000'; // Fallback for local dev
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,10 +22,12 @@ function Login({ setUser }) {
     }
   };
 
+  const goHome = () => history.push('/');
+
   return (
     <div>
       <div className="header">
-        <h1>ZvertexAGI</h1>
+        <h1 onClick={goHome}>ZvertexAI</h1>
         <div className="nav-links">
           <Link href="/register">Register</Link>
         </div>
@@ -35,6 +37,9 @@ function Login({ setUser }) {
         <Typography variant="body1">Log in to manage your job applications</Typography>
       </div>
       <div className="card" style={{ maxWidth: '400px', margin: '40px auto' }}>
+        <button className="back-button" onClick={() => history.goBack()}>
+          Back
+        </button>
         <form onSubmit={handleSubmit}>
           <TextField
             label="Email"
