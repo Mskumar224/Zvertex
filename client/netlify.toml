@@ -13,3 +13,9 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+[[redirects]]
+  from = "http://zvertexai.com/*"
+  to = "https://zvertexai.com/:splat"
+  status = 301
+  force = true
