@@ -11,7 +11,7 @@ function Dashboard({ user }) {
   const [resume, setResume] = useState(null);
   const [technology, setTechnology] = useState('');
   const [manualTech, setManualTech] = useState('');
-  const [companies, setCompanies] = useState([]);
+  const [companies, setCompanies] = useState([]); // Array to store selected companies
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -69,18 +69,21 @@ function Dashboard({ user }) {
 
   const handleCompanyChange = (e) => {
     const selected = e.target.value;
-    if (selected.length >= 2 && selected.length <= 10) {
-      setCompanies(selected);
-      setMessage('');
-    } else {
+    setCompanies(selected);
+    if (selected.length < 2 || selected.length > 10) {
       setMessage('Please select between 2 and 10 companies.');
-      setCompanies([]);
+    } else {
+      setMessage(`Selected ${selected.length} companies: ${selected.join(', ')}`);
     }
   };
 
   const fetchJobs = async () => {
-    if (!technology || companies.length < 2 || companies.length > 10) {
-      setMessage('Please provide technology and select 2-10 companies.');
+    if (!technology) {
+      setMessage('Please upload a resume or enter technology manually.');
+      return;
+    }
+    if (companies.length < 2 || companies.length > 10) {
+      setMessage('Please select between 2 and 10 companies before fetching jobs.');
       return;
     }
     if (!userDetails.phone) {
@@ -93,10 +96,10 @@ function Dashboard({ user }) {
         headers: { 'x-auth-token': localStorage.getItem('token') },
       });
       setJobs(res.data.jobs);
-      setMessage('Jobs fetched successfully! Select a job to apply.');
+      setMessage(`Successfully fetched jobs for ${companies.length} companies!`);
     } catch (err) {
       console.error('Fetch Jobs Error:', err);
-      setMessage('Error fetching jobs.');
+      setMessage('Error fetching jobs: ' + (err.response?.data?.msg || err.message));
     } finally {
       setLoading(false);
     }
@@ -115,10 +118,10 @@ function Dashboard({ user }) {
         headers: { 'x-auth-token': localStorage.getItem('token') },
       });
       setMessage(res.data.msg);
-      setJobs(jobs.filter(j => j.id !== job.id)); // Remove applied job from list
+      setJobs(jobs.filter(j => j.id !== job.id));
     } catch (err) {
       console.error('Apply Error:', err);
-      setMessage('Error applying to job.');
+      setMessage('Error applying to job: ' + (err.response?.data?.msg || err.message));
     } finally {
       setLoading(false);
     }
@@ -210,10 +213,17 @@ function Dashboard({ user }) {
                   value={companies} 
                   onChange={handleCompanyChange} 
                   variant="outlined"
-                  error={companies.length > 0 && (companies.length < 2 || companies.length > 10)}
+                  renderValue={(selected) => selected.join(', ')}
                 >
                   {companyList.map((company) => (
-                    <MenuItem key={company} value={company}>{company}</MenuItem>
+                    <MenuItem key={company} value={company}>
+                      <input
+                        type="checkbox"
+                        checked={companies.includes(company)}
+                        readOnly
+                      />
+                      {company}
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
