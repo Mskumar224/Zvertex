@@ -31,7 +31,6 @@ function Dashboard({ user }) {
     'Twilio', 'MongoDB', 'Elastic', 'Splunk', 'Palo Alto Networks', 'Fortinet', 'CrowdStrike', 'Zscaler', 'Okta', 'Cloudflare'
   ];
 
-  // Fetch user details on mount
   useEffect(() => {
     const fetchUserDetails = async () => {
       try {
@@ -39,6 +38,7 @@ function Dashboard({ user }) {
           headers: { 'x-auth-token': localStorage.getItem('token') },
         });
         setUserDetails({ phone: res.data.phone || '', email: res.data.email });
+        if (res.data.resume) setResume(res.data.resume);
       } catch (err) {
         console.error('Fetch User Details Error:', err);
       }
@@ -74,11 +74,12 @@ function Dashboard({ user }) {
       setMessage('');
     } else {
       setMessage('Please select between 2 and 10 companies.');
+      setCompanies([]);
     }
   };
 
   const fetchJobs = async () => {
-    if (!technology || companies.length < 2) {
+    if (!technology || companies.length < 2 || companies.length > 10) {
       setMessage('Please provide technology and select 2-10 companies.');
       return;
     }
@@ -92,7 +93,7 @@ function Dashboard({ user }) {
         headers: { 'x-auth-token': localStorage.getItem('token') },
       });
       setJobs(res.data.jobs);
-      setMessage('Jobs fetched successfully!');
+      setMessage('Jobs fetched successfully! Select a job to apply.');
     } catch (err) {
       console.error('Fetch Jobs Error:', err);
       setMessage('Error fetching jobs.');
@@ -104,10 +105,17 @@ function Dashboard({ user }) {
   const applyToJob = async (job) => {
     setLoading(true);
     try {
-      const res = await axios.post(`${apiUrl}/api/jobs/apply`, { jobId: job.id, technology, userDetails }, {
+      const res = await axios.post(`${apiUrl}/api/jobs/apply`, { 
+        jobId: job.id, 
+        technology, 
+        userDetails,
+        jobTitle: job.title,
+        company: job.company
+      }, {
         headers: { 'x-auth-token': localStorage.getItem('token') },
       });
       setMessage(res.data.msg);
+      setJobs(jobs.filter(j => j.id !== job.id)); // Remove applied job from list
     } catch (err) {
       console.error('Apply Error:', err);
       setMessage('Error applying to job.');
@@ -137,16 +145,15 @@ function Dashboard({ user }) {
           Logout
         </Button>
       </Box>
-
       <Paper elevation={3} sx={{ padding: '20px', borderRadius: '10px', mb: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#1a2a44' }}>
           Welcome, {user.subscriptionType} user!
         </Typography>
-        <Typography variant="body1" sx={{ mt: 1 }}>Manage your job applications seamlessly.</Typography>
+        <Typography variant="body1" sx={{ mt: 1 }}>
+          Your resume will auto-apply to jobs every 30 minutes. Manage manual applications below.
+        </Typography>
       </Paper>
-
       <Box sx={{ display: 'flex', gap: '20px' }}>
-        {/* Left Panel: User Details and Resume Upload */}
         <Paper elevation={3} sx={{ flex: 1, padding: '20px', borderRadius: '10px' }}>
           <Typography variant="h6" sx={{ mb: 2 }}>User Details</Typography>
           <form onSubmit={handleUserDetailsSubmit}>
@@ -171,7 +178,6 @@ function Dashboard({ user }) {
               Save Details
             </Button>
           </form>
-
           <Divider sx={{ my: 2 }} />
           <Typography variant="h6" sx={{ mb: 2 }}>Upload Resume</Typography>
           <input type="file" accept=".pdf,.docx" onChange={handleResumeUpload} style={{ marginBottom: '10px' }} />
@@ -193,26 +199,35 @@ function Dashboard({ user }) {
             />
           )}
         </Paper>
-
-        {/* Right Panel: Company Selection and Jobs */}
         <Paper elevation={3} sx={{ flex: 2, padding: '20px', borderRadius: '10px' }}>
           {message && <Alert severity={message.includes('Error') ? 'error' : 'info'} sx={{ mb: 2 }}>{message}</Alert>}
           {technology && (
             <>
               <FormControl fullWidth margin="normal">
                 <InputLabel>Select Companies (2-10)</InputLabel>
-                <Select multiple value={companies} onChange={handleCompanyChange} variant="outlined">
+                <Select 
+                  multiple 
+                  value={companies} 
+                  onChange={handleCompanyChange} 
+                  variant="outlined"
+                  error={companies.length > 0 && (companies.length < 2 || companies.length > 10)}
+                >
                   {companyList.map((company) => (
                     <MenuItem key={company} value={company}>{company}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
-              <Button variant="contained" color="primary" onClick={fetchJobs} disabled={loading} sx={{ mt: 2 }}>
+              <Button 
+                variant="contained" 
+                color="primary" 
+                onClick={fetchJobs} 
+                disabled={loading || companies.length < 2 || companies.length > 10} 
+                sx={{ mt: 2 }}
+              >
                 Fetch Jobs
               </Button>
             </>
           )}
-
           {jobs.length > 0 && (
             <Box sx={{ mt: 3 }}>
               <Typography variant="h6" sx={{ mb: 2 }}>Available Jobs</Typography>
@@ -220,7 +235,12 @@ function Dashboard({ user }) {
                 {jobs.map((job) => (
                   <ListItem key={job.id} sx={{ border: '1px solid #ddd', borderRadius: '5px', mb: 1 }}>
                     <ListItemText primary={`${job.title} - ${job.company}`} secondary={job.location} />
-                    <Button variant="contained" color="secondary" onClick={() => applyToJob(job)} disabled={loading}>
+                    <Button 
+                      variant="contained" 
+                      color="secondary" 
+                      onClick={() => applyToJob(job)} 
+                      disabled={loading}
+                    >
                       Apply
                     </Button>
                   </ListItem>

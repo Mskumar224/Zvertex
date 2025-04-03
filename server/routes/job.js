@@ -10,10 +10,9 @@ const User = require('../models/User');
 const adzunaAppId = process.env.ADZUNA_APP_ID;
 const adzunaAppKey = process.env.ADZUNA_APP_KEY;
 
-// Initialize Twilio client lazily with error handling
 const getTwilioClient = () => {
   if (!process.env.TWILIO_SID || !process.env.TWILIO_AUTH_TOKEN) {
-    console.error('Twilio credentials missing. SMS functionality will be disabled.');
+    console.error('Twilio credentials missing. SMS functionality disabled.');
     return null;
   }
   return twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
@@ -23,6 +22,9 @@ router.post('/fetch', authMiddleware, async (req, res) => {
   const { technology, companies } = req.body;
   try {
     if (!adzunaAppId || !adzunaAppKey) throw new Error('Adzuna API credentials missing');
+    if (companies.length < 2 || companies.length > 10) {
+      return res.status(400).json({ msg: 'Please select between 2 and 10 companies' });
+    }
     const response = await axios.get('https://api.adzuna.com/v1/api/jobs/us/search/1', {
       params: {
         app_id: adzunaAppId,
@@ -48,26 +50,30 @@ router.post('/fetch', authMiddleware, async (req, res) => {
 });
 
 router.post('/apply', authMiddleware, async (req, res) => {
-  const { jobId, technology, userDetails } = req.body;
+  const { jobId, technology, userDetails, jobTitle, company } = req.body;
   const user = await User.findById(req.user.id);
   if (!user || (!user.paid && user.email !== 'test@zvertexai.com')) {
     return res.status(404).json({ msg: 'User not found or not subscribed' });
   }
 
   try {
-    // Mock Puppeteer automation (replace with real logic)
+    // Check if job was already applied
+    if (user.appliedJobs.some(job => job.jobId === jobId)) {
+      return res.status(400).json({ msg: 'Already applied to this job' });
+    }
+
+    // Simulate job application (replace with actual application logic)
     const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
-    await page.goto(`https://www.adzuna.com/browse/job/${jobId}`); // Replace with job.url from Adzuna
-    await page.type('#email', userDetails.email);
-    await page.type('#phone', userDetails.phone);
-    await page.click('#submit'); // Adjust selector based on actual site
+    await page.goto(`https://api.adzuna.com/v1/api/jobs/us/search/1?app_id=${adzunaAppId}&app_key=${adzunaAppKey}&what=${technology}&content-type=application/json`); 
+    // Note: Actual application would need job-specific URL and form handling
     await browser.close();
 
+    // Update user's applied jobs
     user.appliedJobs.push({ jobId, technology, date: new Date() });
     await user.save();
 
-    // Email confirmation
+    // Email notification
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
@@ -75,23 +81,35 @@ router.post('/apply', authMiddleware, async (req, res) => {
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: user.email,
-      subject: `Application Confirmation: ${jobId}`,
-      text: `You’ve successfully applied to ${jobId} using ${technology}. We’ll keep you updated!`,
+      subject: `Application Confirmation: ${jobTitle} at ${company}`,
+      html: `
+        <h2>Application Submitted Successfully!</h2>
+        <p>You've applied to:</p>
+        <ul>
+          <li>Position: ${jobTitle}</li>
+          <li>Company: ${company}</li>
+          <li>Job ID: ${jobId}</li>
+          <li>Technology: ${technology}</li>
+          <li>Date: ${new Date().toLocaleString()}</li>
+        </ul>
+        <p>We'll notify you of any updates regarding your application!</p>
+      `,
     });
 
-    // SMS confirmation
+    // SMS notification
     const twilioClient = getTwilioClient();
     if (twilioClient && process.env.TWILIO_PHONE) {
       await twilioClient.messages.create({
-        body: `Applied to ${jobId} at ${new Date().toLocaleString()}. Check your email for details!`,
+        body: `Applied to ${jobTitle} at ${company} (ID: ${jobId}) on ${new Date().toLocaleString()}. Check email for details!`,
         from: process.env.TWILIO_PHONE,
         to: userDetails.phone,
       });
-    } else {
-      console.warn('SMS not sent due to missing Twilio configuration');
     }
 
-    res.json({ msg: `Applied to ${jobId} successfully! Confirmation sent via email${twilioClient ? ' and SMS' : ''}.` });
+    res.json({ 
+      msg: `Applied to ${jobTitle} at ${company} successfully! Confirmation sent via email${twilioClient ? ' and SMS' : ''}.`,
+      job: { id: jobId, title: jobTitle, company }
+    });
   } catch (err) {
     console.error('Apply Error:', err);
     res.status(500).json({ msg: 'Server error', error: err.message });
