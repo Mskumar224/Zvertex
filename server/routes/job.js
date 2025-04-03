@@ -34,22 +34,14 @@ router.post('/fetch', authMiddleware, async (req, res) => {
         query: technology,
         location: 'United States',
         page_id: '1',
-        // Removed 'fromage' as it’s not valid per the error
       },
       headers: {
         'X-RapidAPI-Key': RAPIDAPI_KEY,
         'X-RapidAPI-Host': 'indeed12.p.rapidapi.com'
       },
-    }).catch(err => {
-      if (err.response?.status === 403) {
-        throw new Error('RapidAPI access denied: Not subscribed to Indeed API');
-      } else if (err.response?.status === 400) {
-        throw new Error(`Invalid request to Indeed API: ${err.response.data.message}`);
-      }
-      throw err;
     });
 
-    console.log('Indeed API response:', response.data);
+    console.log('Indeed API response:', JSON.stringify(response.data, null, 2));
     const jobs = response.data.hits.map((job) => ({
       id: job.id || `${job.title}-${job.company_name}-${Date.now()}`,
       title: job.title,
@@ -67,6 +59,7 @@ router.post('/fetch', authMiddleware, async (req, res) => {
       ? jobs.filter(job => companies.some(c => job.company.toLowerCase().includes(c.toLowerCase())))
       : jobs;
 
+    console.log('Returning jobs:', filteredJobs);
     res.json({ jobs: filteredJobs.slice(0, 10) });
   } catch (err) {
     console.error('Fetch Jobs Error Details:', {
@@ -75,10 +68,10 @@ router.post('/fetch', authMiddleware, async (req, res) => {
       response: err.response?.data,
       status: err.response?.status
     });
-    if (err.message.includes('RapidAPI access denied')) {
+    if (err.response?.status === 403) {
       return res.status(503).json({ msg: 'Cannot fetch jobs: Not subscribed to Indeed API' });
-    } else if (err.message.includes('Invalid request to Indeed API')) {
-      return res.status(400).json({ msg: err.message });
+    } else if (err.response?.status === 400) {
+      return res.status(400).json({ msg: `Invalid request to Indeed API: ${err.response.data.message}` });
     }
     res.status(500).json({ msg: 'Server error fetching jobs', error: err.message });
   }
@@ -100,7 +93,7 @@ router.post('/apply', authMiddleware, async (req, res) => {
     const missingFields = requiredFields.filter(field => !userDetails[field]);
     if (missingFields.length > 0) {
       if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        console.error('Email credentials missing');
+        console.error('Email credentials missing for missing fields notification');
         return res.status(500).json({ msg: 'Email service not configured' });
       }
       const transporter = nodemailer.createTransport({
@@ -144,6 +137,8 @@ router.post('/apply', authMiddleware, async (req, res) => {
         if (element) {
           element.value = value;
           console.log(`Filled ${selector} with ${value}`);
+        } else {
+          console.log(`Field ${selector} not found`);
         }
       }
       const submitButton = document.querySelector('button[type="submit"], input[type="submit"]');
@@ -164,14 +159,14 @@ router.post('/apply', authMiddleware, async (req, res) => {
     await user.save();
 
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      console.error('Email credentials missing');
-      return res.status(500).json({ msg: 'Email service not configured' });
+      console.error('Email credentials missing for confirmation');
+      return res.status(500).json({ msg: 'Email service not configured for confirmation' });
     }
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
     });
-    await transporter.sendMail({
+    const mailOptions = {
       from: process.env.EMAIL_USER,
       to: user.email,
       subject: `Application Submitted: ${jobTitle} at ${company}`,
@@ -188,7 +183,9 @@ router.post('/apply', authMiddleware, async (req, res) => {
         </ul>
         <p>We’ll notify you of any employer responses via this email.</p>
       `,
-    });
+    };
+    await transporter.sendMail(mailOptions);
+    console.log(`Confirmation email sent to ${user.email} for ${jobTitle} at ${company}`);
 
     const twilioClient = getTwilioClient();
     if (twilioClient) {
@@ -209,7 +206,7 @@ router.post('/apply', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/employer-response', async (req, res) => {
+router.post('/employer-response', authMiddleware, async (req, res) => {
   const { jobId, userEmail, message } = req.body;
   try {
     const user = await User.findOne({ email: userEmail });

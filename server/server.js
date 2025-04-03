@@ -1,16 +1,17 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const authRoutes = require('./routes/auth');
-const jobRoutes = require('./routes/job');
+const authRoutes = require('./routes/auth'); // Assuming this exists or will be created
+const jobRoutes = require('./routes/job');   // Routes for job fetching and applying
 const cron = require('node-cron');
-const User = require('./models/User');
+const User = require('./models/User');       // User model for MongoDB
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const app = express();
 
+// CORS Configuration
 const corsOptions = {
   origin: (origin, callback) => {
     const allowedOrigins = ['https://zvertexai.com', 'http://localhost:3000'];
@@ -27,7 +28,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
 app.options('*', (req, res) => {
   res.set({
     'Access-Control-Allow-Origin': req.headers.origin || 'https://zvertexai.com',
@@ -38,9 +38,11 @@ app.options('*', (req, res) => {
   res.status(204).end();
 });
 
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// MongoDB Connection
 if (!process.env.MONGO_URI) {
   console.error('MONGO_URI is not defined. Server will run without database.');
 } else {
@@ -49,9 +51,11 @@ if (!process.env.MONGO_URI) {
     .catch(err => console.error('MongoDB Connection Error:', err));
 }
 
-app.use('/api/auth', authRoutes);
-app.use('/api/jobs', jobRoutes);
+// Routes
+app.use('/api/auth', authRoutes); // Authentication routes (e.g., login, register)
+app.use('/api/jobs', jobRoutes);  // Job-related routes (fetch, apply)
 
+// Auto-Apply Cron Job (Existing Functionality with New JWT Integration)
 if (process.env.JWT_SECRET) {
   cron.schedule('*/30 * * * *', async () => {
     console.log('Running auto-apply job...');
@@ -64,11 +68,12 @@ if (process.env.JWT_SECRET) {
         }
         
         const technology = user.appliedJobs[0]?.technology || 'JavaScript';
-        const companies = ['Google', 'Microsoft', 'Amazon', 'Tesla', 'Apple', 'Facebook', 'IBM', 'Oracle', 'Intel', 'Cisco'];
-        const randomCompanies = companies.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 9) + 2);
+        const companies = ['Google', 'Microsoft', 'Amazon', 'Tesla', 'Apple'];
+        const randomCompanies = companies.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 4) + 2);
         
+        // Generate JWT token for authenticated request
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        const fetchRes = await axios.post(`${process.env.API_URL || 'https://zvertexai-orzv.onrender.com'}/api/jobs/fetch`, 
+        const fetchRes = await axios.post(`${process.env.API_URL || 'http://localhost:5000'}/api/jobs/fetch`, 
           { technology, companies: randomCompanies },
           { headers: { 'x-auth-token': token } }
         );
@@ -88,7 +93,7 @@ if (process.env.JWT_SECRET) {
         
         const job = availableJobs[Math.floor(Math.random() * availableJobs.length)];
         
-        await axios.post(`${process.env.API_URL || 'https://zvertexai-orzv.onrender.com'}/api/jobs/apply`, 
+        await axios.post(`${process.env.API_URL || 'http://localhost:5000'}/api/jobs/apply`, 
           { 
             jobId: job.id, 
             technology, 
@@ -115,6 +120,7 @@ if (process.env.JWT_SECRET) {
   console.warn('JWT_SECRET missing. Auto-apply cron job disabled.');
 }
 
+// Health Check Endpoint (Existing)
 app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
@@ -123,10 +129,12 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Error Handling Middleware (Existing)
 app.use((err, req, res, next) => {
   console.error('Server Error:', err);
   res.status(500).json({ msg: 'Server error', error: err.message });
 });
 
+// Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
