@@ -11,10 +11,7 @@ const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 
 const uploadDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-  console.log('Created uploads directory');
-}
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
@@ -27,10 +24,8 @@ const TEST_PASSWORD = 'test123';
 
 router.post('/register', async (req, res) => {
   const { email, password, subscriptionType } = req.body;
-  console.log('Register request received:', { email, subscriptionType });
   try {
     if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is not defined');
-
     let user = await User.findOne({ email });
     if (email === TEST_EMAIL) {
       if (user) {
@@ -49,29 +44,45 @@ router.post('/register', async (req, res) => {
       const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
       return res.json({ token, subscriptionType: user.subscriptionType });
     }
-
-    if (user && user.paid) return res.status(400).json({ msg: 'User already exists and is subscribed. Please log in.' });
+    if (user && user.paid) return res.status(400).json({ msg: 'User already exists and is subscribed.' });
     if (user && !user.paid) await User.deleteOne({ email });
-
-    user = new User({
-      email,
-      password: await bcrypt.hash(password, 10),
-      subscriptionType,
-      paid: false,
-    });
+    user = new User({ email, password: await bcrypt.hash(password, 10), subscriptionType, paid: false });
     await user.save();
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.json({ token, subscriptionType: user.subscriptionType });
   } catch (err) {
-    console.error('Register Error:', err.message, err.stack);
+    console.error('Register Error:', err);
     res.status(500).json({ msg: 'Server error', error: err.message });
+  }
+});
+
+router.get('/me', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    res.json(user);
+  } catch (err) {
+    console.error('Get User Error:', err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+router.post('/update-details', authMiddleware, async (req, res) => {
+  const { phone, email } = req.body;
+  try {
+    const user = await User.findById(req.user.id);
+    user.phone = phone;
+    user.email = email || user.email;
+    await user.save();
+    res.json({ msg: 'Details updated' });
+  } catch (err) {
+    console.error('Update Details Error:', err);
+    res.status(500).json({ msg: 'Server error' });
   }
 });
 
 router.post('/upload-resume', authMiddleware, upload.single('resume'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ msg: 'No file uploaded' });
-
     const user = await User.findById(req.user.id);
     if (!user || (!user.paid && user.email !== TEST_EMAIL)) return res.status(404).json({ msg: 'User not found or not subscribed' });
 
@@ -88,7 +99,7 @@ router.post('/upload-resume', authMiddleware, upload.single('resume'), async (re
     const techKeywords = ['JavaScript', 'Python', 'Java', 'C++', 'React', 'Node.js', 'SQL', 'AWS', 'Docker', 'Kubernetes'];
     const detectedTech = techKeywords.find((tech) => text.toLowerCase().includes(tech.toLowerCase()));
     user.resume = req.file.path;
-    await user.save({ validateModifiedOnly: true });
+    await user.save();
     res.json({ msg: 'Resume uploaded', path: req.file.path, technology: detectedTech });
   } catch (err) {
     console.error('Upload Resume Error:', err);
@@ -96,7 +107,7 @@ router.post('/upload-resume', authMiddleware, upload.single('resume'), async (re
   }
 });
 
-// Rest of the routes (login, forgot-password, etc.) remain unchanged
+// Other routes (login, forgot-password, reset-password) remain unchanged
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {

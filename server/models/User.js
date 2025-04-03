@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema({
   subscriptionType: { type: String, enum: ['STUDENT', 'VENDOR', 'BUSINESS'], default: 'STUDENT' },
   paid: { type: Boolean, default: false },
   resume: { type: String },
-  phone: { type: String }, // New field for phone number
+  phone: { type: String },
   appliedJobs: [{
     jobId: { type: String },
     technology: { type: String },
