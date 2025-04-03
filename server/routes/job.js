@@ -29,6 +29,7 @@ router.post('/fetch', authMiddleware, async (req, res) => {
     }
     console.log('Fetching jobs with:', { technology, companies });
 
+    // New Change: Removed 'fromage' parameter to fix 400 error
     const response = await axios.get('https://indeed12.p.rapidapi.com/jobs/search', {
       params: {
         query: technology,
@@ -62,6 +63,7 @@ router.post('/fetch', authMiddleware, async (req, res) => {
     console.log('Returning jobs:', filteredJobs);
     res.json({ jobs: filteredJobs.slice(0, 10) });
   } catch (err) {
+    // New Change: Enhanced error handling to avoid 500 crash
     console.error('Fetch Jobs Error Details:', {
       message: err.message,
       stack: err.stack,
