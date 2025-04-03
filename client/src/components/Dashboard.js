@@ -51,6 +51,7 @@ function Dashboard({ user }) {
         if (res.data.resume) setResume(res.data.resume);
       } catch (err) {
         console.error('Fetch User Details Error:', err);
+        setMessage('Error fetching user details.');
       }
     };
     fetchUserDetails();
@@ -106,7 +107,7 @@ function Dashboard({ user }) {
         headers: { 'x-auth-token': localStorage.getItem('token') },
       });
       setJobs(res.data.jobs);
-      setMessage(`Successfully fetched jobs for ${companies.length} companies!`);
+      setMessage(`Successfully fetched ${res.data.jobs.length} jobs for ${companies.length} companies!`);
     } catch (err) {
       console.error('Fetch Jobs Error:', err);
       setMessage(`Error fetching jobs: ${err.response?.data?.msg || err.message}`);
@@ -131,8 +132,8 @@ function Dashboard({ user }) {
       setMessage(res.data.msg);
       setJobs(jobs.filter(j => j.id !== job.id));
     } catch (err) {
-      console.error('Apply Error:', err);
-      setMessage('Error applying to job.');
+      console.error('Apply Error:', err.response?.data || err);
+      setMessage(`Error applying to job: ${err.response?.data?.msg || err.message}`);
     } finally {
       setLoading(false);
     }

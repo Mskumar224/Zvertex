@@ -58,7 +58,10 @@ if (process.env.JWT_SECRET) {
     try {
       const users = await User.find();
       for (const user of users) {
-        if (!user.resume || !user.phone || !user.fullName || !user.address) continue;
+        if (!user.resume || !user.phone || !user.fullName || !user.address) {
+          console.log(`Skipping ${user.email}: missing required details`);
+          continue;
+        }
         
         const technology = user.appliedJobs[0]?.technology || 'JavaScript';
         const companies = ['Google', 'Microsoft', 'Amazon', 'Tesla', 'Apple', 'Facebook', 'IBM', 'Oracle', 'Intel', 'Cisco'];
@@ -70,12 +73,18 @@ if (process.env.JWT_SECRET) {
           { headers: { 'x-auth-token': token } }
         );
 
-        if (fetchRes.data.jobs.length === 0) continue;
+        if (fetchRes.data.jobs.length === 0) {
+          console.log(`No jobs found for ${user.email}`);
+          continue;
+        }
         
         const availableJobs = fetchRes.data.jobs.filter(job => 
           !user.appliedJobs.some(applied => applied.jobId === job.id)
         );
-        if (availableJobs.length === 0) continue;
+        if (availableJobs.length === 0) {
+          console.log(`No new jobs for ${user.email}`);
+          continue;
+        }
         
         const job = availableJobs[Math.floor(Math.random() * availableJobs.length)];
         
@@ -94,7 +103,7 @@ if (process.env.JWT_SECRET) {
             jobUrl: job.url
           },
           { headers: { 'x-auth-token': token } }
-        );
+        ).catch(err => console.error(`Auto-apply error for ${user.email}:`, err.response?.data || err));
         
         console.log(`Auto-applied ${user.email} to ${job.title} at ${job.company} (ID: ${job.id})`);
       }

@@ -11,7 +11,7 @@ const adzunaAppId = process.env.ADZUNA_APP_ID;
 const adzunaAppKey = process.env.ADZUNA_APP_KEY;
 
 const getTwilioClient = () => {
-  if (!process.env.TWILIO_SID || !process.env.TWILIO_AUTH_TOKEN) {
+  if (!process.env.TWILIO_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE) {
     console.error('Twilio credentials missing. SMS functionality disabled.');
     return null;
   }
@@ -83,6 +83,10 @@ router.post('/apply', authMiddleware, async (req, res) => {
     const requiredFields = ['phone', 'email', 'fullName', 'address'];
     const missingFields = requiredFields.filter(field => !userDetails[field]);
     if (missingFields.length > 0) {
+      if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+        console.error('Email credentials missing');
+        return res.status(500).json({ msg: 'Email service not configured' });
+      }
       const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
@@ -95,19 +99,26 @@ router.post('/apply', authMiddleware, async (req, res) => {
           <h2>Missing Information</h2>
           <p>To auto-apply for jobs, please update your profile with the following details:</p>
           <ul>${missingFields.map(field => `<li>${field}</li>`).join('')}</ul>
-          <p>Visit your dashboard to update: <a href="https://zvertexai.com/dashboard">Dashboard</a></p>
+          <p>Visit your dashboard to update: <a href="${process.env.API_URL || 'https://zvertexai-orzv.onrender.com'}/dashboard">Dashboard</a></p>
         `,
       });
       return res.status(400).json({ msg: `Missing required details: ${missingFields.join(', ')}. Check your email for instructions.` });
     }
 
-    // Auto-fill and apply using Puppeteer
+    // Simplified Puppeteer automation (for debugging)
+    console.log(`Attempting to apply to ${jobTitle} at ${company} (URL: ${jobUrl})`);
     const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
-    await page.goto(jobUrl, { waitUntil: 'networkidle2' });
+    await page.goto(jobUrl, { waitUntil: 'networkidle2', timeout: 30000 }).catch(err => {
+      console.error('Navigation error:', err);
+    });
 
-    // Auto-fill common form fields (example logic; adjust based on actual job site forms)
+    const pageContent = await page.content();
+    console.log('Page content snippet:', pageContent.substring(0, 500)); // Log first 500 chars for debugging
+
+    // Simulate form filling (basic example; adjust for real sites)
     await page.evaluate((details) => {
+      console.log('Filling form with:', details);
       const fields = {
         'input[name="email"], input[type="email"]': details.email,
         'input[name="phone"], input[type="tel"]': details.phone,
@@ -116,15 +127,25 @@ router.post('/apply', authMiddleware, async (req, res) => {
       };
       for (const [selector, value] of Object.entries(fields)) {
         const element = document.querySelector(selector);
-        if (element) element.value = value;
+        if (element) {
+          element.value = value;
+          console.log(`Filled ${selector} with ${value}`);
+        } else {
+          console.log(`Field not found: ${selector}`);
+        }
       }
-      const resumeInput = document.querySelector('input[type="file"]');
-      if (resumeInput) resumeInput.setAttribute('data-file', 'resume.pdf'); // Placeholder; actual file upload needs server-side handling
       const submitButton = document.querySelector('button[type="submit"], input[type="submit"]');
-      if (submitButton) submitButton.click();
+      if (submitButton) {
+        submitButton.click();
+        console.log('Submit button clicked');
+      } else {
+        console.log('Submit button not found');
+      }
     }, userDetails);
 
-    await page.waitForNavigation({ waitUntil: 'networkidle2' }).catch(() => console.log('Navigation timeout'));
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 10000 }).catch(() => {
+      console.log('Navigation after submit timed out; assuming success');
+    });
     await browser.close();
 
     // Update applied jobs
@@ -132,36 +153,40 @@ router.post('/apply', authMiddleware, async (req, res) => {
     await user.save();
 
     // Send confirmation to user
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-    });
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: user.email,
-      subject: `Application Submitted: ${jobTitle} at ${company}`,
-      html: `
-        <h2>Application Submitted Successfully!</h2>
-        <p>You've applied to:</p>
-        <ul>
-          <li>Position: ${jobTitle}</li>
-          <li>Company: ${company}</li>
-          <li>Job ID: ${jobId}</li>
-          <li>Technology: ${technology}</li>
-          <li>Date: ${new Date().toLocaleString()}</li>
-          <li>Link: <a href="${jobUrl}">${jobUrl}</a></li>
-        </ul>
-        <p>We’ll forward any employer responses to this email and your phone (${userDetails.phone}).</p>
-      `,
-    });
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      console.error('Email credentials missing');
+    } else {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+      });
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: user.email,
+        subject: `Application Submitted: ${jobTitle} at ${company}`,
+        html: `
+          <h2>Application Submitted Successfully!</h2>
+          <p>You've applied to:</p>
+          <ul>
+            <li>Position: ${jobTitle}</li>
+            <li>Company: ${company}</li>
+            <li>Job ID: ${jobId}</li>
+            <li>Technology: ${technology}</li>
+            <li>Date: ${new Date().toLocaleString()}</li>
+            <li>Link: <a href="${jobUrl}">${jobUrl}</a></li>
+          </ul>
+          <p>We’ll forward any employer responses to this email and your phone (${userDetails.phone}).</p>
+        `,
+      }).catch(err => console.error('Email send error:', err));
+    }
 
     const twilioClient = getTwilioClient();
-    if (twilioClient && process.env.TWILIO_PHONE) {
+    if (twilioClient) {
       await twilioClient.messages.create({
         body: `Applied to ${jobTitle} at ${company} (ID: ${jobId}) on ${new Date().toLocaleString()}. Check email for details!`,
         from: process.env.TWILIO_PHONE,
         to: userDetails.phone,
-      });
+      }).catch(err => console.error('SMS send error:', err));
     }
 
     res.json({ 
@@ -170,11 +195,10 @@ router.post('/apply', authMiddleware, async (req, res) => {
     });
   } catch (err) {
     console.error('Apply Error:', err);
-    res.status(500).json({ msg: 'Server error', error: err.message });
+    res.status(500).json({ msg: 'Server error during application', error: err.message });
   }
 });
 
-// New endpoint to handle employer responses (simulated for now)
 router.post('/employer-response', async (req, res) => {
   const { jobId, userEmail, message } = req.body;
   try {
@@ -183,29 +207,33 @@ router.post('/employer-response', async (req, res) => {
       return res.status(404).json({ msg: 'Job or user not found' });
     }
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-    });
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: user.email,
-      subject: `Update on Your Application: ${jobId}`,
-      html: `
-        <h2>Employer Response</h2>
-        <p>Regarding your application (Job ID: ${jobId}):</p>
-        <p>${message}</p>
-        <p>Reply directly to this email or contact the employer as instructed.</p>
-      `,
-    });
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      console.error('Email credentials missing');
+    } else {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+      });
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: user.email,
+        subject: `Update on Your Application: ${jobId}`,
+        html: `
+          <h2>Employer Response</h2>
+          <p>Regarding your application (Job ID: ${jobId}):</p>
+          <p>${message}</p>
+          <p>Reply directly to this email or contact the employer as instructed.</p>
+        `,
+      }).catch(err => console.error('Email send error:', err));
+    }
 
     const twilioClient = getTwilioClient();
-    if (twilioClient && process.env.TWILIO_PHONE && user.phone) {
+    if (twilioClient && user.phone) {
       await twilioClient.messages.create({
         body: `Update on Job ${jobId}: ${message.substring(0, 100)}... Check email for full details!`,
         from: process.env.TWILIO_PHONE,
         to: user.phone,
-      });
+      }).catch(err => console.error('SMS send error:', err));
     }
 
     res.json({ msg: 'Employer response forwarded to user' });
