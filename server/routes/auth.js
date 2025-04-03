@@ -54,11 +54,13 @@ router.get('/me', authMiddleware, async (req, res) => {
 });
 
 router.post('/update-details', authMiddleware, async (req, res) => {
-  const { phone, email } = req.body;
+  const { phone, email, fullName, address } = req.body;
   try {
     const user = await User.findById(req.user.id);
     user.phone = phone;
     user.email = email || user.email;
+    user.fullName = fullName;
+    user.address = address;
     await user.save();
     res.json({ msg: 'Details updated' });
   } catch (err) {

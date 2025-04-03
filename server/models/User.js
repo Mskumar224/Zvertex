@@ -6,6 +6,8 @@ const userSchema = new mongoose.Schema({
   subscriptionType: { type: String, enum: ['STUDENT', 'VENDOR', 'BUSINESS'], default: 'STUDENT' },
   resume: { type: String },
   phone: { type: String },
+  fullName: { type: String },
+  address: { type: String },
   appliedJobs: [{
     jobId: { type: String },
     technology: { type: String },

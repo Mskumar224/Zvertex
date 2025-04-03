@@ -58,7 +58,7 @@ if (process.env.JWT_SECRET) {
     try {
       const users = await User.find();
       for (const user of users) {
-        if (!user.resume || !user.phone) continue;
+        if (!user.resume || !user.phone || !user.fullName || !user.address) continue;
         
         const technology = user.appliedJobs[0]?.technology || 'JavaScript';
         const companies = ['Google', 'Microsoft', 'Amazon', 'Tesla', 'Apple', 'Facebook', 'IBM', 'Oracle', 'Intel', 'Cisco'];
@@ -83,9 +83,15 @@ if (process.env.JWT_SECRET) {
           { 
             jobId: job.id, 
             technology, 
-            userDetails: { email: user.email, phone: user.phone },
+            userDetails: { 
+              email: user.email, 
+              phone: user.phone, 
+              fullName: user.fullName, 
+              address: user.address 
+            },
             jobTitle: job.title,
-            company: job.company
+            company: job.company,
+            jobUrl: job.url
           },
           { headers: { 'x-auth-token': token } }
         );

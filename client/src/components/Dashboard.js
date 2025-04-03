@@ -15,7 +15,12 @@ function Dashboard({ user }) {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [userDetails, setUserDetails] = useState({ phone: '', email: user?.email || '' });
+  const [userDetails, setUserDetails] = useState({ 
+    phone: '', 
+    email: user?.email || '', 
+    fullName: '', 
+    address: '' 
+  });
   const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
   if (!user) {
@@ -37,7 +42,12 @@ function Dashboard({ user }) {
         const res = await axios.get(`${apiUrl}/api/auth/me`, {
           headers: { 'x-auth-token': localStorage.getItem('token') },
         });
-        setUserDetails({ phone: res.data.phone || '', email: res.data.email });
+        setUserDetails({ 
+          phone: res.data.phone || '', 
+          email: res.data.email, 
+          fullName: res.data.fullName || '', 
+          address: res.data.address || '' 
+        });
         if (res.data.resume) setResume(res.data.resume);
       } catch (err) {
         console.error('Fetch User Details Error:', err);
@@ -86,8 +96,8 @@ function Dashboard({ user }) {
       setMessage('Please select between 2 and 10 companies before fetching jobs.');
       return;
     }
-    if (!userDetails.phone) {
-      setMessage('Please provide your phone number before fetching jobs.');
+    if (!userDetails.phone || !userDetails.fullName || !userDetails.address) {
+      setMessage('Please provide all required details (phone, full name, address) before fetching jobs.');
       return;
     }
     setLoading(true);
@@ -113,7 +123,8 @@ function Dashboard({ user }) {
         technology, 
         userDetails,
         jobTitle: job.title,
-        company: job.company
+        company: job.company,
+        jobUrl: job.url
       }, {
         headers: { 'x-auth-token': localStorage.getItem('token') },
       });
@@ -169,9 +180,27 @@ function Dashboard({ user }) {
               variant="outlined"
             />
             <TextField
+              label="Full Name"
+              value={userDetails.fullName}
+              onChange={(e) => setUserDetails({ ...userDetails, fullName: e.target.value })}
+              fullWidth
+              margin="normal"
+              variant="outlined"
+              required
+            />
+            <TextField
               label="Phone Number"
               value={userDetails.phone}
               onChange={(e) => setUserDetails({ ...userDetails, phone: e.target.value })}
+              fullWidth
+              margin="normal"
+              variant="outlined"
+              required
+            />
+            <TextField
+              label="Address"
+              value={userDetails.address}
+              onChange={(e) => setUserDetails({ ...userDetails, address: e.target.value })}
               fullWidth
               margin="normal"
               variant="outlined"
