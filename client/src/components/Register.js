@@ -4,8 +4,6 @@ import axios from 'axios';
 import { useHistory } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
-
 function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,16 +11,36 @@ function Register() {
   const history = useHistory();
 
   const apiUrl = 'https://zvertexai-orzv.onrender.com'; // Hardcoded for consistency
-  console.log('API URL being used:', apiUrl);
+  const TEST_EMAIL = 'test@zvertexai.com';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log('Starting registration process:', { email, subscriptionType });
     try {
+      // Register the user
       console.log('Sending registration request to:', `${apiUrl}/api/auth/register`);
-      await axios.post(`${apiUrl}/api/auth/register`, { email, password, subscriptionType });
-      console.log('User registered successfully');
+      const registerResponse = await axios.post(`${apiUrl}/api/auth/register`, { email, password, subscriptionType });
+      console.log('User registered successfully:', registerResponse.data);
 
+      // Handle test email case
+      if (email === TEST_EMAIL) {
+        localStorage.setItem('token', registerResponse.data.token);
+        history.push('/dashboard');
+        return;
+      }
+
+      // Only initialize Stripe for non-test users
+      const stripeKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
+      if (!stripeKey) {
+        throw new Error('Stripe publishable key is not configured. Contact support.');
+      }
+
+      const stripe = await loadStripe(stripeKey);
+      if (!stripe) {
+        throw new Error('Failed to initialize Stripe. Please try again.');
+      }
+
+      // Create Stripe Checkout session for non-test users
       console.log('Creating Stripe Checkout session at:', `${apiUrl}/api/payment/create-checkout-session`);
       const response = await axios.post(`${apiUrl}/api/payment/create-checkout-session`, {
         email,
@@ -30,14 +48,10 @@ function Register() {
       });
 
       console.log('Stripe session response:', response.data);
-      if (subscriptionType === 'BUSINESS') {
-        window.location.href = response.data.url; // Redirect to email for Business plan
-      } else {
-        window.location.href = response.data.url; // Redirect to Stripe Checkout
-      }
+      window.location.href = response.data.url; // Redirect to Stripe Checkout or mailto
     } catch (err) {
       console.error('Register Error:', err.message, err.response?.data);
-      const errorMsg = err.response?.data?.msg || err.response?.data?.error || 'Registration failed';
+      const errorMsg = err.response?.data?.error || err.response?.data?.msg || 'Registration failed';
       const errorDetails = err.response?.data?.details || err.message;
       alert(`Error: ${errorMsg}${errorDetails ? ` - ${errorDetails}` : ''}`);
     }

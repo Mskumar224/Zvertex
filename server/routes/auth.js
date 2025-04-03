@@ -24,55 +24,58 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Test email for full access
 const TEST_EMAIL = 'test@zvertexai.com';
-const TEST_PASSWORD = 'test1234';
+const TEST_PASSWORD = 'test123';
 
 router.post('/register', async (req, res) => {
   const { email, password, subscriptionType } = req.body;
-
-  // Input validation
-  if (!email || !password) {
-    return res.status(400).json({ msg: 'Email and password are required' });
-  }
-
-  if (!process.env.JWT_SECRET) {
-    console.error('JWT_SECRET is not defined in environment variables');
-    return res.status(500).json({ msg: 'Server configuration error' });
-  }
-
   try {
     let user = await User.findOne({ email });
 
-    if (user && user.paid && email !== TEST_EMAIL) {
+    if (email === TEST_EMAIL) {
+      if (user) {
+        // Update subscription type for test user without payment
+        user.subscriptionType = subscriptionType;
+        user.password = await bcrypt.hash(password || TEST_PASSWORD, 10);
+        user.paid = true; // Always paid for test user
+        await user.save();
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        return res.json({ token, subscriptionType: user.subscriptionType });
+      } else {
+        // Create test user if not exists
+        user = new User({
+          email,
+          password: await bcrypt.hash(password || TEST_PASSWORD, 10),
+          subscriptionType,
+          paid: true, // Test user is always paid
+        });
+        await user.save();
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        return res.json({ token, subscriptionType: user.subscriptionType });
+      }
+    }
+
+    if (user && user.paid) {
       return res.status(400).json({ msg: 'User already exists and is subscribed. Please log in.' });
     }
 
-    if (user && !user.paid && email !== TEST_EMAIL) {
-      await User.deleteOne({ email });
+    if (user && !user.paid) {
+      await User.deleteOne({ email }); // Remove unpaid user
     }
 
-    const isTestUser = email === TEST_EMAIL;
     user = new User({
       email,
       password: await bcrypt.hash(password, 10),
-      subscriptionType: subscriptionType || 'STUDENT',
-      paid: isTestUser ? true : false,
+      subscriptionType,
+      paid: false,
     });
 
     await user.save();
 
-    const token = jwt.sign(
-      { id: user._id, isTestUser },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
-    );
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.json({ token, subscriptionType: user.subscriptionType });
   } catch (err) {
-    console.error('Register Error:', {
-      message: err.message,
-      stack: err.stack,
-    });
+    console.error('Register Error:', err);
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
@@ -81,20 +84,32 @@ router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await User.findOne({ email });
-    const isTestUser = email === TEST_EMAIL;
 
-    if (!user) return res.status(400).json({ msg: 'User not found or not subscribed. Please register and complete payment.' });
+    if (email === TEST_EMAIL) {
+      if (!user) {
+        // Create test user if not exists
+        const newUser = new User({
+          email,
+          password: await bcrypt.hash(TEST_PASSWORD, 10),
+          subscriptionType: 'STUDENT', // Default, can be changed via register
+          paid: true,
+        });
+        await newUser.save();
+        const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        return res.json({ token, subscriptionType: newUser.subscriptionType });
+      }
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) return res.status(400).json({ msg: 'Invalid email or password' });
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+      return res.json({ token, subscriptionType: user.subscriptionType });
+    }
+
+    if (!user || !user.paid) return res.status(400).json({ msg: 'User not found or not subscribed. Please register and complete payment.' });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ msg: 'Invalid email or password' });
 
-    if (!isTestUser && !user.paid) return res.status(400).json({ msg: 'User not subscribed. Please complete payment.' });
-
-    const token = jwt.sign(
-      { id: user._id, isTestUser },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
-    );
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.json({ token, subscriptionType: user.subscriptionType });
   } catch (err) {
     console.error('Login Error:', err);
