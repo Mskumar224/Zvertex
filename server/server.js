@@ -73,7 +73,7 @@ if (process.env.JWT_SECRET) {
           { headers: { 'x-auth-token': token } }
         );
 
-        if (fetchRes.data.jobs.length === 0) {
+        if (!fetchRes.data.jobs || fetchRes.data.jobs.length === 0) {
           console.log(`No jobs found for ${user.email}`);
           continue;
         }

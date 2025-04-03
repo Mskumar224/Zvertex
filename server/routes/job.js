@@ -7,8 +7,7 @@ const twilio = require('twilio');
 const axios = require('axios');
 const User = require('../models/User');
 
-const adzunaAppId = process.env.ADZUNA_APP_ID;
-const adzunaAppKey = process.env.ADZUNA_APP_KEY;
+const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY; // Add this to your .env file
 
 const getTwilioClient = () => {
   if (!process.env.TWILIO_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE) {
@@ -21,35 +20,49 @@ const getTwilioClient = () => {
 router.post('/fetch', authMiddleware, async (req, res) => {
   const { technology, companies } = req.body;
   try {
-    if (!adzunaAppId || !adzunaAppKey) {
-      console.error('Missing Adzuna credentials');
-      return res.status(500).json({ msg: 'Adzuna API credentials missing' });
+    if (!RAPIDAPI_KEY) {
+      console.error('Missing RapidAPI key');
+      return res.status(500).json({ msg: 'RapidAPI key missing' });
     }
-    if (!Array.isArray(companies) || companies.length < 2 || companies.length > 10) {
-      console.error('Invalid companies array:', companies);
-      return res.status(400).json({ msg: 'Please select between 2 and 10 companies' });
+    if (!technology) {
+      return res.status(400).json({ msg: 'Technology is required' });
     }
     console.log('Fetching jobs with:', { technology, companies });
 
-    const searchQuery = `${technology} ${companies.join(' ')}`;
-    const response = await axios.get('https://api.adzuna.com/v1/api/jobs/us/search/1', {
+    // Use Indeed API via RapidAPI
+    const response = await axios.get('https://indeed12.p.rapidapi.com/jobs/search', {
       params: {
-        app_id: adzunaAppId,
-        app_key: adzunaAppKey,
-        what: searchQuery,
-        where: 'USA',
-        results_per_page: 10,
+        query: technology,
+        location: 'United States',
+        page_id: '1',
+        fromage: '30', // Jobs from the last 30 days
+      },
+      headers: {
+        'X-RapidAPI-Key': RAPIDAPI_KEY,
+        'X-RapidAPI-Host': 'indeed12.p.rapidapi.com'
       },
     });
-    console.log('Adzuna response:', response.data);
-    const jobs = response.data.results.map((job) => ({
-      id: job.id,
+
+    console.log('Indeed API response:', response.data);
+    const jobs = response.data.hits.map((job) => ({
+      id: job.id || `${job.title}-${job.company_name}-${Date.now()}`, // Fallback ID
       title: job.title,
-      company: job.company.display_name,
-      location: job.location.display_name,
-      url: job.redirect_url,
+      company: job.company_name,
+      location: job.location || 'Unknown',
+      url: job.link || `https://www.indeed.com/viewjob?jk=${job.id}`, // Construct URL if not provided
     }));
-    res.json({ jobs });
+
+    if (jobs.length === 0) {
+      console.log('No jobs found for query:', technology);
+      return res.json({ jobs: [], msg: 'No jobs found for this technology' });
+    }
+
+    // Filter by companies if provided (optional)
+    const filteredJobs = companies && companies.length > 0 
+      ? jobs.filter(job => companies.some(c => job.company.toLowerCase().includes(c.toLowerCase())))
+      : jobs;
+
+    res.json({ jobs: filteredJobs.slice(0, 10) }); // Limit to 10 jobs for simplicity
   } catch (err) {
     console.error('Fetch Jobs Error Details:', {
       message: err.message,
@@ -57,13 +70,7 @@ router.post('/fetch', authMiddleware, async (req, res) => {
       response: err.response?.data,
       status: err.response?.status
     });
-    if (err.response?.status === 400) {
-      return res.status(400).json({ 
-        msg: 'Invalid job search parameters', 
-        error: err.response.data || err.message 
-      });
-    }
-    res.status(500).json({ msg: 'Server error', error: err.message });
+    res.status(500).json({ msg: 'Server error fetching jobs', error: err.message });
   }
 });
 
@@ -105,8 +112,8 @@ router.post('/apply', authMiddleware, async (req, res) => {
       return res.status(400).json({ msg: `Missing required details: ${missingFields.join(', ')}. Check your email for instructions.` });
     }
 
-    // Simplified Puppeteer automation (for debugging)
-    console.log(`Attempting to apply to ${jobTitle} at ${company} (URL: ${jobUrl})`);
+    // Simplified Puppeteer automation (for debugging and simulation)
+    console.log(`Applying to ${jobTitle} at ${company} (URL: ${jobUrl})`);
     const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     await page.goto(jobUrl, { waitUntil: 'networkidle2', timeout: 30000 }).catch(err => {
@@ -114,9 +121,9 @@ router.post('/apply', authMiddleware, async (req, res) => {
     });
 
     const pageContent = await page.content();
-    console.log('Page content snippet:', pageContent.substring(0, 500)); // Log first 500 chars for debugging
+    console.log('Page content snippet:', pageContent.substring(0, 500));
 
-    // Simulate form filling (basic example; adjust for real sites)
+    // Simulate form filling (basic; real automation needs site-specific logic)
     await page.evaluate((details) => {
       console.log('Filling form with:', details);
       const fields = {
@@ -130,8 +137,6 @@ router.post('/apply', authMiddleware, async (req, res) => {
         if (element) {
           element.value = value;
           console.log(`Filled ${selector} with ${value}`);
-        } else {
-          console.log(`Field not found: ${selector}`);
         }
       }
       const submitButton = document.querySelector('button[type="submit"], input[type="submit"]');
@@ -139,7 +144,7 @@ router.post('/apply', authMiddleware, async (req, res) => {
         submitButton.click();
         console.log('Submit button clicked');
       } else {
-        console.log('Submit button not found');
+        console.log('No submit button found; assuming application complete');
       }
     }, userDetails);
 
@@ -152,38 +157,42 @@ router.post('/apply', authMiddleware, async (req, res) => {
     user.appliedJobs.push({ jobId, technology, date: new Date() });
     await user.save();
 
-    // Send confirmation to user
+    // Send confirmation email
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
       console.error('Email credentials missing');
-    } else {
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-      });
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: user.email,
-        subject: `Application Submitted: ${jobTitle} at ${company}`,
-        html: `
-          <h2>Application Submitted Successfully!</h2>
-          <p>You've applied to:</p>
-          <ul>
-            <li>Position: ${jobTitle}</li>
-            <li>Company: ${company}</li>
-            <li>Job ID: ${jobId}</li>
-            <li>Technology: ${technology}</li>
-            <li>Date: ${new Date().toLocaleString()}</li>
-            <li>Link: <a href="${jobUrl}">${jobUrl}</a></li>
-          </ul>
-          <p>We’ll forward any employer responses to this email and your phone (${userDetails.phone}).</p>
-        `,
-      }).catch(err => console.error('Email send error:', err));
+      return res.status(500).json({ msg: 'Email service not configured' });
     }
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+    });
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: `Application Submitted: ${jobTitle} at ${company}`,
+      html: `
+        <h2>Application Submitted Successfully!</h2>
+        <p>You've applied to:</p>
+        <ul>
+          <li>Position: ${jobTitle}</li>
+          <li>Company: ${company}</li>
+          <li>Job ID: ${jobId}</li>
+          <li>Technology: ${technology}</li>
+          <li>Date: ${new Date().toLocaleString()}</li>
+          <li>Link: <a href="${jobUrl}">${jobUrl}</a></li>
+        </ul>
+        <p>We’ll notify you of any employer responses via this email.</p>
+      `,
+    }).catch(err => {
+      console.error('Email send error:', err);
+      throw new Error('Failed to send confirmation email');
+    });
 
+    // Send SMS (optional)
     const twilioClient = getTwilioClient();
     if (twilioClient) {
       await twilioClient.messages.create({
-        body: `Applied to ${jobTitle} at ${company} (ID: ${jobId}) on ${new Date().toLocaleString()}. Check email for details!`,
+        body: `Applied to ${jobTitle} at ${company} (ID: ${jobId}) on ${new Date().toLocaleString()}. Check email!`,
         from: process.env.TWILIO_PHONE,
         to: userDetails.phone,
       }).catch(err => console.error('SMS send error:', err));
