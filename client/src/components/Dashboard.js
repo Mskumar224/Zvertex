@@ -11,7 +11,7 @@ function Dashboard({ user }) {
   const [resume, setResume] = useState(null);
   const [technology, setTechnology] = useState('');
   const [manualTech, setManualTech] = useState('');
-  const [companies, setCompanies] = useState([]); // Array to store selected companies
+  const [companies, setCompanies] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -99,7 +99,7 @@ function Dashboard({ user }) {
       setMessage(`Successfully fetched jobs for ${companies.length} companies!`);
     } catch (err) {
       console.error('Fetch Jobs Error:', err);
-      setMessage('Error fetching jobs: ' + (err.response?.data?.msg || err.message));
+      setMessage(`Error fetching jobs: ${err.response?.data?.msg || err.message}`);
     } finally {
       setLoading(false);
     }
@@ -121,7 +121,7 @@ function Dashboard({ user }) {
       setJobs(jobs.filter(j => j.id !== job.id));
     } catch (err) {
       console.error('Apply Error:', err);
-      setMessage('Error applying to job: ' + (err.response?.data?.msg || err.message));
+      setMessage('Error applying to job.');
     } finally {
       setLoading(false);
     }

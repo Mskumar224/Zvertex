@@ -21,10 +21,15 @@ const getTwilioClient = () => {
 router.post('/fetch', authMiddleware, async (req, res) => {
   const { technology, companies } = req.body;
   try {
-    if (!adzunaAppId || !adzunaAppKey) throw new Error('Adzuna API credentials missing');
-    if (companies.length < 2 || companies.length > 10) {
+    if (!adzunaAppId || !adzunaAppKey) {
+      console.error('Missing Adzuna credentials');
+      return res.status(500).json({ msg: 'Adzuna API credentials missing' });
+    }
+    if (!Array.isArray(companies) || companies.length < 2 || companies.length > 10) {
+      console.error('Invalid companies array:', companies);
       return res.status(400).json({ msg: 'Please select between 2 and 10 companies' });
     }
+    console.log('Fetching jobs with:', { technology, companies });
     const response = await axios.get('https://api.adzuna.com/v1/api/jobs/us/search/1', {
       params: {
         app_id: adzunaAppId,
@@ -35,6 +40,7 @@ router.post('/fetch', authMiddleware, async (req, res) => {
         results_per_page: 10,
       },
     });
+    console.log('Adzuna response:', response.data);
     const jobs = response.data.results.map((job) => ({
       id: job.id,
       title: job.title,
@@ -44,7 +50,12 @@ router.post('/fetch', authMiddleware, async (req, res) => {
     }));
     res.json({ jobs });
   } catch (err) {
-    console.error('Fetch Jobs Error:', err);
+    console.error('Fetch Jobs Error Details:', {
+      message: err.message,
+      stack: err.stack,
+      response: err.response?.data,
+      status: err.response?.status
+    });
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
@@ -57,23 +68,18 @@ router.post('/apply', authMiddleware, async (req, res) => {
   }
 
   try {
-    // Check if job was already applied
     if (user.appliedJobs.some(job => job.jobId === jobId)) {
       return res.status(400).json({ msg: 'Already applied to this job' });
     }
 
-    // Simulate job application (replace with actual application logic)
     const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     await page.goto(`https://api.adzuna.com/v1/api/jobs/us/search/1?app_id=${adzunaAppId}&app_key=${adzunaAppKey}&what=${technology}&content-type=application/json`); 
-    // Note: Actual application would need job-specific URL and form handling
     await browser.close();
 
-    // Update user's applied jobs
     user.appliedJobs.push({ jobId, technology, date: new Date() });
     await user.save();
 
-    // Email notification
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
@@ -96,7 +102,6 @@ router.post('/apply', authMiddleware, async (req, res) => {
       `,
     });
 
-    // SMS notification
     const twilioClient = getTwilioClient();
     if (twilioClient && process.env.TWILIO_PHONE) {
       await twilioClient.messages.create({
