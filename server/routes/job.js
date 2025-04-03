@@ -21,7 +21,7 @@ router.post('/fetch', authMiddleware, async (req, res) => {
   const { technology, companies } = req.body;
   try {
     if (!RAPIDAPI_KEY) {
-      console.error('Missing RapidAPI key');
+      console.error('Missing RAPIDAPI_KEY in environment variables');
       return res.status(500).json({ msg: 'Server configuration error: RapidAPI key missing' });
     }
     if (!technology) {
@@ -29,7 +29,6 @@ router.post('/fetch', authMiddleware, async (req, res) => {
     }
     console.log('Fetching jobs with:', { technology, companies });
 
-    // New Change: Removed 'fromage' parameter to fix 400 error
     const response = await axios.get('https://indeed12.p.rapidapi.com/jobs/search', {
       params: {
         query: technology,
@@ -43,13 +42,16 @@ router.post('/fetch', authMiddleware, async (req, res) => {
     });
 
     console.log('Indeed API response:', JSON.stringify(response.data, null, 2));
-    const jobs = response.data.hits.map((job) => ({
-      id: job.id || `${job.title}-${job.company_name}-${Date.now()}`,
-      title: job.title,
-      company: job.company_name,
-      location: job.location || 'Unknown',
-      url: job.link || `https://www.indeed.com/viewjob?jk=${job.id}`,
-    }));
+    // Handle case where 'hits' might be missing or not an array
+    const jobs = (response.data.hits && Array.isArray(response.data.hits))
+      ? response.data.hits.map((job) => ({
+          id: job.id || `${job.title}-${job.company_name}-${Date.now()}`,
+          title: job.title || 'Unknown Title',
+          company: job.company_name || 'Unknown Company',
+          location: job.location || 'Unknown',
+          url: job.link || `https://www.indeed.com/viewjob?jk=${job.id || Date.now()}`,
+        }))
+      : [];
 
     if (jobs.length === 0) {
       console.log('No jobs found for query:', technology);
@@ -63,17 +65,16 @@ router.post('/fetch', authMiddleware, async (req, res) => {
     console.log('Returning jobs:', filteredJobs);
     res.json({ jobs: filteredJobs.slice(0, 10) });
   } catch (err) {
-    // New Change: Enhanced error handling to avoid 500 crash
     console.error('Fetch Jobs Error Details:', {
       message: err.message,
       stack: err.stack,
-      response: err.response?.data,
-      status: err.response?.status
+      response: err.response ? err.response.data : null,
+      status: err.response ? err.response.status : null
     });
     if (err.response?.status === 403) {
       return res.status(503).json({ msg: 'Cannot fetch jobs: Not subscribed to Indeed API' });
     } else if (err.response?.status === 400) {
-      return res.status(400).json({ msg: `Invalid request to Indeed API: ${err.response.data.message}` });
+      return res.status(400).json({ msg: `Invalid request to Indeed API: ${err.response.data.message || 'Unknown error'}` });
     }
     res.status(500).json({ msg: 'Server error fetching jobs', error: err.message });
   }
