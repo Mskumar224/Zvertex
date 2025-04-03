@@ -7,6 +7,8 @@ const multer = require('multer');
 const path = require('path');
 const authMiddleware = require('../middleware/auth');
 const fs = require('fs');
+const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
 
 const uploadDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -27,20 +29,14 @@ router.post('/register', async (req, res) => {
   const { email, password, subscriptionType } = req.body;
   console.log('Register request received:', { email, subscriptionType });
   try {
-    if (!process.env.JWT_SECRET) {
-      throw new Error('JWT_SECRET is not defined in environment variables');
-    }
+    if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is not defined');
 
     let user = await User.findOne({ email });
-    console.log('Existing user check:', user ? 'Found' : 'Not found');
-
     if (email === TEST_EMAIL) {
       if (user) {
         user.subscriptionType = subscriptionType;
         user.password = await bcrypt.hash(password || TEST_PASSWORD, 10);
         user.paid = true;
-        await user.save();
-        console.log('Test user updated:', user.email);
       } else {
         user = new User({
           email,
@@ -48,21 +44,14 @@ router.post('/register', async (req, res) => {
           subscriptionType,
           paid: true,
         });
-        await user.save();
-        console.log('Test user created:', user.email);
       }
+      await user.save();
       const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
       return res.json({ token, subscriptionType: user.subscriptionType });
     }
 
-    if (user && user.paid) {
-      return res.status(400).json({ msg: 'User already exists and is subscribed. Please log in.' });
-    }
-
-    if (user && !user.paid) {
-      await User.deleteOne({ email });
-      console.log('Deleted unpaid user:', email);
-    }
+    if (user && user.paid) return res.status(400).json({ msg: 'User already exists and is subscribed. Please log in.' });
+    if (user && !user.paid) await User.deleteOne({ email });
 
     user = new User({
       email,
@@ -71,8 +60,6 @@ router.post('/register', async (req, res) => {
       paid: false,
     });
     await user.save();
-    console.log('New user created:', user.email);
-
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.json({ token, subscriptionType: user.subscriptionType });
   } catch (err) {
@@ -81,7 +68,35 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Rest of the file remains unchanged (login, forgot-password, etc.)
+router.post('/upload-resume', authMiddleware, upload.single('resume'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ msg: 'No file uploaded' });
+
+    const user = await User.findById(req.user.id);
+    if (!user || (!user.paid && user.email !== TEST_EMAIL)) return res.status(404).json({ msg: 'User not found or not subscribed' });
+
+    let text = '';
+    if (req.file.mimetype === 'application/pdf') {
+      const dataBuffer = fs.readFileSync(req.file.path);
+      const data = await pdfParse(dataBuffer);
+      text = data.text;
+    } else if (req.file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      const result = await mammoth.extractRawText({ path: req.file.path });
+      text = result.value;
+    }
+
+    const techKeywords = ['JavaScript', 'Python', 'Java', 'C++', 'React', 'Node.js', 'SQL', 'AWS', 'Docker', 'Kubernetes'];
+    const detectedTech = techKeywords.find((tech) => text.toLowerCase().includes(tech.toLowerCase()));
+    user.resume = req.file.path;
+    await user.save({ validateModifiedOnly: true });
+    res.json({ msg: 'Resume uploaded', path: req.file.path, technology: detectedTech });
+  } catch (err) {
+    console.error('Upload Resume Error:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
+  }
+});
+
+// Rest of the routes (login, forgot-password, etc.) remain unchanged
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -147,24 +162,6 @@ router.post('/reset-password', async (req, res) => {
     res.json({ msg: 'Password reset successful' });
   } catch (err) {
     console.error('Reset Password Error:', err);
-    res.status(500).json({ msg: 'Server error', error: err.message });
-  }
-});
-
-router.post('/upload-resume', authMiddleware, upload.single('resume'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ msg: 'No file uploaded' });
-    }
-
-    const user = await User.findById(req.user.id);
-    if (!user || (!user.paid && user.email !== TEST_EMAIL)) return res.status(404).json({ msg: 'User not found or not subscribed' });
-
-    user.resume = req.file.path;
-    await user.save({ validateModifiedOnly: true });
-    res.json({ msg: 'Resume uploaded', path: req.file.path });
-  } catch (err) {
-    console.error('Upload Resume Error:', err);
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
