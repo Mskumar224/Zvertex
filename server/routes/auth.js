@@ -15,12 +15,8 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  },
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
 });
 const upload = multer({ storage });
 
@@ -29,30 +25,34 @@ const TEST_PASSWORD = 'test123';
 
 router.post('/register', async (req, res) => {
   const { email, password, subscriptionType } = req.body;
+  console.log('Register request received:', { email, subscriptionType });
   try {
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is not defined in environment variables');
+    }
+
     let user = await User.findOne({ email });
+    console.log('Existing user check:', user ? 'Found' : 'Not found');
 
     if (email === TEST_EMAIL) {
       if (user) {
-        // Update subscription type for test user without payment
         user.subscriptionType = subscriptionType;
         user.password = await bcrypt.hash(password || TEST_PASSWORD, 10);
-        user.paid = true; // Always paid for test user
+        user.paid = true;
         await user.save();
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        return res.json({ token, subscriptionType: user.subscriptionType });
+        console.log('Test user updated:', user.email);
       } else {
-        // Create test user if not exists
         user = new User({
           email,
           password: await bcrypt.hash(password || TEST_PASSWORD, 10),
           subscriptionType,
-          paid: true, // Test user is always paid
+          paid: true,
         });
         await user.save();
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        return res.json({ token, subscriptionType: user.subscriptionType });
+        console.log('Test user created:', user.email);
       }
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+      return res.json({ token, subscriptionType: user.subscriptionType });
     }
 
     if (user && user.paid) {
@@ -60,7 +60,8 @@ router.post('/register', async (req, res) => {
     }
 
     if (user && !user.paid) {
-      await User.deleteOne({ email }); // Remove unpaid user
+      await User.deleteOne({ email });
+      console.log('Deleted unpaid user:', email);
     }
 
     user = new User({
@@ -69,17 +70,18 @@ router.post('/register', async (req, res) => {
       subscriptionType,
       paid: false,
     });
-
     await user.save();
+    console.log('New user created:', user.email);
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.json({ token, subscriptionType: user.subscriptionType });
   } catch (err) {
-    console.error('Register Error:', err);
+    console.error('Register Error:', err.message, err.stack);
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
 
+// Rest of the file remains unchanged (login, forgot-password, etc.)
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -87,11 +89,10 @@ router.post('/login', async (req, res) => {
 
     if (email === TEST_EMAIL) {
       if (!user) {
-        // Create test user if not exists
         const newUser = new User({
           email,
           password: await bcrypt.hash(TEST_PASSWORD, 10),
-          subscriptionType: 'STUDENT', // Default, can be changed via register
+          subscriptionType: 'STUDENT',
           paid: true,
         });
         await newUser.save();
