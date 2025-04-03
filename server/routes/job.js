@@ -30,13 +30,15 @@ router.post('/fetch', authMiddleware, async (req, res) => {
       return res.status(400).json({ msg: 'Please select between 2 and 10 companies' });
     }
     console.log('Fetching jobs with:', { technology, companies });
+
+    // Combine technology and companies into the 'what' parameter
+    const searchQuery = `${technology} ${companies.join(' ')}`;
     const response = await axios.get('https://api.adzuna.com/v1/api/jobs/us/search/1', {
       params: {
         app_id: adzunaAppId,
         app_key: adzunaAppKey,
-        what: technology,
+        what: searchQuery, // Use technology and companies as keywords
         where: 'USA',
-        company: companies.join(','),
         results_per_page: 10,
       },
     });
@@ -56,6 +58,13 @@ router.post('/fetch', authMiddleware, async (req, res) => {
       response: err.response?.data,
       status: err.response?.status
     });
+    // Pass Adzuna's error to the client instead of generic 500
+    if (err.response?.status === 400) {
+      return res.status(400).json({ 
+        msg: 'Invalid job search parameters', 
+        error: err.response.data || err.message 
+      });
+    }
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
