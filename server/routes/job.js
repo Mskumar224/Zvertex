@@ -1,11 +1,13 @@
 const express = require('express');
-const router = express.Router(); // Define router here
+const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const puppeteer = require('puppeteer');
 const nodemailer = require('nodemailer');
 const twilio = require('twilio');
 const axios = require('axios');
 const User = require('../models/User');
+
+const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
 
 const getTwilioClient = () => {
   if (!process.env.TWILIO_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE) {
@@ -18,33 +20,43 @@ const getTwilioClient = () => {
 router.post('/fetch', authMiddleware, async (req, res) => {
   const { technology, companies } = req.body;
   try {
+    if (!RAPIDAPI_KEY) {
+      console.error('Missing RapidAPI key');
+      return res.status(500).json({ msg: 'Server configuration error: RapidAPI key missing' });
+    }
     if (!technology) {
       return res.status(400).json({ msg: 'Technology is required' });
     }
-    console.log('Scraping jobs with:', { technology, companies });
+    console.log('Fetching jobs with:', { technology, companies });
 
-    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
-    const page = await browser.newPage();
-    await page.goto(`https://www.indeed.com/jobs?q=${encodeURIComponent(technology)}&l=United+States`, { waitUntil: 'networkidle2', timeout: 30000 });
-
-    const jobs = await page.evaluate(() => {
-      const jobElements = document.querySelectorAll('.job_seen_beacon');
-      return Array.from(jobElements).slice(0, 10).map(job => {
-        const title = job.querySelector('h2')?.innerText || 'Unknown Title';
-        const company = job.querySelector('.companyName')?.innerText || 'Unknown Company';
-        const location = job.querySelector('.companyLocation')?.innerText || 'Unknown Location';
-        const url = job.querySelector('a')?.href || '';
-        return { 
-          id: url.split('jk=')[1]?.split('&')[0] || `${title}-${company}-${Date.now()}`, 
-          title, 
-          company, 
-          location, 
-          url 
-        };
-      });
+    const response = await axios.get('https://indeed12.p.rapidapi.com/jobs/search', {
+      params: {
+        query: technology,
+        location: 'United States',
+        page_id: '1',
+        // Removed 'fromage' as it’s not valid per the error
+      },
+      headers: {
+        'X-RapidAPI-Key': RAPIDAPI_KEY,
+        'X-RapidAPI-Host': 'indeed12.p.rapidapi.com'
+      },
+    }).catch(err => {
+      if (err.response?.status === 403) {
+        throw new Error('RapidAPI access denied: Not subscribed to Indeed API');
+      } else if (err.response?.status === 400) {
+        throw new Error(`Invalid request to Indeed API: ${err.response.data.message}`);
+      }
+      throw err;
     });
 
-    await browser.close();
+    console.log('Indeed API response:', response.data);
+    const jobs = response.data.hits.map((job) => ({
+      id: job.id || `${job.title}-${job.company_name}-${Date.now()}`,
+      title: job.title,
+      company: job.company_name,
+      location: job.location || 'Unknown',
+      url: job.link || `https://www.indeed.com/viewjob?jk=${job.id}`,
+    }));
 
     if (jobs.length === 0) {
       console.log('No jobs found for query:', technology);
@@ -55,10 +67,20 @@ router.post('/fetch', authMiddleware, async (req, res) => {
       ? jobs.filter(job => companies.some(c => job.company.toLowerCase().includes(c.toLowerCase())))
       : jobs;
 
-    res.json({ jobs: filteredJobs });
+    res.json({ jobs: filteredJobs.slice(0, 10) });
   } catch (err) {
-    console.error('Fetch Jobs Error:', err);
-    res.status(500).json({ msg: 'Server error scraping jobs', error: err.message });
+    console.error('Fetch Jobs Error Details:', {
+      message: err.message,
+      stack: err.stack,
+      response: err.response?.data,
+      status: err.response?.status
+    });
+    if (err.message.includes('RapidAPI access denied')) {
+      return res.status(503).json({ msg: 'Cannot fetch jobs: Not subscribed to Indeed API' });
+    } else if (err.message.includes('Invalid request to Indeed API')) {
+      return res.status(400).json({ msg: err.message });
+    }
+    res.status(500).json({ msg: 'Server error fetching jobs', error: err.message });
   }
 });
 
@@ -187,7 +209,7 @@ router.post('/apply', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/employer-response', authMiddleware, async (req, res) => {
+router.post('/employer-response', async (req, res) => {
   const { jobId, userEmail, message } = req.body;
   try {
     const user = await User.findOne({ email: userEmail });
