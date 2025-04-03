@@ -56,13 +56,13 @@ if (process.env.JWT_SECRET) {
   cron.schedule('*/30 * * * *', async () => {
     console.log('Running auto-apply job...');
     try {
-      const users = await User.find({ paid: true });
+      const users = await User.find();
       for (const user of users) {
         if (!user.resume || !user.phone) continue;
         
         const technology = user.appliedJobs[0]?.technology || 'JavaScript';
         const companies = ['Google', 'Microsoft', 'Amazon', 'Tesla', 'Apple', 'Facebook', 'IBM', 'Oracle', 'Intel', 'Cisco'];
-        const randomCompanies = companies.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 9) + 2); // 2-10 random companies
+        const randomCompanies = companies.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 9) + 2);
         
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
         const fetchRes = await axios.post(`${process.env.API_URL || 'https://zvertexai-orzv.onrender.com'}/api/jobs/fetch`, 
@@ -72,7 +72,6 @@ if (process.env.JWT_SECRET) {
 
         if (fetchRes.data.jobs.length === 0) continue;
         
-        // Select a random job that hasn't been applied to yet
         const availableJobs = fetchRes.data.jobs.filter(job => 
           !user.appliedJobs.some(applied => applied.jobId === job.id)
         );
