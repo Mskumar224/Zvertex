@@ -11,16 +11,23 @@ require('dotenv').config();
 
 const app = express();
 
+// Enhanced CORS configuration
 const corsOptions = {
   origin: ['https://zvertexai.com', 'http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-auth-token'],
   credentials: true,
+  optionsSuccessStatus: 200, // Ensure OPTIONS requests return 200
 };
 app.use(cors(corsOptions));
+
+// Handle OPTIONS preflight requests explicitly
+app.options('*', cors(corsOptions));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// MongoDB connection with error handling
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB Connected'))
   .catch(err => console.error('MongoDB Connection Error:', err));
@@ -51,6 +58,11 @@ cron.schedule('*/30 * * * *', async () => {
       console.error('Auto-Apply Error:', err);
     }
   }
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
 const PORT = process.env.PORT || 5000;
