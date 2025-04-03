@@ -20,8 +20,9 @@ function Login({ setUser }) {
       setUser({ subscriptionType: res.data.subscriptionType });
       history.push('/dashboard');
     } catch (err) {
-      console.error('Login Error:', err.response);
-      alert(err.response?.data.msg || 'Login failed');
+      console.error('Login Error:', err.message, err.response?.data);
+      const errorMsg = err.response?.data?.msg || (err.message === 'Network Error' ? 'Server unreachable. Please try again later.' : 'Login failed.');
+      alert(errorMsg);
     }
   };
 
@@ -50,9 +51,7 @@ function Login({ setUser }) {
           <Link href="/register" style={{ marginLeft: '20px' }}>Register</Link>
         </div>
       </div>
-
       <Box sx={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', padding: '20px', maxHeight: 'calc(100vh - 80px)', overflow: 'hidden' }}>
-        {/* Plans Section */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <Typography variant="h5" align="center">Choose Your Plan</Typography>
           <Card sx={{ flex: '1', backgroundColor: '#fff', boxShadow: 3 }}>
@@ -79,70 +78,53 @@ function Login({ setUser }) {
             <CardContent>
               <Typography variant="h6" color="primary">Business</Typography>
               <Typography variant="body2" color="secondary">Contact Us</Typography>
-              <Typography variant="body2">5 Recruiters, Custom Pricing</Typography>
-              <Button variant="contained" color="secondary" size="small" sx={{ mt: 1 }} onClick={() => window.location.href = 'mailto:support@zvertexai.com'}>
+              <Typography variant="body2">Custom Resumes & Submissions</Typography>
+              <Button variant="contained" color="secondary" size="small" sx={{ mt: 1 }} onClick={() => history.push('/register')}>
                 Contact Us
               </Button>
             </CardContent>
           </Card>
         </Box>
-
-        {/* ZAP Section */}
-        <Box sx={{ backgroundColor: '#1a2a44', color: 'white', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <Typography variant="h5" gutterBottom>Meet ZAP</Typography>
-          <Typography variant="body2" sx={{ mb: 2 }}>ZAP it until unknown to be known</Typography>
-          <form onSubmit={handleSearch}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+          <Typography variant="h2">Login</Typography>
+          <Typography variant="body1" sx={{ mb: 2 }}>Access your account</Typography>
+          <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: '400px' }}>
             <TextField
-              label="Ask ZAP"
-              variant="outlined"
+              label="Email"
               fullWidth
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              sx={{ backgroundColor: 'white', borderRadius: '5px', mb: 2 }}
-              size="small"
+              margin="normal"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
-            <Button type="submit" variant="contained" color="secondary" size="small">
-              ZAP It
+            <TextField
+              label="Password"
+              type="password"
+              fullWidth
+              margin="normal"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+              Login
             </Button>
           </form>
-          {searchResult && (
-            <Typography variant="body2" sx={{ mt: 2, backgroundColor: '#f28c38', padding: '5px', borderRadius: '5px' }}>
-              {searchResult}
-            </Typography>
-          )}
+          <Link href="/forgot-password" sx={{ mt: 1 }}>Forgot Password?</Link>
         </Box>
-
-        {/* Login Form */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '20px' }}>
-          <Card sx={{ padding: '20px', boxShadow: 3 }}>
-            <Typography variant="h5" align="center">Welcome Back</Typography>
-            <Typography variant="body2" align="center" sx={{ mb: 2 }}>Log in to get started</Typography>
-            <form onSubmit={handleSubmit}>
-              <TextField
-                label="Email"
-                fullWidth
-                margin="normal"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                size="small"
-              />
-              <TextField
-                label="Password"
-                type="password"
-                fullWidth
-                margin="normal"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                size="small"
-              />
-              <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }} size="small">
-                Login
-              </Button>
-              <Typography align="center" sx={{ mt: 1 }}>
-                <Link href="/forgot-password" fontSize="small">Forgot Password?</Link>
-              </Typography>
-            </form>
-          </Card>
+        <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+          <Typography variant="h5" sx={{ mb: 2 }}>Search Jobs</Typography>
+          <form onSubmit={handleSearch} style={{ width: '100%', maxWidth: '400px' }}>
+            <TextField
+              label="Search Jobs"
+              fullWidth
+              margin="normal"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+              Search
+            </Button>
+          </form>
+          {searchResult && <Typography sx={{ mt: 2 }}>{searchResult}</Typography>}
         </Box>
       </Box>
     </div>
