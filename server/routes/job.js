@@ -1,13 +1,11 @@
 const express = require('express');
-const router = express.Router();
+const router = express.Router(); // Define router here
 const authMiddleware = require('../middleware/auth');
 const puppeteer = require('puppeteer');
 const nodemailer = require('nodemailer');
 const twilio = require('twilio');
 const axios = require('axios');
 const User = require('../models/User');
-
-const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY; // Add this to your .env file
 
 const getTwilioClient = () => {
   if (!process.env.TWILIO_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE) {
@@ -20,57 +18,47 @@ const getTwilioClient = () => {
 router.post('/fetch', authMiddleware, async (req, res) => {
   const { technology, companies } = req.body;
   try {
-    if (!RAPIDAPI_KEY) {
-      console.error('Missing RapidAPI key');
-      return res.status(500).json({ msg: 'RapidAPI key missing' });
-    }
     if (!technology) {
       return res.status(400).json({ msg: 'Technology is required' });
     }
-    console.log('Fetching jobs with:', { technology, companies });
+    console.log('Scraping jobs with:', { technology, companies });
 
-    // Use Indeed API via RapidAPI
-    const response = await axios.get('https://indeed12.p.rapidapi.com/jobs/search', {
-      params: {
-        query: technology,
-        location: 'United States',
-        page_id: '1',
-        fromage: '30', // Jobs from the last 30 days
-      },
-      headers: {
-        'X-RapidAPI-Key': RAPIDAPI_KEY,
-        'X-RapidAPI-Host': 'indeed12.p.rapidapi.com'
-      },
+    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+    const page = await browser.newPage();
+    await page.goto(`https://www.indeed.com/jobs?q=${encodeURIComponent(technology)}&l=United+States`, { waitUntil: 'networkidle2', timeout: 30000 });
+
+    const jobs = await page.evaluate(() => {
+      const jobElements = document.querySelectorAll('.job_seen_beacon');
+      return Array.from(jobElements).slice(0, 10).map(job => {
+        const title = job.querySelector('h2')?.innerText || 'Unknown Title';
+        const company = job.querySelector('.companyName')?.innerText || 'Unknown Company';
+        const location = job.querySelector('.companyLocation')?.innerText || 'Unknown Location';
+        const url = job.querySelector('a')?.href || '';
+        return { 
+          id: url.split('jk=')[1]?.split('&')[0] || `${title}-${company}-${Date.now()}`, 
+          title, 
+          company, 
+          location, 
+          url 
+        };
+      });
     });
 
-    console.log('Indeed API response:', response.data);
-    const jobs = response.data.hits.map((job) => ({
-      id: job.id || `${job.title}-${job.company_name}-${Date.now()}`, // Fallback ID
-      title: job.title,
-      company: job.company_name,
-      location: job.location || 'Unknown',
-      url: job.link || `https://www.indeed.com/viewjob?jk=${job.id}`, // Construct URL if not provided
-    }));
+    await browser.close();
 
     if (jobs.length === 0) {
       console.log('No jobs found for query:', technology);
       return res.json({ jobs: [], msg: 'No jobs found for this technology' });
     }
 
-    // Filter by companies if provided (optional)
     const filteredJobs = companies && companies.length > 0 
       ? jobs.filter(job => companies.some(c => job.company.toLowerCase().includes(c.toLowerCase())))
       : jobs;
 
-    res.json({ jobs: filteredJobs.slice(0, 10) }); // Limit to 10 jobs for simplicity
+    res.json({ jobs: filteredJobs });
   } catch (err) {
-    console.error('Fetch Jobs Error Details:', {
-      message: err.message,
-      stack: err.stack,
-      response: err.response?.data,
-      status: err.response?.status
-    });
-    res.status(500).json({ msg: 'Server error fetching jobs', error: err.message });
+    console.error('Fetch Jobs Error:', err);
+    res.status(500).json({ msg: 'Server error scraping jobs', error: err.message });
   }
 });
 
@@ -86,7 +74,6 @@ router.post('/apply', authMiddleware, async (req, res) => {
       return res.status(400).json({ msg: 'Already applied to this job' });
     }
 
-    // Check for required details
     const requiredFields = ['phone', 'email', 'fullName', 'address'];
     const missingFields = requiredFields.filter(field => !userDetails[field]);
     if (missingFields.length > 0) {
@@ -112,7 +99,6 @@ router.post('/apply', authMiddleware, async (req, res) => {
       return res.status(400).json({ msg: `Missing required details: ${missingFields.join(', ')}. Check your email for instructions.` });
     }
 
-    // Simplified Puppeteer automation (for debugging and simulation)
     console.log(`Applying to ${jobTitle} at ${company} (URL: ${jobUrl})`);
     const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
@@ -123,7 +109,6 @@ router.post('/apply', authMiddleware, async (req, res) => {
     const pageContent = await page.content();
     console.log('Page content snippet:', pageContent.substring(0, 500));
 
-    // Simulate form filling (basic; real automation needs site-specific logic)
     await page.evaluate((details) => {
       console.log('Filling form with:', details);
       const fields = {
@@ -153,11 +138,9 @@ router.post('/apply', authMiddleware, async (req, res) => {
     });
     await browser.close();
 
-    // Update applied jobs
     user.appliedJobs.push({ jobId, technology, date: new Date() });
     await user.save();
 
-    // Send confirmation email
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
       console.error('Email credentials missing');
       return res.status(500).json({ msg: 'Email service not configured' });
@@ -183,12 +166,8 @@ router.post('/apply', authMiddleware, async (req, res) => {
         </ul>
         <p>We’ll notify you of any employer responses via this email.</p>
       `,
-    }).catch(err => {
-      console.error('Email send error:', err);
-      throw new Error('Failed to send confirmation email');
     });
 
-    // Send SMS (optional)
     const twilioClient = getTwilioClient();
     if (twilioClient) {
       await twilioClient.messages.create({
@@ -208,7 +187,7 @@ router.post('/apply', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/employer-response', async (req, res) => {
+router.post('/employer-response', authMiddleware, async (req, res) => {
   const { jobId, userEmail, message } = req.body;
   try {
     const user = await User.findOne({ email: userEmail });
@@ -233,7 +212,7 @@ router.post('/employer-response', async (req, res) => {
           <p>${message}</p>
           <p>Reply directly to this email or contact the employer as instructed.</p>
         `,
-      }).catch(err => console.error('Email send error:', err));
+      });
     }
 
     const twilioClient = getTwilioClient();
