@@ -1,21 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
-import PaymentSuccess from './components/PaymentSuccess'; // Add this
-import './styles.css';
+import Landing from './components/Landing'; // New Landing component
+import axios from 'axios';
 
 function App() {
   const [user, setUser] = useState(null);
 
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      axios.get(`${process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com'}/api/auth/me`, {
+        headers: { 'x-auth-token': token },
+      })
+      .then(res => setUser({ subscriptionType: res.data.subscriptionType }))
+      .catch(() => localStorage.removeItem('token'));
+    }
+  }, []);
+
   return (
     <Router>
       <Switch>
-        <Route exact path="/" render={(props) => <Login {...props} setUser={setUser} />} />
-        <Route path="/register" component={Register} />
-        <Route path="/dashboard" render={(props) => <Dashboard {...props} user={user} />} />
-        <Route path="/payment-success" component={PaymentSuccess} /> {/* Add this */}
+        <Route exact path="/" component={Landing} />
+        <Route path="/login" component={() => <Login setUser={setUser} />} />
+        <Route path="/register" component={() => <Register setUser={setUser} />} />
+        <Route path="/dashboard" component={() => <Dashboard user={user} />} />
       </Switch>
     </Router>
   );
