@@ -4,7 +4,7 @@ import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import Landing from './components/Landing';
-import ZGPT from './components/ZGPT';
+import ZGPT from './components/Zgpt';  
 import FAQ from './components/FAQ';
 import WhyUs from './components/WhyUs';
 import AIJobs from './components/AIJobs';
