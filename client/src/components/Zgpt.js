@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useHistory } from 'react-router-dom'; // Use useHistory for v5
 import { Box, Typography, TextField, Button, CircularProgress, Paper, Avatar } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import axios from 'axios';
@@ -8,6 +9,7 @@ function Zgpt() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const chatEndRef = useRef(null);
+  const history = useHistory(); // Replace useNavigate with useHistory
   const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
   useEffect(() => {
@@ -24,16 +26,36 @@ function Zgpt() {
     setLoading(true);
 
     try {
+      const token = localStorage.getItem('token');
       const res = await axios.post(
         `${apiUrl}/api/zgpt/query`,
         { query },
-        { headers: { 'x-auth-token': localStorage.getItem('token') } }
+        { headers: { 'x-auth-token': token || '' } }
       );
       const botMessage = { sender: 'zgpt', text: res.data.text, timestamp: new Date().toLocaleTimeString() };
       setMessages((prev) => [...prev, botMessage]);
     } catch (err) {
       console.error('Zgpt Error:', err);
-      const errorMessage = { sender: 'zgpt', text: 'Oops, something went wrong. Retry?', timestamp: new Date().toLocaleTimeString() };
+      let errorMessage;
+      if (err.response?.status === 401) {
+        errorMessage = { 
+          sender: 'zgpt', 
+          text: 'Please log in or register to use Zgpt! Click "Subscribe" below.', 
+          timestamp: new Date().toLocaleTimeString() 
+        };
+      } else if (err.response?.status === 502) {
+        errorMessage = { 
+          sender: 'zgpt', 
+          text: 'Server is having a hiccup. Try again soon!', 
+          timestamp: new Date().toLocaleTimeString() 
+        };
+      } else {
+        errorMessage = { 
+          sender: 'zgpt', 
+          text: 'Oops, something went wrong. Retry?', 
+          timestamp: new Date().toLocaleTimeString() 
+        };
+      }
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setLoading(false);
@@ -140,7 +162,7 @@ function Zgpt() {
         <Button 
           variant="outlined" 
           sx={{ color: '#00e676', borderColor: '#00e676' }} 
-          onClick={() => history.push('/register')}
+          onClick={() => history.push('/register')} // Use history.push
         >
           Subscribe for More Features!
         </Button>

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom'; // v5
 import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import Landing from './components/Landing';
-import Zgpt from './components/Zgpt'; // New Zgpt component
+import Zgpt from './components/Zgpt';
 import axios from 'axios';
 
 function App() {
@@ -28,7 +28,7 @@ function App() {
         <Route path="/login" component={() => <Login setUser={setUser} />} />
         <Route path="/register" component={() => <Register setUser={setUser} />} />
         <Route path="/dashboard" component={() => <Dashboard user={user} />} />
-        <Route path="/zgpt" component={Zgpt} /> {/* New route */}
+        <Route path="/zgpt" component={Zgpt} />
       </Switch>
     </Router>
   );

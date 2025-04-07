@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
+import { useHistory } from 'react-router-dom'; // Use useHistory for v5
 import { 
   Box, Typography, Button, AppBar, Toolbar, Menu, MenuItem, 
   Container, Grid, Card, CardContent, TextField 
 } from '@mui/material';
-import { useHistory } from 'react-router-dom';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 
 function Landing() {
-  const history = useHistory();
+  const history = useHistory(); // Replace useNavigate with useHistory
   const [servicesAnchor, setServicesAnchor] = useState(null);
   const [projectsAnchor, setProjectsAnchor] = useState(null);
   const [jobTitle, setJobTitle] = useState('');
@@ -23,14 +23,14 @@ function Landing() {
   const handleSearch = () => {
     if (jobTitle.trim() && location.trim()) {
       const token = localStorage.getItem('token');
-      history.push(token ? '/dashboard' : '/register');
+      history.push(token ? '/dashboard' : '/register'); // Use history.push
     } else {
       alert('Enter Job Title and Location to unlock premium job search! Subscribe now for full access.');
     }
   };
 
   const handleGetStarted = () => {
-    history.push('/register');
+    history.push('/register'); // Use history.push
   };
 
   return (
@@ -216,7 +216,7 @@ function Landing() {
             </Grid>
             <Grid item xs={12} sm={4}>
               <Card sx={{ 
-                backgroundColor: '#212121', // ChatGPT-like dark background
+                backgroundColor: '#212121', 
                 color: 'white', 
                 borderRadius: '15px', 
                 height: '100%',
@@ -250,7 +250,7 @@ function Landing() {
                   <Button 
                     variant="contained" 
                     sx={{ backgroundColor: '#00e676', '&:hover': { backgroundColor: '#00c853' } }} 
-                    onClick={() => history.push('/zgpt')}
+                    onClick={() => history.push('/zgpt')} // Use history.push
                   >
                     Chat with Zgpt
                   </Button>
