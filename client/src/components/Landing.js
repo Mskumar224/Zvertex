@@ -25,8 +25,12 @@ function Landing() {
       const token = localStorage.getItem('token');
       history.push(token ? '/dashboard' : '/register');
     } else {
-      alert('Please enter both Job Title/Skills and Location to search.');
+      alert('Enter Job Title and Location to unlock premium job search! Subscribe now for full access.');
     }
+  };
+
+  const handleGetStarted = () => {
+    history.push('/register');
   };
 
   return (
@@ -47,9 +51,18 @@ function Landing() {
               onClose={handleClose}
               PaperProps={{ sx: { backgroundColor: '#1a2a44', color: 'white' } }}
             >
-              <MenuItem onClick={() => history.push('/contact')}>Contact Us</MenuItem>
-              <MenuItem onClick={() => history.push('/faq')}>Interview FAQs</MenuItem>
-              <MenuItem onClick={() => history.push('/why-us')}>Why ZvertexAI?</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push('/contact'); }}>
+                Contact Us
+              </MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push('/faq'); }}>
+                Interview FAQs
+              </MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push('/why-us'); }}>
+                Why ZvertexAI?
+              </MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push('/zgpt'); }}>
+                Zgpt - Your Copilot (Subscribe for Full Access!)
+              </MenuItem>
             </Menu>
             <Button color="inherit" onClick={handleProjectsClick} endIcon={<ArrowDropDownIcon />}>
               Join Our Projects!
@@ -60,11 +73,21 @@ function Landing() {
               onClose={handleClose}
               PaperProps={{ sx: { backgroundColor: '#1a2a44', color: 'white' } }}
             >
-              <MenuItem onClick={handleClose}>SaaS Solutions</MenuItem>
-              <MenuItem onClick={handleClose}>Cloud Migration</MenuItem>
-              <MenuItem onClick={handleClose}>AI Automation</MenuItem>
-              <MenuItem onClick={handleClose}>Big Data Analytics</MenuItem>
-              <MenuItem onClick={handleClose}>DevOps Integration</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push('/projects/saas'); }}>
+                SaaS Solutions (AI-Driven Tools Await!)
+              </MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push('/projects/cloud'); }}>
+                Cloud Migration (Scale with Us!)
+              </MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push('/projects/ai'); }}>
+                AI Automation (Unlock Premium Features!)
+              </MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push('/projects/bigdata'); }}>
+                Big Data Analytics (Subscribe to Explore!)
+              </MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push('/projects/devops'); }}>
+                DevOps Integration (Join Our Ecosystem!)
+              </MenuItem>
             </Menu>
             <Button color="inherit" onClick={() => history.push('/login')}>Login</Button>
             <Button color="inherit" onClick={() => history.push('/register')}>Register</Button>
@@ -80,7 +103,7 @@ function Landing() {
               Elevate Your Career with ZvertexAI
             </Typography>
             <Typography variant="h5" sx={{ mb: 4, opacity: 0.9 }}>
-              AI-powered job applications and career growth solutions tailored for you.
+              AI-powered job applications, projects, and your copilot Zgpt.
             </Typography>
             <Button 
               variant="contained" 
@@ -92,7 +115,7 @@ function Landing() {
                 px: 4,
                 py: 1.5
               }}
-              onClick={() => history.push('/register')}
+              onClick={handleGetStarted}
             >
               Get Started Now
             </Button>
@@ -108,7 +131,7 @@ function Landing() {
                 Search Your Dream Job Here
               </Typography>
               <Typography variant="body1" sx={{ mb: 3 }}>
-                Discover your next opportunity and the people who can help you get there.
+                Discover your next opportunity with AI-driven tools.
               </Typography>
               <TextField
                 label="Enter Job Title, Skills"
@@ -157,20 +180,83 @@ function Landing() {
             Why Choose ZvertexAI?
           </Typography>
           <Grid container spacing={4}>
-            {[
-              { title: 'AI Job Matching', desc: 'Smart resume analysis and job applications.' },
-              { title: 'Cloud Integration', desc: 'Seamless career tools in the cloud.' },
-              { title: '24/7 Support', desc: 'Always here to help you succeed.' },
-            ].map((feature, index) => (
-              <Grid item xs={12} sm={4} key={index}>
-                <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px', height: '100%' }}>
-                  <CardContent>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{feature.title}</Typography>
-                    <Typography variant="body2" sx={{ mt: 1 }}>{feature.desc}</Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
+            <Grid item xs={12} sm={4}>
+              <Card sx={{ 
+                backgroundColor: 'rgba(255,255,255,0.1)', 
+                color: 'white', 
+                borderRadius: '15px', 
+                height: '100%',
+                transition: 'transform 0.3s',
+                '&:hover': { transform: 'scale(1.05)' }
+              }}>
+                <CardContent>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>AI Job Matching</Typography>
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    Smart resume analysis and job applications. Subscribe for unlimited submissions!
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Card sx={{ 
+                backgroundColor: 'rgba(255,255,255,0.1)', 
+                color: 'white', 
+                borderRadius: '15px', 
+                height: '100%',
+                transition: 'transform 0.3s',
+                '&:hover': { transform: 'scale(1.05)' }
+              }}>
+                <CardContent>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>In-house AI Projects</Typography>
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    Explore our AI + Cloud + SaaS solutions. Join now to contribute!
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Card sx={{ 
+                backgroundColor: '#212121', // ChatGPT-like dark background
+                color: 'white', 
+                borderRadius: '15px', 
+                height: '100%',
+                boxShadow: '0 4px 15px rgba(0, 0, 0, 0.5)',
+                transition: 'transform 0.3s',
+                '&:hover': { transform: 'scale(1.05)' }
+              }}>
+                <CardContent>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+                    Zgpt Copilot
+                  </Typography>
+                  <Box sx={{ backgroundColor: '#303030', p: 2, borderRadius: '10px', mb: 2 }}>
+                    <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
+                      You: "What’s the future of AI?"
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#00e676', mt: 1 }}>
+                      Zgpt: "AI will revolutionize jobs—subscribe to see how!"
+                    </Typography>
+                  </Box>
+                  <TextField
+                    placeholder="Try me..."
+                    fullWidth
+                    disabled
+                    sx={{ 
+                      mb: 2, 
+                      input: { color: 'white' }, 
+                      '& .MuiInputBase-root': { backgroundColor: '#424242', borderRadius: '20px' },
+                      '& .MuiOutlinedInput-notchedOutline': { border: 'none' }
+                    }}
+                  />
+                  <Button 
+                    variant="contained" 
+                    sx={{ backgroundColor: '#00e676', '&:hover': { backgroundColor: '#00c853' } }} 
+                    onClick={() => history.push('/zgpt')}
+                  >
+                    Chat with Zgpt
+                  </Button>
+                </CardContent>
+              </Card>
+            </Grid>
           </Grid>
         </Box>
       </Container>

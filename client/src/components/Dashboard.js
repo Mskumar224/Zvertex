@@ -5,6 +5,7 @@ import {
 } from '@mui/material';
 import { useHistory } from 'react-router-dom';
 import axios from 'axios';
+import * as tf from '@tensorflow/tfjs'; // Add TensorFlow.js
 
 function Dashboard({ user }) {
   const history = useHistory();
@@ -15,12 +16,7 @@ function Dashboard({ user }) {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [userDetails, setUserDetails] = useState({ 
-    phone: '', 
-    email: user?.email || '', 
-    fullName: '', 
-    address: '' 
-  });
+  const [userDetails, setUserDetails] = useState({ phone: '', email: user?.email || '' });
   const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
   if (!user) {
@@ -42,16 +38,10 @@ function Dashboard({ user }) {
         const res = await axios.get(`${apiUrl}/api/auth/me`, {
           headers: { 'x-auth-token': localStorage.getItem('token') },
         });
-        setUserDetails({ 
-          phone: res.data.phone || '', 
-          email: res.data.email, 
-          fullName: res.data.fullName || '', 
-          address: res.data.address || '' 
-        });
+        setUserDetails({ phone: res.data.phone || '', email: res.data.email });
         if (res.data.resume) setResume(res.data.resume);
       } catch (err) {
         console.error('Fetch User Details Error:', err);
-        setMessage('Error fetching user details.');
       }
     };
     fetchUserDetails();
@@ -69,13 +59,36 @@ function Dashboard({ user }) {
       });
       const tech = res.data.technology;
       setTechnology(tech || '');
-      setMessage(tech ? `Detected technology: ${tech}` : 'Could not detect technology. Please enter manually.');
+      setMessage(tech ? `Detected technology: ${tech}` : 'Could not detect technology. Running TensorFlow.js analysis...');
+
+      // TensorFlow.js keyword extraction
+      if (!tech && file) {
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          const text = event.target.result;
+          const keywords = await extractKeywords(text);
+          setTechnology(keywords[0] || '');
+          setMessage(`TensorFlow.js detected: ${keywords.join(', ')}`);
+        };
+        reader.readAsText(file);
+      }
     } catch (err) {
       console.error('Resume Upload Error:', err);
       setMessage('Error uploading resume.');
     } finally {
       setLoading(false);
     }
+  };
+
+  // TensorFlow.js keyword extraction function
+  const extractKeywords = async (text) => {
+    const techKeywords = ['JavaScript', 'Python', 'Java', 'C++', 'React', 'Node.js', 'SQL', 'AWS', 'Docker', 'Kubernetes'];
+    const wordTensor = tf.tensor(text.toLowerCase().split(/\s+/));
+    const keywordTensors = techKeywords.map(k => tf.tensor(k.toLowerCase()));
+    const matches = keywordTensors.map((kt, i) => 
+      wordTensor.dataSync().includes(kt.dataSync()[0]) ? techKeywords[i] : null
+    ).filter(Boolean);
+    return matches.length > 0 ? matches : ['Unknown'];
   };
 
   const handleCompanyChange = (e) => {
@@ -97,8 +110,8 @@ function Dashboard({ user }) {
       setMessage('Please select between 2 and 10 companies before fetching jobs.');
       return;
     }
-    if (!userDetails.phone || !userDetails.fullName || !userDetails.address) {
-      setMessage('Please provide all required details (phone, full name, address) before fetching jobs.');
+    if (!userDetails.phone) {
+      setMessage('Please provide your phone number before fetching jobs.');
       return;
     }
     setLoading(true);
@@ -107,7 +120,7 @@ function Dashboard({ user }) {
         headers: { 'x-auth-token': localStorage.getItem('token') },
       });
       setJobs(res.data.jobs);
-      setMessage(`Successfully fetched ${res.data.jobs.length} jobs for ${companies.length} companies!`);
+      setMessage(`Successfully fetched jobs for ${companies.length} companies!`);
     } catch (err) {
       console.error('Fetch Jobs Error:', err);
       setMessage(`Error fetching jobs: ${err.response?.data?.msg || err.message}`);
@@ -124,16 +137,15 @@ function Dashboard({ user }) {
         technology, 
         userDetails,
         jobTitle: job.title,
-        company: job.company,
-        jobUrl: job.url
+        company: job.company
       }, {
         headers: { 'x-auth-token': localStorage.getItem('token') },
       });
       setMessage(res.data.msg);
       setJobs(jobs.filter(j => j.id !== job.id));
     } catch (err) {
-      console.error('Apply Error:', err.response?.data || err);
-      setMessage(`Error applying to job: ${err.response?.data?.msg || err.message}`);
+      console.error('Apply Error:', err);
+      setMessage('Error applying to job.');
     } finally {
       setLoading(false);
     }
@@ -181,27 +193,9 @@ function Dashboard({ user }) {
               variant="outlined"
             />
             <TextField
-              label="Full Name"
-              value={userDetails.fullName}
-              onChange={(e) => setUserDetails({ ...userDetails, fullName: e.target.value })}
-              fullWidth
-              margin="normal"
-              variant="outlined"
-              required
-            />
-            <TextField
               label="Phone Number"
               value={userDetails.phone}
               onChange={(e) => setUserDetails({ ...userDetails, phone: e.target.value })}
-              fullWidth
-              margin="normal"
-              variant="outlined"
-              required
-            />
-            <TextField
-              label="Address"
-              value={userDetails.address}
-              onChange={(e) => setUserDetails({ ...userDetails, address: e.target.value })}
               fullWidth
               margin="normal"
               variant="outlined"
@@ -213,7 +207,7 @@ function Dashboard({ user }) {
           </form>
           <Divider sx={{ my: 2 }} />
           <Typography variant="h6" sx={{ mb: 2 }}>Upload Resume</Typography>
-          <input type="file" accept=".pdf,.docx" onChange={handleResumeUpload} style={{ marginBottom: '10px' }} />
+          <input type="file" accept=".pdf,.docx,.txt" onChange={handleResumeUpload} style={{ marginBottom: '10px' }} />
           {loading && <CircularProgress size={24} />}
           {technology && (
             <Alert severity="success" sx={{ mt: 2 }}>

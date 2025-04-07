@@ -85,7 +85,9 @@ function Login({ setUser }) {
               <MenuItem onClick={handleClose}>AI Automation</MenuItem>
               <MenuItem onClick={handleClose}>Big Data Analytics</MenuItem>
               <MenuItem onClick={handleClose}>DevOps Integration</MenuItem>
+              <MenuItem onClick={() => history.push('/projects')}>View Projects</MenuItem> {/* New */}
             </Menu>
+            <Button color="inherit" onClick={() => history.push('/zgpt')}>Zgpt</Button> {/* New */}
             <Button color="inherit" onClick={() => history.push('/login')}>Login</Button>
             <Button color="inherit" onClick={() => history.push('/register')}>Register</Button>
           </Box>
@@ -161,7 +163,7 @@ function Login({ setUser }) {
               margin="normal"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              Wsx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
+              sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
             />
             <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
               Search

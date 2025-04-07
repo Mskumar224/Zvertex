@@ -72,7 +72,9 @@ function Register({ setUser }) {
               <MenuItem onClick={handleClose}>AI Automation</MenuItem>
               <MenuItem onClick={handleClose}>Big Data Analytics</MenuItem>
               <MenuItem onClick={handleClose}>DevOps Integration</MenuItem>
+              <MenuItem onClick={() => history.push('/projects')}>View Projects</MenuItem> {/* New */}
             </Menu>
+            <Button color="inherit" onClick={() => history.push('/zgpt')}>Zgpt</Button> {/* New */}
             <Button color="inherit" onClick={() => history.push('/login')}>Login</Button>
             <Button color="inherit" onClick={() => history.push('/register')}>Register</Button>
           </Box>
