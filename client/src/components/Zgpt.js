@@ -8,8 +8,8 @@ function Zgpt() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const chatEndRef = useRef(null);
+  const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
-  // Scroll to the bottom of the chat when new messages are added
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -18,7 +18,6 @@ function Zgpt() {
     e.preventDefault();
     if (!query.trim()) return;
 
-    // Add user's message to chat
     const userMessage = { sender: 'user', text: query, timestamp: new Date().toLocaleTimeString() };
     setMessages((prev) => [...prev, userMessage]);
     setQuery('');
@@ -26,12 +25,11 @@ function Zgpt() {
 
     try {
       const res = await axios.post(
-        'https://api-inference.huggingface.co/models/gpt2',
-        { inputs: query },
-        { headers: { Authorization: `Bearer ${process.env.REACT_APP_HF_TOKEN}` } }
+        `${apiUrl}/api/zgpt/query`,
+        { query },
+        { headers: { 'x-auth-token': localStorage.getItem('token') } }
       );
-      const botResponse = res.data[0]?.generated_text || 'Hmm, I’m thinking... Try again!';
-      const botMessage = { sender: 'zgpt', text: botResponse, timestamp: new Date().toLocaleTimeString() };
+      const botMessage = { sender: 'zgpt', text: res.data.text, timestamp: new Date().toLocaleTimeString() };
       setMessages((prev) => [...prev, botMessage]);
     } catch (err) {
       console.error('Zgpt Error:', err);
@@ -57,7 +55,6 @@ function Zgpt() {
         display: 'flex', 
         flexDirection: 'column' 
       }}>
-        {/* Chat Area */}
         <Box sx={{ flexGrow: 1, overflowY: 'auto', mb: 2 }}>
           {messages.length === 0 ? (
             <Typography sx={{ color: '#b0b0b0', textAlign: 'center', mt: 5 }}>
@@ -105,8 +102,6 @@ function Zgpt() {
           )}
           <div ref={chatEndRef} />
         </Box>
-
-        {/* Input Area */}
         <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', alignItems: 'center' }}>
           <TextField
             placeholder="Ask Zgpt anything..."
