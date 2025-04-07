@@ -25,8 +25,8 @@ router.post('/query', authMiddleware, async (req, res) => {
     const result = response.data[0]?.generated_text || 'No response generated.';
     res.json({ text: result });
   } catch (err) {
-    console.error('Hugging Face API Error:', err.response?.data || err.message);
-    res.status(500).json({ msg: 'Error fetching response from Zgpt', error: err.message });
+    console.error('ZGPT API Error:', err.response?.data || err.message);
+    res.status(500).json({ msg: 'Error fetching response from ZGPT', error: err.message });
   }
 });
 

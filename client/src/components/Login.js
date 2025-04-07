@@ -1,18 +1,14 @@
 import React, { useState } from 'react';
-import { TextField, Button, Typography, Link, Card, CardContent, Box, AppBar, Toolbar, Menu, MenuItem } from '@mui/material';
-import axios from 'axios';
 import { useHistory } from 'react-router-dom';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import { Box, Typography, TextField, Button, Container, Paper, Grid, Divider } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import axios from 'axios';
 
 function Login({ setUser }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResult, setSearchResult] = useState('');
+  const [error, setError] = useState('');
   const history = useHistory();
-  const [servicesAnchor, setServicesAnchor] = React.useState(null);
-  const [projectsAnchor, setProjectsAnchor] = React.useState(null);
-
   const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
   const handleSubmit = async (e) => {
@@ -20,159 +16,119 @@ function Login({ setUser }) {
     try {
       const res = await axios.post(`${apiUrl}/api/auth/login`, { email, password });
       localStorage.setItem('token', res.data.token);
-      setUser({ subscriptionType: res.data.subscriptionType });
+      setUser({ email: res.data.email, subscriptionType: res.data.subscriptionType });
       history.push('/dashboard');
     } catch (err) {
-      console.error('Login Error:', err.message, err.response?.data);
-      const errorMsg = err.response?.data?.msg || (err.message === 'Network Error' ? 'Server unreachable. Please try again later.' : 'Login failed.');
-      alert(errorMsg);
+      setError(err.response?.data?.msg || 'Login failed');
     }
-  };
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) {
-      setSearchResult('Please enter a search term!');
-      return;
-    }
-    const jobSuggestions = [
-      `Looking for "${searchQuery}"? Try our STUDENT plan for $59.99/month—35 job submissions daily!`,
-      `Your search for "${searchQuery}" fits our VENDOR plan at $99.99/month—175 submissions/day.`,
-      `Interested in "${searchQuery}"? Contact us for our BUSINESS plan!`,
-    ];
-    setSearchResult(jobSuggestions[Math.floor(Math.random() * jobSuggestions.length)]);
-  };
-
-  const handleServicesClick = (event) => setServicesAnchor(event.currentTarget);
-  const handleProjectsClick = (event) => setProjectsAnchor(event.currentTarget);
-  const handleClose = () => {
-    setServicesAnchor(null);
-    setProjectsAnchor(null);
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)' }}>
-      <AppBar position="static" sx={{ backgroundColor: 'rgba(26, 42, 68, 0.9)', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
-        <Toolbar>
-          <Typography variant="h5" sx={{ flexGrow: 1, fontWeight: 'bold', cursor: 'pointer' }} onClick={() => history.push('/')}>
-            ZvertexAI
-          </Typography>
-          <Box>
-            <Button color="inherit" onClick={handleServicesClick} endIcon={<ArrowDropDownIcon />}>
-              Services
-            </Button>
-            <Menu
-              anchorEl={servicesAnchor}
-              open={Boolean(servicesAnchor)}
-              onClose={handleClose}
-              PaperProps={{ sx: { backgroundColor: '#1a2a44', color: 'white' } }}
-            >
-              <MenuItem onClick={() => history.push('/contact')}>Contact Us</MenuItem>
-              <MenuItem onClick={() => history.push('/faq')}>Interview FAQs</MenuItem>
-              <MenuItem onClick={() => history.push('/why-us')}>Why ZvertexAI?</MenuItem>
-            </Menu>
-            <Button color="inherit" onClick={handleProjectsClick} endIcon={<ArrowDropDownIcon />}>
-              Join Our Projects!
-            </Button>
-            <Menu
-              anchorEl={projectsAnchor}
-              open={Boolean(projectsAnchor)}
-              onClose={handleClose}
-              PaperProps={{ sx: { backgroundColor: '#1a2a44', color: 'white' } }}
-            >
-              <MenuItem onClick={handleClose}>SaaS Solutions</MenuItem>
-              <MenuItem onClick={handleClose}>Cloud Migration</MenuItem>
-              <MenuItem onClick={handleClose}>AI Automation</MenuItem>
-              <MenuItem onClick={handleClose}>Big Data Analytics</MenuItem>
-              <MenuItem onClick={handleClose}>DevOps Integration</MenuItem>
-              <MenuItem onClick={() => history.push('/projects')}>View Projects</MenuItem> {/* New */}
-            </Menu>
-            <Button color="inherit" onClick={() => history.push('/zgpt')}>Zgpt</Button> {/* New */}
-            <Button color="inherit" onClick={() => history.push('/login')}>Login</Button>
-            <Button color="inherit" onClick={() => history.push('/register')}>Register</Button>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
+      <Container maxWidth="sm">
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => history.goBack()}
+          sx={{ mt: 2, color: '#ff6d00' }}
+        >
+          Back
+        </Button>
+        <Paper elevation={6} sx={{ mt: 4, p: 4, borderRadius: '15px', backgroundColor: 'rgba(255,255,255,0.1)' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold' }}>Login</Typography>
+            {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
+            <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
+              <TextField
+                label="Email"
+                fullWidth
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                variant="outlined"
+                sx={{ 
+                  mb: 2, 
+                  input: { color: 'white' }, 
+                  label: { color: '#b0b0b0' }, 
+                  '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: '#ff6d00' } } 
+                }}
+              />
+              <TextField
+                label="Password"
+                type="password"
+                fullWidth
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                variant="outlined"
+                sx={{ 
+                  mb: 3, 
+                  input: { color: 'white' }, 
+                  label: { color: '#b0b0b0' }, 
+                  '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: '#ff6d00' } } 
+                }}
+              />
+              <Button 
+                type="submit" 
+                variant="contained" 
+                fullWidth 
+                sx={{ 
+                  mb: 2, 
+                  backgroundColor: '#ff6d00', 
+                  '&:hover': { backgroundColor: '#e65100' }, 
+                  borderRadius: '25px', 
+                  py: 1.5 
+                }}
+              >
+                Login
+              </Button>
+              <Button 
+                variant="text" 
+                sx={{ color: '#00e676' }} 
+                onClick={() => history.push('/register')}
+              >
+                Don’t have an account? Register
+              </Button>
+            </Box>
           </Box>
-        </Toolbar>
-      </AppBar>
-      <Box sx={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', padding: '20px', maxHeight: 'calc(100vh - 64px)', overflow: 'hidden', color: 'white' }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <Typography variant="h5" align="center">Choose Your Plan</Typography>
-          <Card sx={{ flex: '1', backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
-            <CardContent>
-              <Typography variant="h6" color="inherit">Student</Typography>
-              <Typography variant="body2" color="inherit">$59.99/Month</Typography>
-              <Typography variant="body2">1 Resume, 35 Submissions/Day</Typography>
-              <Button variant="contained" color="secondary" size="small" sx={{ mt: 1 }} onClick={() => history.push('/register')}>
-                Get Started
-              </Button>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: '1', backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
-            <CardContent>
-              <Typography variant="h6" color="inherit">Vendor</Typography>
-              <Typography variant="body2" color="inherit">$99.99/Month</Typography>
-              <Typography variant="body2">4 Resumes, 175 Submissions/Day</Typography>
-              <Button variant="contained" color="secondary" size="small" sx={{ mt: 1 }} onClick={() => history.push('/register')}>
-                Get Started
-              </Button>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: '1', backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
-            <CardContent>
-              <Typography variant="h6" color="inherit">Business</Typography>
-              <Typography variant="body2" color="inherit">Contact Us</Typography>
-              <Typography variant="body2">Custom Resumes & Submissions</Typography>
-              <Button variant="contained" color="secondary" size="small" sx={{ mt: 1 }} onClick={() => history.push('/register')}>
+        </Paper>
+      </Container>
+
+      <Box sx={{ py: 4, backgroundColor: '#1a2a44', textAlign: 'center', mt: 4 }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={4}>
+            <Grid item xs={12} md={4}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>ZvertexAI</Typography>
+              <Typography variant="body2">
+                Empowering careers and businesses with AI-driven solutions.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>Quick Links</Typography>
+              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/contact')}>
                 Contact Us
-              </Button>
-            </CardContent>
-          </Card>
-        </Box>
-        <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-          <Typography variant="h2">Login</Typography>
-          <Typography variant="body1" sx={{ mb: 2 }}>Access your account</Typography>
-          <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: '400px' }}>
-            <TextField
-              label="Email"
-              fullWidth
-              margin="normal"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
-            />
-            <TextField
-              label="Password"
-              type="password"
-              fullWidth
-              margin="normal"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
-            />
-            <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
-              Login
-            </Button>
-          </form>
-          <Link href="/forgot-password" sx={{ mt: 1, color: 'white' }}>Forgot Password?</Link>
-        </Box>
-        <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-          <Typography variant="h5" sx={{ mb: 2 }}>Search Jobs</Typography>
-          <form onSubmit={handleSearch} style={{ width: '100%', maxWidth: '400px' }}>
-            <TextField
-              label="Search Jobs"
-              fullWidth
-              margin="normal"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
-            />
-            <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
-              Search
-            </Button>
-          </form>
-          {searchResult && <Typography sx={{ mt: 2 }}>{searchResult}</Typography>}
-        </Box>
+              </Typography>
+              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/faq')}>
+                Interview FAQs
+              </Typography>
+              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/why-us')}>
+                Why ZvertexAI?
+              </Typography>
+              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/zgpt')}>
+                ZGPT Copilot
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>Contact</Typography>
+              <Typography variant="body2">5900 Balcones Dr #16790, Austin, TX 78731</Typography>
+              <Typography variant="body2">Phone: 737-239-0920 (151)</Typography>
+              <Typography variant="body2">Email: support@zvertexai.com</Typography>
+            </Grid>
+          </Grid>
+          <Divider sx={{ my: 2, backgroundColor: '#fff' }} />
+          <Typography variant="body2">
+            © 2025 ZvertexAI. All rights reserved.
+          </Typography>
+        </Container>
       </Box>
-    </div>
+    </Box>
   );
 }
 

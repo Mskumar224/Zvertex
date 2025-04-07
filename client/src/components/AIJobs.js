@@ -1,9 +1,9 @@
 import React from 'react';
 import { useHistory } from 'react-router-dom';
-import { Box, Typography, Button, Container, Grid, Divider } from '@mui/material';
+import { Box, Typography, Button, Container, Grid, Card, CardContent, Divider } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
-function Dashboard({ user }) {
+function AIJobs({ user }) {
   const history = useHistory();
 
   if (!user) {
@@ -21,31 +21,41 @@ function Dashboard({ user }) {
         >
           Back
         </Button>
-        <Box sx={{ mt: 8, textAlign: 'center' }}>
-          <Typography variant="h4" sx={{ mb: 4 }}>
-            Welcome, {user.email}!
-          </Typography>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Subscription: {user.subscriptionType || 'Free'}
-          </Typography>
-          <Button 
-            variant="contained" 
-            onClick={() => history.push('/zgpt')} 
-            sx={{ mr: 2, backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
-          >
-            Chat with ZGPT
-          </Button>
-          <Button 
-            variant="outlined" 
-            onClick={() => {
-              localStorage.removeItem('token');
-              history.push('/login');
-            }}
-            sx={{ color: '#00e676', borderColor: '#00e676' }}
-          >
-            Logout
-          </Button>
-        </Box>
+        <Typography variant="h4" sx={{ mt: 4, mb: 4, fontWeight: 'bold', textAlign: 'center' }}>
+          AI Job Matching
+        </Typography>
+        <Grid container spacing={4}>
+          <Grid item xs={12}>
+            <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px' }}>
+              <CardContent>
+                <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2 }}>Best Use Case</Typography>
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                  Our AI Job Matching service analyzes your resume and skills to connect you with top-tier opportunities at companies like Google, Amazon, and Tesla. 
+                  Whether you're a developer, data scientist, or cloud engineer, we tailor job recommendations to your expertise.
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>For Job Seekers</Typography>
+                <Typography variant="body2" sx={{ mb: 2 }}>
+                  - Get personalized job matches.<br/>
+                  - Automate applications with our AI-driven tools.<br/>
+                  - Access exclusive opportunities with premium subscription.
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>For Employers</Typography>
+                <Typography variant="body2" sx={{ mb: 3 }}>
+                  - Source top talent effortlessly.<br/>
+                  - Leverage AI to filter candidates.<br/>
+                  - Partner with us to fill roles faster.
+                </Typography>
+                <Button 
+                  variant="contained" 
+                  sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' }, borderRadius: '25px' }} 
+                  onClick={() => history.push('/contact')}
+                >
+                  Contact Us to Join
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
       </Container>
 
       <Box sx={{ py: 4, backgroundColor: '#1a2a44', textAlign: 'center', mt: 4 }}>
@@ -89,4 +99,4 @@ function Dashboard({ user }) {
   );
 }
 
-export default Dashboard;
+export default AIJobs;

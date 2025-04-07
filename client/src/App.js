@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Route, Switch } from 'react-router-dom'; // v5
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import Landing from './components/Landing';
-import Zgpt from './components/Zgpt';
+import ZGPT from './components/ZGPT';
+import FAQ from './components/FAQ';
+import WhyUs from './components/WhyUs';
+import AIJobs from './components/AIJobs';
+import AIProjects from './components/AIProjects';
 import axios from 'axios';
 
 function App() {
@@ -16,8 +20,11 @@ function App() {
       axios.get(`${process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com'}/api/auth/me`, {
         headers: { 'x-auth-token': token },
       })
-      .then(res => setUser({ subscriptionType: res.data.subscriptionType }))
-      .catch(() => localStorage.removeItem('token'));
+        .then(res => setUser({ email: res.data.email, subscriptionType: res.data.subscriptionType }))
+        .catch(() => {
+          localStorage.removeItem('token');
+          setUser(null);
+        });
     }
   }, []);
 
@@ -28,7 +35,11 @@ function App() {
         <Route path="/login" component={() => <Login setUser={setUser} />} />
         <Route path="/register" component={() => <Register setUser={setUser} />} />
         <Route path="/dashboard" component={() => <Dashboard user={user} />} />
-        <Route path="/zgpt" component={Zgpt} />
+        <Route path="/zgpt" component={ZGPT} />
+        <Route path="/faq" component={FAQ} />
+        <Route path="/why-us" component={WhyUs} />
+        <Route path="/projects/ai-jobs" component={() => <AIJobs user={user} />} />
+        <Route path="/projects/ai-projects" component={() => <AIProjects user={user} />} />
       </Switch>
     </Router>
   );
