@@ -177,7 +177,6 @@ function Landing({ user }) {
                 color="inherit"
                 onClick={() => {
                   localStorage.removeItem('token');
-                  setUser(null);
                   history.push('/');
                 }}
               >
@@ -269,7 +268,7 @@ function Landing({ user }) {
                   {searchError}
                 </Typography>
               )}
-              {jobs.length > 0 && (
+              {jobs.length > 0 ? (
                 <Box sx={{ mt: 3, maxHeight: '300px', overflowY: 'auto' }}>
                   <Typography variant="h6" sx={{ mb: 2 }}>
                     Job Results
@@ -297,6 +296,24 @@ function Landing({ user }) {
                     ))}
                   </List>
                 </Box>
+              ) : (
+                !searchError && (
+                  <Box sx={{ mt: 3, textAlign: 'center' }}>
+                    <Typography variant="body1" sx={{ mb: 2, color: '#b0b0b0' }}>
+                      No jobs found. Enter a job title and location above to start searching.
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      sx={{ color: 'white', borderColor: 'white' }}
+                      onClick={() => {
+                        setJobTitle('');
+                        setLocation('');
+                      }}
+                    >
+                      Clear Search
+                    </Button>
+                  </Box>
+                )
               )}
             </Box>
           </Grid>
