@@ -1,49 +1,31 @@
 import React, { useState } from 'react';
-import { useHistory, useLocation } from 'react-router-dom';
-import { Box, Typography, TextField, Button, Container, Grid, Divider } from '@mui/material';
+import { useHistory } from 'react-router-dom';
+import { Box, Typography, TextField, Button, Container, Divider, Grid } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import axios from 'axios';
 
-function ForgotPassword() {
+function Contact() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const history = useHistory();
-  const location = useLocation();
   const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
-  const token = new URLSearchParams(location.search).get('token');
-  const user = localStorage.getItem('token') ? true : false;
-
-  if (user) {
-    history.push('/dashboard');
-    return null;
-  }
-
-  const handleRequestReset = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${apiUrl}/api/auth/forgot-password`, { email });
-      setSuccess('A reset link has been sent to your email.');
+      await axios.post(`${apiUrl}/api/contact`, { name, email, message });
+      setSuccess('Your message has been sent! We’ll get back to you soon.');
+      setName('');
       setEmail('');
+      setMessage('');
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to send reset link');
-    }
-  };
-
-  const handleResetPassword = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post(`${apiUrl}/api/auth/reset-password`, { token, newPassword });
-      setSuccess('Password reset successfully! Please login.');
-      setNewPassword('');
-      setTimeout(() => history.push('/login'), 2000);
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to reset password');
+      setError(err.response?.data?.msg || 'Failed to send message');
     }
   };
 
@@ -58,78 +40,77 @@ function ForgotPassword() {
           >
             Back
           </Button>
-          <Box sx={{ maxWidth: '500px', mx: 'auto', mt: 8 }}>
+          <Box sx={{ maxWidth: '600px', mx: 'auto', mt: 8 }}>
             <Typography variant="h4" sx={{ mb: 4, textAlign: 'center', fontWeight: 'bold' }}>
-              {token ? 'Reset Password' : 'Forgot Password'}
+              Contact Us
             </Typography>
             {error && <Typography color="error" sx={{ mb: 2, textAlign: 'center' }}>{error}</Typography>}
             {success && <Typography sx={{ mb: 2, textAlign: 'center', color: '#00e676' }}>{success}</Typography>}
-            {!token ? (
-              <Box component="form" onSubmit={handleRequestReset} sx={{ width: '100%' }}>
-                <TextField
-                  label="Email"
-                  fullWidth
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  sx={{ 
-                    mb: 2, 
-                    input: { color: 'white' }, 
-                    label: { color: 'white' }, 
-                    '& .MuiOutlinedInput-root': { 
-                      '& fieldset': { borderColor: 'white' }, 
-                      '&:hover fieldset': { borderColor: '#ff6d00' },
-                      '&.Mui-focused fieldset': { borderColor: '#ff6d00' }
-                    } 
-                  }}
-                />
-                <Button 
-                  type="submit" 
-                  variant="contained" 
-                  fullWidth 
-                  sx={{ 
-                    mb: 2, 
-                    backgroundColor: '#ff6d00', 
-                    '&:hover': { backgroundColor: '#e65100' },
-                    py: 1.5
-                  }}
-                >
-                  Send Reset Link
-                </Button>
-              </Box>
-            ) : (
-              <Box component="form" onSubmit={handleResetPassword} sx={{ width: '100%' }}>
-                <TextField
-                  label="New Password"
-                  type="password"
-                  fullWidth
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  sx={{ 
-                    mb: 2, 
-                    input: { color: 'white' }, 
-                    label: { color: 'white' }, 
-                    '& .MuiOutlinedInput-root': { 
-                      '& fieldset': { borderColor: 'white' }, 
-                      '&:hover fieldset': { borderColor: '#ff6d00' },
-                      '&.Mui-focused fieldset': { borderColor: '#ff6d00' }
-                    } 
-                  }}
-                />
-                <Button 
-                  type="submit" 
-                  variant="contained" 
-                  fullWidth 
-                  sx={{ 
-                    mb: 2, 
-                    backgroundColor: '#ff6d00', 
-                    '&:hover': { backgroundColor: '#e65100' },
-                    py: 1.5
-                  }}
-                >
-                  Reset Password
-                </Button>
-              </Box>
-            )}
+            <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
+              <TextField
+                label="Name"
+                fullWidth
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                sx={{ 
+                  mb: 2, 
+                  input: { color: 'white' }, 
+                  label: { color: 'white' }, 
+                  '& .MuiOutlinedInput-root': { 
+                    '& fieldset': { borderColor: 'white' }, 
+                    '&:hover fieldset': { borderColor: '#ff6d00' },
+                    '&.Mui-focused fieldset': { borderColor: '#ff6d00' }
+                  } 
+                }}
+              />
+              <TextField
+                label="Email"
+                fullWidth
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                sx={{ 
+                  mb: 2, 
+                  input: { color: 'white' }, 
+                  label: { color: 'white' }, 
+                  '& .MuiOutlinedInput-root': { 
+                    '& fieldset': { borderColor: 'white' }, 
+                    '&:hover fieldset': { borderColor: '#ff6d00' },
+                    '&.Mui-focused fieldset': { borderColor: '#ff6d00' }
+                  } 
+                }}
+              />
+              <TextField
+                label="Message"
+                fullWidth
+                multiline
+                rows={4}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                sx={{ 
+                  mb: 2, 
+                  input: { color: 'white' }, 
+                  label: { color: 'white' }, 
+                  '& .MuiOutlinedInput-root': { 
+                    '& fieldset': { borderColor: 'white' }, 
+                    '&:hover fieldset': { borderColor: '#ff6d00' },
+                    '&.Mui-focused fieldset': { borderColor: '#ff6d00' }
+                  } 
+                }}
+              />
+              <Button 
+                type="submit" 
+                variant="contained" 
+                fullWidth 
+                sx={{ 
+                  mb: 2, 
+                  backgroundColor: '#ff6d00', 
+                  '&:hover': { backgroundColor: '#e65100' },
+                  py: 1.5
+                }}
+              >
+                Send Message
+              </Button>
+            </Box>
           </Box>
         </Box>
       </Container>
@@ -203,4 +184,4 @@ function ForgotPassword() {
   );
 }
 
-export default ForgotPassword;
+export default Contact;

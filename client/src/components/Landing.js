@@ -1,18 +1,33 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { 
-  Box, Typography, Button, AppBar, Toolbar, Menu, MenuItem, 
-  Container, Grid, Card, CardContent, TextField, Divider 
+import {
+  Box,
+  Typography,
+  Button,
+  AppBar,
+  Toolbar,
+  Menu,
+  MenuItem,
+  Container,
+  Grid,
+  Card,
+  CardContent,
+  TextField,
+  List,
+  ListItem,
+  ListItemText,
 } from '@mui/material';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import axios from 'axios';
 
-function Landing() {
+function Landing({ user }) {
   const history = useHistory();
   const [servicesAnchor, setServicesAnchor] = useState(null);
   const [projectsAnchor, setProjectsAnchor] = useState(null);
   const [jobTitle, setJobTitle] = useState('');
   const [location, setLocation] = useState('');
+  const [jobs, setJobs] = useState([]);
+  const [searchError, setSearchError] = useState('');
 
   const handleServicesClick = (event) => setServicesAnchor(event.currentTarget);
   const handleProjectsClick = (event) => setProjectsAnchor(event.currentTarget);
@@ -21,20 +36,39 @@ function Landing() {
     setProjectsAnchor(null);
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (jobTitle.trim() && location.trim()) {
-      const token = localStorage.getItem('token');
-      history.push(token ? '/dashboard' : '/register');
+      try {
+        const res = await axios.post(
+          `${process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com'}/api/jobs/fetch`,
+          { technology: jobTitle, location }
+        );
+        setJobs(res.data.jobs || []);
+        setSearchError('');
+      } catch (err) {
+        setSearchError('Failed to fetch jobs. Try again later.');
+        setJobs([]);
+      }
     } else {
-      alert('Enter Job Title and Location to unlock premium job search! Subscribe now for full access.');
+      setSearchError('Please enter both Job Title and Location.');
+    }
+  };
+
+  const handleJobClick = (jobId) => {
+    if (!user) {
+      history.push(`/job/${jobId}`);
+    } else {
+      history.push('/dashboard');
     }
   };
 
   const handleGetStarted = () => {
-    history.push('/register');
+    if (user) {
+      history.push('/dashboard');
+    } else {
+      history.push('/register');
+    }
   };
-
-  const token = localStorage.getItem('token');
 
   return (
     <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
@@ -51,22 +85,30 @@ function Landing() {
               anchorEl={servicesAnchor}
               open={Boolean(servicesAnchor)}
               onClose={handleClose}
-              PaperProps={{ sx: { backgroundColor: '#1a2a44', color: 'white', minWidth: '200px' } }}
+              PaperProps={{ sx: { backgroundColor: '#1a2a44', color: 'white' } }}
             >
-              <MenuItem onClick={() => { handleClose(); history.push('/contact'); }}>
-                Contact Us
-              </MenuItem>
-              <Box sx={{ p: 2, backgroundColor: '#2e4b7a', borderRadius: '8px', m: 1 }}>
-                <Typography variant="body2">Address: 5900 Balcones Dr #16790, Austin, TX 78731</Typography>
-                <Typography variant="body2">Phone: 737-239-0920 (151)</Typography>
-              </Box>
-              <MenuItem onClick={() => { handleClose(); history.push('/faq'); }}>
+              <MenuItem
+                onClick={() => {
+                  handleClose();
+                  history.push('/faq');
+                }}
+              >
                 Interview FAQs
               </MenuItem>
-              <MenuItem onClick={() => { handleClose(); history.push('/why-us'); }}>
+              <MenuItem
+                onClick={() => {
+                  handleClose();
+                  history.push('/why-us');
+                }}
+              >
                 Why ZvertexAI?
               </MenuItem>
-              <MenuItem onClick={() => { handleClose(); history.push('/zgpt'); }}>
+              <MenuItem
+                onClick={() => {
+                  handleClose();
+                  history.push('/zgpt');
+                }}
+              >
                 ZGPT - Your Copilot (Subscribe for Full Access!)
               </MenuItem>
             </Menu>
@@ -77,78 +119,76 @@ function Landing() {
               anchorEl={projectsAnchor}
               open={Boolean(projectsAnchor)}
               onClose={handleClose}
-              PaperProps={{ sx: { backgroundColor: '#1a2a44', color: 'white', minWidth: '250px' } }}
+              PaperProps={{ sx: { backgroundColor: '#1a2a44', color: 'white' } }}
             >
-              <MenuItem onClick={() => { handleClose(); history.push('/projects/saas'); }}>
-                <Box>
-                  <Typography variant="body1">SaaS Solutions</Typography>
-                  <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
-                    Use Case: Streamline operations with AI-driven tools.
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#00e676' }}>
-                    Join us to build scalable SaaS for clients!
-                  </Typography>
-                </Box>
+              <MenuItem
+                onClick={() => {
+                  handleClose();
+                  history.push(user ? '/projects/saas' : '/register');
+                }}
+              >
+                SaaS Solutions
               </MenuItem>
-              <MenuItem onClick={() => { handleClose(); history.push('/projects/cloud'); }}>
-                <Box>
-                  <Typography variant="body1">Cloud Migration</Typography>
-                  <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
-                    Use Case: Seamless transitions to AWS/Google Cloud.
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#00e676' }}>
-                    Collaborate for cutting-edge cloud solutions!
-                  </Typography>
-                </Box>
+              <MenuItem
+                onClick={() => {
+                  handleClose();
+                  history.push(user ? '/projects/cloud' : '/register');
+                }}
+              >
+                Cloud Migration
               </MenuItem>
-              <MenuItem onClick={() => { handleClose(); history.push('/projects/ai'); }}>
-                <Box>
-                  <Typography variant="body1">AI Automation</Typography>
-                  <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
-                    Use Case: Automate workflows with AI precision.
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#00e676' }}>
-                    Innovate with us on AI-driven futures!
-                  </Typography>
-                </Box>
+              <MenuItem
+                onClick={() => {
+                  handleClose();
+                  history.push(user ? '/projects/ai' : '/register');
+                }}
+              >
+                AI Automation
               </MenuItem>
-              <MenuItem onClick={() => { handleClose(); history.push('/projects/bigdata'); }}>
-                <Box>
-                  <Typography variant="body1">Big Data Analytics</Typography>
-                  <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
-                    Use Case: Derive insights from massive datasets.
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#00e676' }}>
-                    Join to unlock data-driven strategies!
-                  </Typography>
-                </Box>
+              <MenuItem
+                onClick={() => {
+                  handleClose();
+                  history.push(user ? '/projects/bigdata' : '/register');
+                }}
+              >
+                Big Data Analytics
               </MenuItem>
-              <MenuItem onClick={() => { handleClose(); history.push('/projects/devops'); }}>
-                <Box>
-                  <Typography variant="body1">DevOps Integration</Typography>
-                  <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
-                    Use Case: Optimize CI/CD pipelines.
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#00e676' }}>
-                    Partner with us for DevOps excellence!
-                  </Typography>
-                </Box>
+              <MenuItem
+                onClick={() => {
+                  handleClose();
+                  history.push(user ? '/projects/devops' : '/register');
+                }}
+              >
+                DevOps Integration
               </MenuItem>
             </Menu>
-            <Button color="inherit" onClick={() => history.push('/login')}>Login</Button>
-            <Button color="inherit" onClick={() => history.push('/register')}>Register</Button>
+            {!user && (
+              <>
+                <Button color="inherit" onClick={() => history.push('/login')}>
+                  Login
+                </Button>
+                <Button color="inherit" onClick={() => history.push('/register')}>
+                  Register
+                </Button>
+              </>
+            )}
+            {user && (
+              <Button
+                color="inherit"
+                onClick={() => {
+                  localStorage.removeItem('token');
+                  setUser(null);
+                  history.push('/');
+                }}
+              >
+                Logout
+              </Button>
+            )}
           </Box>
         </Toolbar>
       </AppBar>
 
       <Container maxWidth="lg" sx={{ pt: 8, pb: 6 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => history.goBack()}
-          sx={{ mb: 2, color: '#ff6d00' }}
-        >
-          Back
-        </Button>
         <Grid container spacing={4} alignItems="center">
           <Grid item xs={12} md={6}>
             <Typography variant="h2" sx={{ fontWeight: 'bold', mb: 2 }}>
@@ -157,28 +197,30 @@ function Landing() {
             <Typography variant="h5" sx={{ mb: 4, opacity: 0.9 }}>
               AI-powered job applications, projects, and your copilot ZGPT.
             </Typography>
-            <Button 
-              variant="contained" 
-              size="large" 
-              sx={{ 
-                backgroundColor: '#ff6d00', 
+            <Button
+              variant="contained"
+              size="large"
+              sx={{
+                backgroundColor: '#ff6d00',
                 '&:hover': { backgroundColor: '#e65100' },
                 borderRadius: '25px',
                 px: 4,
-                py: 1.5
+                py: 1.5,
               }}
               onClick={handleGetStarted}
             >
-              Get Started Now
+              {user ? 'Go to Dashboard' : 'Get Started Now'}
             </Button>
           </Grid>
           <Grid item xs={12} md={6}>
-            <Box sx={{ 
-              backgroundColor: 'rgba(255,255,255,0.1)', 
-              borderRadius: '15px', 
-              p: 3, 
-              boxShadow: '0 8px 20px rgba(0,0,0,0.3)' 
-            }}>
+            <Box
+              sx={{
+                backgroundColor: 'rgba(255,255,255,0.1)',
+                borderRadius: '15px',
+                p: 3,
+                boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
+              }}
+            >
               <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 2 }}>
                 Search Your Dream Job Here
               </Typography>
@@ -190,11 +232,11 @@ function Landing() {
                 fullWidth
                 value={jobTitle}
                 onChange={(e) => setJobTitle(e.target.value)}
-                sx={{ 
-                  mb: 2, 
-                  input: { color: 'white' }, 
-                  label: { color: 'white' }, 
-                  '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } 
+                sx={{
+                  mb: 2,
+                  input: { color: 'white' },
+                  label: { color: 'white' },
+                  '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } },
                 }}
               />
               <TextField
@@ -202,11 +244,11 @@ function Landing() {
                 fullWidth
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                sx={{ 
-                  mb: 3, 
-                  input: { color: 'white' }, 
-                  label: { color: 'white' }, 
-                  '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } 
+                sx={{
+                  mb: 3,
+                  input: { color: 'white' },
+                  label: { color: 'white' },
+                  '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } },
                 }}
               />
               <Button
@@ -216,12 +258,46 @@ function Landing() {
                   backgroundColor: '#ff6d00',
                   '&:hover': { backgroundColor: '#e65100' },
                   borderRadius: '25px',
-                  py: 1.5
+                  py: 1.5,
                 }}
                 onClick={handleSearch}
               >
                 Find Jobs
               </Button>
+              {searchError && (
+                <Typography color="error" sx={{ mt: 2 }}>
+                  {searchError}
+                </Typography>
+              )}
+              {jobs.length > 0 && (
+                <Box sx={{ mt: 3, maxHeight: '300px', overflowY: 'auto' }}>
+                  <Typography variant="h6" sx={{ mb: 2 }}>
+                    Job Results
+                  </Typography>
+                  <List>
+                    {jobs.map((job) => (
+                      <ListItem
+                        key={job.id}
+                        button
+                        onClick={() => handleJobClick(job.id)}
+                        sx={{
+                          backgroundColor: 'rgba(255,255,255,0.05)',
+                          mb: 1,
+                          borderRadius: '10px',
+                          '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' },
+                        }}
+                      >
+                        <ListItemText
+                          primary={job.title}
+                          secondary={`${job.company} - ${job.location || 'N/A'}`}
+                          primaryTypographyProps={{ color: 'white' }}
+                          secondaryTypographyProps={{ color: '#b0b0b0' }}
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+              )}
             </Box>
           </Grid>
         </Grid>
@@ -232,59 +308,65 @@ function Landing() {
           </Typography>
           <Grid container spacing={4}>
             <Grid item xs={12} sm={4}>
-              <Card 
-                sx={{ 
-                  backgroundColor: 'rgba(255,255,255,0.1)', 
-                  color: 'white', 
-                  borderRadius: '15px', 
+              <Card
+                sx={{
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  color: 'white',
+                  borderRadius: '15px',
                   height: '100%',
                   transition: 'transform 0.3s',
                   '&:hover': { transform: 'scale(1.05)' },
-                  cursor: 'pointer'
+                  cursor: 'pointer',
                 }}
-                onClick={() => history.push(token ? '/projects/ai-jobs' : '/register')}
+                onClick={() => history.push(user ? '/projects/ai' : '/register')}
               >
                 <CardContent>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>AI Job Matching</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                    AI Job Matching
+                  </Typography>
                   <Typography variant="body2" sx={{ mt: 1 }}>
-                    Smart resume analysis and job applications. Subscribe for unlimited submissions! 
-                    Leverage AI to match your skills with top employers like Google, Amazon, and more.
+                    Leverage our AI to analyze your resume and match you with top jobs. Subscribe for
+                    unlimited applications and priority access to exclusive opportunities!
                   </Typography>
                 </CardContent>
               </Card>
             </Grid>
             <Grid item xs={12} sm={4}>
-              <Card 
-                sx={{ 
-                  backgroundColor: 'rgba(255,255,255,0.1)', 
-                  color: 'white', 
-                  borderRadius: '15px', 
+              <Card
+                sx={{
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  color: 'white',
+                  borderRadius: '15px',
                   height: '100%',
                   transition: 'transform 0.3s',
                   '&:hover': { transform: 'scale(1.05)' },
-                  cursor: 'pointer'
+                  cursor: 'pointer',
                 }}
-                onClick={() => history.push(token ? '/projects/ai-projects' : '/register')}
+                onClick={() => history.push(user ? '/projects/saas' : '/register')}
               >
                 <CardContent>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>In-house AI Projects</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                    In-house AI Projects
+                  </Typography>
                   <Typography variant="body2" sx={{ mt: 1 }}>
-                    Explore our AI + Cloud + SaaS solutions. Join now to contribute! 
-                    Work on cutting-edge projects that redefine industries.
+                    Collaborate on cutting-edge AI, Cloud, and SaaS projects. Join our team to build
+                    the future—subscribe to get started!
                   </Typography>
                 </CardContent>
               </Card>
             </Grid>
             <Grid item xs={12} sm={4}>
-              <Card sx={{ 
-                backgroundColor: '#212121', 
-                color: 'white', 
-                borderRadius: '15px', 
-                height: '100%',
-                boxShadow: '0 4px 15px rgba(0, 0, 0, 0.5)',
-                transition: 'transform 0.3s',
-                '&:hover': { transform: 'scale(1.05)' }
-              }}>
+              <Card
+                sx={{
+                  backgroundColor: '#212121',
+                  color: 'white',
+                  borderRadius: '15px',
+                  height: '100%',
+                  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.5)',
+                  transition: 'transform 0.3s',
+                  '&:hover': { transform: 'scale(1.05)' },
+                }}
+              >
                 <CardContent>
                   <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
                     ZGPT Copilot
@@ -301,16 +383,16 @@ function Landing() {
                     placeholder="Try me..."
                     fullWidth
                     disabled
-                    sx={{ 
-                      mb: 2, 
-                      input: { color: 'white' }, 
+                    sx={{
+                      mb: 2,
+                      input: { color: 'white' },
                       '& .MuiInputBase-root': { backgroundColor: '#424242', borderRadius: '20px' },
-                      '& .MuiOutlinedInput-notchedOutline': { border: 'none' }
+                      '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
                     }}
                   />
-                  <Button 
-                    variant="contained" 
-                    sx={{ backgroundColor: '#00e676', '&:hover': { backgroundColor: '#00c853' } }} 
+                  <Button
+                    variant="contained"
+                    sx={{ backgroundColor: '#00e676', '&:hover': { backgroundColor: '#00c853' } }}
                     onClick={() => history.push('/zgpt')}
                   >
                     Chat with ZGPT
@@ -322,39 +404,63 @@ function Landing() {
         </Box>
       </Container>
 
-      <Box sx={{ py: 4, backgroundColor: '#1a2a44', textAlign: 'center' }}>
+      <Box sx={{ py: 4, backgroundColor: '#1a2a44', color: 'white' }}>
         <Container maxWidth="lg">
           <Grid container spacing={4}>
-            <Grid item xs={12} md={4}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>ZvertexAI</Typography>
+            <Grid item xs={12} sm={4}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                ZvertexAI
+              </Typography>
               <Typography variant="body2">
-                Empowering careers and businesses with AI-driven solutions.
+                Empowering careers with AI-driven job matching, projects, and ZGPT copilot.
               </Typography>
             </Grid>
-            <Grid item xs={12} md={4}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>Quick Links</Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/contact')}>
-                Contact Us
+            <Grid item xs={12} sm={4}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Quick Links
               </Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/faq')}>
+              <Typography
+                variant="body2"
+                sx={{ mb: 1, cursor: 'pointer', '&:hover': { color: '#ff6d00' } }}
+                onClick={() => history.push('/faq')}
+              >
                 Interview FAQs
               </Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/why-us')}>
+              <Typography
+                variant="body2"
+                sx={{ mb: 1, cursor: 'pointer', '&:hover': { color: '#ff6d00' } }}
+                onClick={() => history.push('/why-us')}
+              >
                 Why ZvertexAI?
               </Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/zgpt')}>
+              <Typography
+                variant="body2"
+                sx={{ mb: 1, cursor: 'pointer', '&:hover': { color: '#ff6d00' } }}
+                onClick={() => history.push('/zgpt')}
+              >
                 ZGPT Copilot
               </Typography>
             </Grid>
-            <Grid item xs={12} md={4}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>Contact</Typography>
-              <Typography variant="body2">5900 Balcones Dr #16790, Austin, TX 78731</Typography>
-              <Typography variant="body2">Phone: 737-239-0920 (151)</Typography>
-              <Typography variant="body2">Email: support@zvertexai.com</Typography>
+            <Grid item xs={12} sm={4}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Contact Us
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Address: 5900 BALCONES DR #16790, AUSTIN, TX 78731
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Phone: 737-239-0920
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ cursor: 'pointer', '&:hover': { color: '#ff6d00' } }}
+                onClick={() => history.push('/contact')}
+              >
+                Email Us
+              </Typography>
             </Grid>
           </Grid>
-          <Divider sx={{ my: 2, backgroundColor: '#fff' }} />
-          <Typography variant="body2">
+          <Typography variant="body2" sx={{ mt: 4, textAlign: 'center' }}>
             © 2025 ZvertexAI. All rights reserved.
           </Typography>
         </Container>

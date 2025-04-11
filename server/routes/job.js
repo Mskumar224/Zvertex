@@ -1,136 +1,116 @@
 const express = require('express');
 const router = express.Router();
-const authMiddleware = require('../middleware/auth');
-const puppeteer = require('puppeteer');
-const nodemailer = require('nodemailer');
-const twilio = require('twilio');
 const axios = require('axios');
+const authMiddleware = require('../middleware/auth');
 const User = require('../models/User');
+const nodemailer = require('nodemailer');
 
-const adzunaAppId = process.env.ADZUNA_APP_ID;
-const adzunaAppKey = process.env.ADZUNA_APP_KEY;
+router.post('/fetch', async (req, res) => {
+  const { technology, location } = req.body;
 
-const getTwilioClient = () => {
-  if (!process.env.TWILIO_SID || !process.env.TWILIO_AUTH_TOKEN) {
-    console.error('Twilio credentials missing. SMS functionality disabled.');
-    return null;
-  }
-  return twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
-};
-
-router.post('/fetch', authMiddleware, async (req, res) => {
-  const { technology, companies } = req.body;
   try {
-    if (!adzunaAppId || !adzunaAppKey) {
-      console.error('Missing Adzuna credentials');
-      return res.status(500).json({ msg: 'Adzuna API credentials missing' });
-    }
-    if (!Array.isArray(companies) || companies.length < 2 || companies.length > 10) {
-      console.error('Invalid companies array:', companies);
-      return res.status(400).json({ msg: 'Please select between 2 and 10 companies' });
-    }
-    console.log('Fetching jobs with:', { technology, companies });
-
-    const searchQuery = `${technology} ${companies.join(' ')}`;
-    const response = await axios.get('https://api.adzuna.com/v1/api/jobs/us/search/1', {
-      params: {
-        app_id: adzunaAppId,
-        app_key: adzunaAppKey,
-        what: searchQuery,
-        where: 'USA',
-        results_per_page: 10,
+    // Mock job fetch (replace with Adzuna API if configured)
+    const jobs = [
+      {
+        id: '1',
+        title: `${technology || 'Software'} Engineer`,
+        company: 'Tech Corp',
+        location: location || 'Remote',
+        description: `Join our team to build ${technology || 'innovative'} solutions.`,
       },
-    });
-    console.log('Adzuna response:', response.data);
-    const jobs = response.data.results.map((job) => ({
-      id: job.id,
-      title: job.title,
-      company: job.company.display_name,
-      location: job.location.display_name,
-      url: job.redirect_url,
-    }));
+      {
+        id: '2',
+        title: `${technology || 'Data'} Scientist`,
+        company: 'Data Inc',
+        location: location || 'Austin, TX',
+        description: `Analyze data with ${technology || 'advanced'} tools.`,
+      },
+    ];
+
     res.json({ jobs });
   } catch (err) {
-    console.error('Fetch Jobs Error Details:', {
-      message: err.message,
-      stack: err.stack,
-      response: err.response?.data,
-      status: err.response?.status
-    });
-    if (err.response?.status === 400) {
-      return res.status(400).json({ 
-        msg: 'Invalid job search parameters', 
-        error: err.response.data || err.message 
-      });
-    }
-    res.status(500).json({ msg: 'Server error', error: err.message });
+    console.error(err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+router.get('/:jobId', async (req, res) => {
+  const { jobId } = req.params;
+  try {
+    // Mock job fetch by ID
+    const job = {
+      id: jobId,
+      title: 'Sample Job',
+      company: 'Sample Corp',
+      location: 'Sample Location',
+      description: 'This is a sample job description.',
+    };
+    res.json({ job });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+router.get('/applied', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+    res.json({ jobs: user.appliedJobs });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Server error' });
   }
 });
 
 router.post('/apply', authMiddleware, async (req, res) => {
-  const { jobId, technology, userDetails, jobTitle, company } = req.body;
-  const user = await User.findById(req.user.id);
-  if (!user || (!user.paid && user.email !== 'test@zvertexai.com')) {
-    return res.status(404).json({ msg: 'User not found or not subscribed' });
+  let body = {};
+  if (req.is('multipart/form-data')) {
+    body = req.body;
+    body.resume = req.files?.resume;
+  } else {
+    body = req.body;
   }
+  const { jobId, technology, jobTitle, company } = body;
 
   try {
-    if (user.appliedJobs.some(job => job.jobId === jobId)) {
-      return res.status(400).json({ msg: 'Already applied to this job' });
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+
+    user.appliedJobs.push({ jobId, technology, jobTitle, company, date: new Date() });
+    if (body.resume) {
+      user.resume = `/uploads/resumes/${jobId}-${Date.now()}-${body.resume.name}`;
+      // In production, save the file to a storage service
     }
-
-    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
-    const page = await browser.newPage();
-    const jobUrl = `https://api.adzuna.com/v1/api/jobs/us/search/1?app_id=${adzunaAppId}&app_key=${adzunaAppKey}&what=${technology}&content-type=application/json`;
-    await page.goto(jobUrl);
-    // Simulate application (pseudo-code; actual implementation depends on job site)
-    await page.evaluate((details) => {
-      document.querySelector('input[name="email"]')?.setAttribute('value', details.email);
-      document.querySelector('input[type="submit"]')?.click();
-    }, userDetails);
-    await browser.close();
-
-    user.appliedJobs.push({ jobId, technology, date: new Date() });
     await user.save();
 
+    // Send email confirmation
     const transporter = nodemailer.createTransport({
       service: 'gmail',
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
     });
+
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: '"ZvertexAI" <no-reply@zvertexai.com>',
       to: user.email,
-      subject: `Application Confirmation: ${jobTitle} at ${company}`,
+      subject: `Application Submitted: ${jobTitle} at ${company}`,
       html: `
-        <h2>Application Submitted Successfully!</h2>
-        <p>You've applied to:</p>
-        <ul>
-          <li>Position: ${jobTitle}</li>
-          <li>Company: ${company}</li>
-          <li>Job ID: ${jobId}</li>
-          <li>Technology: ${technology}</li>
-          <li>Date: ${new Date().toLocaleString()}</li>
-        </ul>
-        <p>We'll notify you of any updates regarding your application!</p>
+        <h2>Application Confirmation</h2>
+        <p>Dear ${user.email},</p>
+        <p>Thank you for applying to <strong>${jobTitle}</strong> at <strong>${company}</strong>.</p>
+        <p>Your application is being processed in association with <strong>Hono Technology</strong>.</p>
+        <p>We’ll notify you of any updates. For inquiries, contact us at support@zvertexai.com.</p>
+        <p>Best regards,<br/>ZvertexAI Team</p>
       `,
     });
 
-    const twilioClient = getTwilioClient();
-    if (twilioClient && process.env.TWILIO_PHONE) {
-      await twilioClient.messages.create({
-        body: `Applied to ${jobTitle} at ${company} (ID: ${jobId}) on ${new Date().toLocaleString()}. Check email for details!`,
-        from: process.env.TWILIO_PHONE,
-        to: userDetails.phone,
-      });
-    }
-
-    res.json({ 
-      msg: `Applied to ${jobTitle} at ${company} successfully! Confirmation sent via email${twilioClient ? ' and SMS' : ''}.`,
-      job: { id: jobId, title: jobTitle, company }
-    });
+    res.json({ msg: 'Job application submitted' });
   } catch (err) {
-    console.error('Apply Error:', err);
-    res.status(500).json({ msg: 'Server error', error: err.message });
+    console.error(err);
+    res.status(500).json({ msg: 'Server error' });
   }
 });
 

@@ -8,12 +8,17 @@ const cron = require('node-cron');
 const User = require('./models/User');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
 
+// Multer for file uploads
+const upload = multer({ storage: multer.memoryStorage() });
+
 // Set Mongoose strictQuery to avoid deprecation warning
-mongoose.set('strictQuery', true); // Explicitly set to true to suppress warning and enforce strict queries
+mongoose.set('strictQuery', true);
 
 // Enhanced logging function
 const log = (message, data = {}) => {
@@ -51,18 +56,20 @@ app.options('*', (req, res) => {
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(upload.any());
 
 // MongoDB Connection
 if (!process.env.MONGO_URI) {
   log('MONGO_URI is not defined. Server will run without database.');
 } else {
-  mongoose.connect(process.env.MONGO_URI, { 
-    useNewUrlParser: true, 
-    useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 5000, // Timeout after 5s if MongoDB is unreachable
-  })
+  mongoose
+    .connect(process.env.MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000,
+    })
     .then(() => log('MongoDB Connected'))
-    .catch(err => log('MongoDB Connection Error:', { error: err.message }));
+    .catch((err) => log('MongoDB Connection Error:', { error: err.message }));
 }
 
 // Routes
@@ -75,7 +82,7 @@ if (process.env.JWT_SECRET) {
   cron.schedule('*/30 * * * *', async () => {
     log('Running auto-apply job...');
     try {
-      const users = await User.find({ paid: true }).lean(); // Use lean() for better performance
+      const users = await User.find({ paid: true }).lean();
       if (!users.length) {
         log('No paid users found for auto-apply.');
         return;
@@ -94,20 +101,22 @@ if (process.env.JWT_SECRET) {
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
         log('Fetching jobs with:', { technology, companies: randomCompanies });
 
-        const fetchRes = await axios.post(
-          `${process.env.API_URL || 'https://zvertexai-orzv.onrender.com'}/api/jobs/fetch`,
-          { technology, companies: randomCompanies },
-          { headers: { 'x-auth-token': token } }
-        ).catch(err => {
-          log('Job fetch error:', { error: err.message, status: err.response?.status });
-          throw err;
-        });
+        const fetchRes = await axios
+          .post(
+            `${process.env.API_URL || 'https://zvertexai-orzv.onrender.com'}/api/jobs/fetch`,
+            { technology, companies: randomCompanies },
+            { headers: { 'x-auth-token': token } }
+          )
+          .catch((err) => {
+            log('Job fetch error:', { error: err.message, status: err.response?.status });
+            throw err;
+          });
 
         log('Fetch response:', { jobs: fetchRes.data.jobs.length });
         if (!fetchRes.data.jobs.length) continue;
 
-        const availableJobs = fetchRes.data.jobs.filter(job => 
-          !user.appliedJobs.some(applied => applied.jobId === job.id)
+        const availableJobs = fetchRes.data.jobs.filter(
+          (job) => !user.appliedJobs.some((applied) => applied.jobId === job.id)
         );
         if (!availableJobs.length) {
           log('No new jobs available for user:', { email: user.email });
@@ -115,19 +124,44 @@ if (process.env.JWT_SECRET) {
         }
 
         const job = availableJobs[Math.floor(Math.random() * availableJobs.length)];
-        await axios.post(
-          `${process.env.API_URL || 'https://zvertexai-orzv.onrender.com'}/api/jobs/apply`,
-          { 
-            jobId: job.id, 
-            technology, 
-            userDetails: { email: user.email, phone: user.phone },
-            jobTitle: job.title,
-            company: job.company
+        await axios
+          .post(
+            `${process.env.API_URL || 'https://zvertexai-orzv.onrender.com'}/api/jobs/apply`,
+            {
+              jobId: job.id,
+              technology,
+              userDetails: { email: user.email, phone: user.phone },
+              jobTitle: job.title,
+              company: job.company,
+            },
+            { headers: { 'x-auth-token': token } }
+          )
+          .catch((err) => {
+            log('Job apply error:', { error: err.message, status: err.response?.status });
+            throw err;
+          });
+
+        // Send email confirmation
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
           },
-          { headers: { 'x-auth-token': token } }
-        ).catch(err => {
-          log('Job apply error:', { error: err.message, status: err.response?.status });
-          throw err;
+        });
+
+        await transporter.sendMail({
+          from: '"ZvertexAI" <no-reply@zvertexai.com>',
+          to: user.email,
+          subject: `Auto-Application: ${job.title} at ${job.company}`,
+          html: `
+            <h2>Application Confirmation</h2>
+            <p>Dear ${user.email},</p>
+            <p>Your application for <strong>${job.title}</strong> at <strong>${job.company}</strong> has been submitted automatically.</p>
+            <p>This application was processed in association with <strong>Hono Technology</strong>.</p>
+            <p>We’ll notify you of any updates. For inquiries, contact us at support@zvertexai.com.</p>
+            <p>Best regards,<br/>ZvertexAI Team</p>
+          `,
         });
 
         log(`Auto-applied ${user.email} to ${job.title} at ${job.company} (ID: ${job.id})`);
@@ -142,10 +176,10 @@ if (process.env.JWT_SECRET) {
 
 // Health Check Endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(), 
-    mongoConnected: mongoose.connection.readyState === 1 
+  res.status(200).json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    mongodbConnected: mongoose.connection.readyState === 1,
   });
 });
 
@@ -156,7 +190,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start Server
-const PORT = process.env.PORT || 5002; // Match Render’s detected port
+const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => log(`Server running on port ${PORT}`));
 
 // Handle Uncaught Exceptions

@@ -1,91 +1,144 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
-import { Box, Typography, Button, Container, Grid, Divider } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Button,
+  Container,
+  TextField,
+  List,
+  ListItem,
+  ListItemText,
+} from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import axios from 'axios';
 
 function Dashboard({ user }) {
   const history = useHistory();
+  const [resume, setResume] = useState(null);
+  const [appliedJobs, setAppliedJobs] = useState([]);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchAppliedJobs = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com'}/api/jobs/applied`,
+          {
+            headers: { 'x-auth-token': localStorage.getItem('token') },
+          }
+        );
+        setAppliedJobs(res.data.jobs || []);
+      } catch (err) {
+        setError('Failed to load applied jobs.');
+      }
+    };
+    if (user) fetchAppliedJobs();
+  }, [user]);
 
   if (!user) {
     history.push('/login');
     return null;
   }
 
+  const handleResumeUpload = async () => {
+    if (!resume) {
+      setError('Please select a resume.');
+      return;
+    }
+    try {
+      const formData = new FormData();
+      formData.append('resume', resume);
+      await axios.post(
+        `${process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com'}/api/auth/resume`,
+        formData,
+        {
+          headers: {
+            'x-auth-token': localStorage.getItem('token'),
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      setError('');
+      alert('Resume uploaded successfully!');
+    } catch (err) {
+      setError(err.response?.data?.msg || 'Resume upload failed.');
+    }
+  };
+
   return (
-    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
-      <Container maxWidth="lg">
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => history.goBack()}
-          sx={{ mt: 2, color: '#ff6d00' }}
-        >
+    <Container maxWidth="lg">
+      <Box sx={{ mt: 8 }}>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => history.goBack()} sx={{ mb: 2 }}>
           Back
         </Button>
-        <Box sx={{ mt: 8, textAlign: 'center' }}>
-          <Typography variant="h4" sx={{ mb: 4 }}>
-            Welcome, {user.email}!
-          </Typography>
+        <Typography variant="h4" sx={{ mb: 4 }}>
+          Welcome, {user.email}!
+        </Typography>
+        <Typography variant="h6" sx={{ mb: 2 }}>
+          Subscription: {user.subscriptionType || 'Free'}
+        </Typography>
+        <Box sx={{ mb: 4 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>
-            Subscription: {user.subscriptionType || 'Free'}
+            Upload Your Resume
           </Typography>
-          <Button 
-            variant="contained" 
-            onClick={() => history.push('/zgpt')} 
-            sx={{ mr: 2, backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
+          <TextField
+            type="file"
+            fullWidth
+            inputProps={{ accept: '.pdf,.doc,.docx' }}
+            onChange={(e) => setResume(e.target.files[0])}
+            sx={{ mb: 2 }}
+          />
+          {error && (
+            <Typography color="error" sx={{ mb: 2 }}>
+              {error}
+            </Typography>
+          )}
+          <Button
+            variant="contained"
+            sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
+            onClick={handleResumeUpload}
           >
-            Chat with ZGPT
-          </Button>
-          <Button 
-            variant="outlined" 
-            onClick={() => {
-              localStorage.removeItem('token');
-              history.push('/login');
-            }}
-            sx={{ color: '#00e676', borderColor: '#00e676' }}
-          >
-            Logout
+            Upload Resume
           </Button>
         </Box>
-      </Container>
-
-      <Box sx={{ py: 4, backgroundColor: '#1a2a44', textAlign: 'center', mt: 4 }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={4}>
-            <Grid item xs={12} md={4}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>ZvertexAI</Typography>
-              <Typography variant="body2">
-                Empowering careers and businesses with AI-driven solutions.
-              </Typography>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>Quick Links</Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/contact')}>
-                Contact Us
-              </Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/faq')}>
-                Interview FAQs
-              </Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/why-us')}>
-                Why ZvertexAI?
-              </Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/zgpt')}>
-                ZGPT Copilot
-              </Typography>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>Contact</Typography>
-              <Typography variant="body2">5900 Balcones Dr #16790, Austin, TX 78731</Typography>
-              <Typography variant="body2">Phone: 737-239-0920 (151)</Typography>
-              <Typography variant="body2">Email: support@zvertexai.com</Typography>
-            </Grid>
-          </Grid>
-          <Divider sx={{ my: 2, backgroundColor: '#fff' }} />
-          <Typography variant="body2">
-            © 2025 ZvertexAI. All rights reserved.
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            Your Applied Jobs
           </Typography>
-        </Container>
+          {appliedJobs.length === 0 ? (
+            <Typography>No jobs applied yet.</Typography>
+          ) : (
+            <List>
+              {appliedJobs.map((job) => (
+                <ListItem key={job.jobId}>
+                  <ListItemText
+                    primary={job.jobTitle}
+                    secondary={`${job.company} - Applied on ${new Date(job.date).toLocaleDateString()}`}
+                  />
+                </ListItem>
+              ))}
+            </List>
+          )}
+        </Box>
+        <Button
+          variant="contained"
+          onClick={() => history.push('/zgpt')}
+          sx={{ mr: 2, backgroundColor: '#00e676' }}
+        >
+          Chat with ZGPT
+        </Button>
+        <Button
+          variant="outlined"
+          onClick={() => {
+            localStorage.removeItem('token');
+            history.push('/');
+          }}
+        >
+          Logout
+        </Button>
       </Box>
-    </Box>
+    </Container>
   );
 }
 

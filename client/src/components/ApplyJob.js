@@ -1,36 +1,35 @@
 import React, { useState } from 'react';
 import { useHistory, useParams } from 'react-router-dom';
-import { Box, Typography, TextField, Button, Container, Grid, Divider } from '@mui/material';
+import { Box, Typography, Button, Container, Grid, Divider } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import axios from 'axios';
 
-function ResetPassword() {
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const { token } = useParams();
+function ApplyJob({ user }) {
+  const { id } = useParams();
   const history = useHistory();
+  const [success, setSuccess] = useState('');
+  const [error, setError] = useState('');
   const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
+  if (!user) {
+    history.push('/login');
+    return null;
+  }
+
+  const handleApply = async () => {
     try {
-      await axios.post(`${apiUrl}/api/auth/reset-password/${token}`, { password });
-      setSuccess('Password reset successfully! Please login.');
-      setTimeout(() => history.push('/login'), 2000);
+      await axios.post(`${apiUrl}/api/jobs/apply`, { jobId: id, userEmail: user.email }, {
+        headers: { 'x-auth-token': localStorage.getItem('token') }
+      });
+      setSuccess('Application submitted! Check your email for confirmation.');
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to reset password.');
+      setError(err.response?.data?.msg || 'Failed to apply.');
     }
   };
 
   return (
     <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
-      <Container maxWidth="sm">
+      <Container maxWidth="lg">
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => history.goBack()}
@@ -39,34 +38,22 @@ function ResetPassword() {
           Back
         </Button>
         <Typography variant="h4" sx={{ mt: 4, mb: 4, fontWeight: 'bold', textAlign: 'center' }}>
-          Reset Password
+          Apply for Job
         </Typography>
-        <Box component="form" onSubmit={handleSubmit} sx={{ backgroundColor: 'rgba(255,255,255,0.1)', p: 3, borderRadius: '15px' }}>
-          {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
+        <Box sx={{ maxWidth: '600px', mx: 'auto', p: 3, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '15px' }}>
           {success && <Typography sx={{ color: '#00e676', mb: 2 }}>{success}</Typography>}
-          <TextField
-            label="New Password"
-            type="password"
-            fullWidth
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            sx={{ mb: 2, input: { color: 'white' }, label: { color: '#b0b0b0' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: '#ff6d00' } } }}
-          />
-          <TextField
-            label="Confirm Password"
-            type="password"
-            fullWidth
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            sx={{ mb: 3, input: { color: 'white' }, label: { color: '#b0b0b0' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: '#ff6d00' } } }}
-          />
+          {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
+          <Typography variant="h6">Job ID: {id}</Typography>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Click below to apply. You’ll receive a confirmation email shortly.
+          </Typography>
           <Button
-            type="submit"
             variant="contained"
             fullWidth
             sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' }, borderRadius: '25px', py: 1.5 }}
+            onClick={handleApply}
           >
-            Reset Password
+            Apply Now
           </Button>
         </Box>
       </Container>
@@ -112,4 +99,4 @@ function ResetPassword() {
   );
 }
 
-export default ResetPassword;
+export default ApplyJob;

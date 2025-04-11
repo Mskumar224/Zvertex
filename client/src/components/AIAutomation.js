@@ -1,36 +1,19 @@
-import React, { useState } from 'react';
-import { useHistory, useParams } from 'react-router-dom';
-import { Box, Typography, TextField, Button, Container, Grid, Divider } from '@mui/material';
+import React from 'react';
+import { useHistory } from 'react-router-dom';
+import { Box, Typography, Button, Container, Grid, Card, CardContent, Divider } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import axios from 'axios';
 
-function ResetPassword() {
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const { token } = useParams();
+function AIAutomation({ user }) {
   const history = useHistory();
-  const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-    try {
-      await axios.post(`${apiUrl}/api/auth/reset-password/${token}`, { password });
-      setSuccess('Password reset successfully! Please login.');
-      setTimeout(() => history.push('/login'), 2000);
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to reset password.');
-    }
-  };
+  if (!user) {
+    history.push('/login');
+    return null;
+  }
 
   return (
     <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
-      <Container maxWidth="sm">
+      <Container maxWidth="lg">
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => history.goBack()}
@@ -39,36 +22,39 @@ function ResetPassword() {
           Back
         </Button>
         <Typography variant="h4" sx={{ mt: 4, mb: 4, fontWeight: 'bold', textAlign: 'center' }}>
-          Reset Password
+          AI Automation
         </Typography>
-        <Box component="form" onSubmit={handleSubmit} sx={{ backgroundColor: 'rgba(255,255,255,0.1)', p: 3, borderRadius: '15px' }}>
-          {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
-          {success && <Typography sx={{ color: '#00e676', mb: 2 }}>{success}</Typography>}
-          <TextField
-            label="New Password"
-            type="password"
-            fullWidth
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            sx={{ mb: 2, input: { color: 'white' }, label: { color: '#b0b0b0' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: '#ff6d00' } } }}
-          />
-          <TextField
-            label="Confirm Password"
-            type="password"
-            fullWidth
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            sx={{ mb: 3, input: { color: 'white' }, label: { color: '#b0b0b0' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: '#ff6d00' } } }}
-          />
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-            sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' }, borderRadius: '25px', py: 1.5 }}
-          >
-            Reset Password
-          </Button>
-        </Box>
+        <Grid container spacing={4}>
+          <Grid item xs={12}>
+            <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px' }}>
+              <CardContent>
+                <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2 }}>Best Use Case</Typography>
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                  Automate repetitive workflows with precision using AI, from customer support chatbots to data processing pipelines, enhancing efficiency across industries.
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>For Users</Typography>
+                <Typography variant="body2" sx={{ mb: 2 }}>
+                  - Learn AI automation techniques.<br/>
+                  - Build practical automation tools.<br/>
+                  - Gain expertise in AI deployment.
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>For Clients</Typography>
+                <Typography variant="body2" sx={{ mb: 3 }}>
+                  - Save time with automated processes.<br/>
+                  - Improve accuracy with AI-driven solutions.<br/>
+                  - Scale operations seamlessly.
+                </Typography>
+                <Button 
+                  variant="contained" 
+                  sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' }, borderRadius: '25px' }} 
+                  onClick={() => history.push('/contact')}
+                >
+                  Contact Us to Join
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
       </Container>
 
       <Box sx={{ py: 4, backgroundColor: '#1a2a44', textAlign: 'center', mt: 4 }}>
@@ -112,4 +98,4 @@ function ResetPassword() {
   );
 }
 
-export default ResetPassword;
+export default AIAutomation;
