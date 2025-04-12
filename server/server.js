@@ -8,11 +8,10 @@ require('dotenv').config();
 
 const app = express();
 
-app.use(cors());
+app.use(cors({ origin: 'https://zvertexai.com', methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Content-Type', 'x-auth-token'] }));
 app.use(express.json());
 app.use(fileUpload());
 
-// Ensure uploads directory exists
 const uploadDir = path.join(__dirname, 'Uploads', 'resumes');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -20,30 +19,28 @@ if (!fs.existsSync(uploadDir)) {
 
 app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));
 
-// Log all /api/jobs/* requests
 app.use('/api/jobs', (req, res, next) => {
   console.log(`Jobs route hit: ${req.method} ${req.originalUrl}`);
   next();
 });
 
-// Routes
 try {
   console.log('Loading auth routes...');
   app.use('/api/auth', require('./routes/auth'));
   console.log('Loading jobs routes...');
-  app.use('/api/jobs', require('./routes/jobs'));
+  const jobsRouter = require('./routes/jobs');
+  console.log('Jobs routes loaded:', jobsRouter.stack.map(r => r.route?.path).filter(Boolean));
+  app.use('/api/jobs', jobsRouter);
   console.log('Routes loaded successfully.');
 } catch (err) {
   console.error('Error loading routes:', err.message, err.stack);
 }
 
-// Test route to confirm /api/jobs is mounted
 app.get('/api/jobs/test', (req, res) => {
   console.log('Test route hit: GET /api/jobs/test');
   res.json({ msg: 'Jobs router is working' });
 });
 
-// Catch-all for 404 errors
 app.use((req, res) => {
   console.log(`404 Error: ${req.method} ${req.originalUrl}`);
   res.status(404).json({ msg: `Route not found: ${req.method} ${req.originalUrl}` });

@@ -68,6 +68,11 @@ router.get('/me', authMiddleware, async (req, res) => {
   }
 });
 
+router.options('/resume', (req, res) => {
+  console.log('Handling OPTIONS /api/auth/resume');
+  res.status(204).send();
+});
+
 router.get('/resume', (req, res) => {
   console.log('Invalid GET request to /api/auth/resume');
   res.status(405).json({ msg: 'Method not allowed. Use POST to upload a resume.' });
@@ -118,7 +123,7 @@ router.post('/resume', authMiddleware, async (req, res) => {
     console.log('Resume uploaded successfully for user:', req.user.id);
     res.json({ msg: 'Resume uploaded successfully.', filePath: user.resume });
   } catch (err) {
-    console.error('Resume upload error for user:', req.user?.id, err);
+    console.error('Resume upload error for user:', req.user?.id, err.message, err.stack);
     res.status(500).json({ msg: `Server error uploading resume: ${err.message}` });
   }
 });

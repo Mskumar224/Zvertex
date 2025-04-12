@@ -19,7 +19,6 @@ function ZGPT() {
     e.preventDefault();
     if (!query.trim()) return;
 
-    // Mock response for "What's the future of AI?"
     if (query.toLowerCase().includes('future of ai')) {
       setResponse('AI will revolutionize jobs—subscribe to see how!');
     } else {

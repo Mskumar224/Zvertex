@@ -61,12 +61,12 @@ function Dashboard({ user }) {
           console.log(`Retrying /api/jobs/applied (${retryCount} attempts left)...`);
           setTimeout(() => fetchAppliedJobs(retryCount - 1, delay * 2), delay);
         } else if (err.response?.status === 404) {
-          setError('Server missing jobs endpoint. Try refreshing the page or contact support.');
+          setError('Applied jobs unavailable. Try refreshing the page or contact support.');
         } else if (err.response?.status === 401) {
           setError('Session expired. Please log in again.');
           history.push('/login');
         } else {
-          setError(err.response?.data?.msg || 'Failed to load applied jobs.');
+          setError(err.response?.data?.msg || 'Failed to load applied jobs. Please try again.');
         }
       }
     };
@@ -110,19 +110,26 @@ function Dashboard({ user }) {
       setError('');
       alert(res.data.msg || 'Resume uploaded successfully!');
       setResume(null);
-      document.getElementById('resume-upload').value = ''; // Reset file input
+      document.getElementById('resume-upload').value = '';
     } catch (err) {
-      console.error('Resume upload failed:', err.response?.data || err.message);
-      const serverMsg = err.response?.data?.msg || 'Failed to upload resume. Please check your file and try again.';
-      if (err.response?.status === 404) {
+      console.error('Resume upload failed:', {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message
+      });
+      if (err.message.includes('CORS')) {
+        setError('Unable to upload resume due to server access restrictions. Please try again later.');
+      } else if (err.response?.status === 404) {
         setError('Resume upload endpoint not found. Please contact support.');
       } else if (err.response?.status === 405) {
         setError('Invalid request method. Please use the upload button.');
       } else if (err.response?.status === 401) {
         setError('Session expired. Please log in again.');
         history.push('/login');
+      } else if (err.response?.status === 502) {
+        setError('Server unavailable. Please try again later.');
       } else {
-        setError(serverMsg);
+        setError(err.response?.data?.msg || 'Failed to upload resume. Please check your file and try again.');
       }
     } finally {
       setUploading(false);
@@ -132,7 +139,7 @@ function Dashboard({ user }) {
   const handleClear = () => {
     setError('');
     setResume(null);
-    document.getElementById('resume-upload').value = ''; // Reset file input
+    document.getElementById('resume-upload').value = '';
   };
 
   return (
