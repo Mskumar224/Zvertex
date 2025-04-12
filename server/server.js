@@ -20,6 +20,12 @@ if (!fs.existsSync(uploadDir)) {
 
 app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));
 
+// Log all /api/jobs/* requests for debugging
+app.use('/api/jobs', (req, res, next) => {
+  console.log(`Jobs route hit: ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB connection error:', err));

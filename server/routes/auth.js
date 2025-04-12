@@ -105,7 +105,6 @@ router.post('/resume', authMiddleware, async (req, res) => {
       fs.mkdirSync(uploadPath, { recursive: true });
     }
 
-    // Sanitize filename to avoid path issues
     const sanitizedFileName = resume.name.replace(/[^a-zA-Z0-9.-]/g, '_');
     const fileName = `${req.user.id}-${Date.now()}-${sanitizedFileName}`;
     const filePath = path.join(uploadPath, fileName);

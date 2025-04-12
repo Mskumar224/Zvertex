@@ -1,183 +1,87 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { Box, Typography, TextField, Button, CircularProgress, Paper, Avatar } from '@mui/material';
-import SendIcon from '@mui/icons-material/Send';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import axios from 'axios';
+import {
+  Box,
+  Typography,
+  Container,
+  TextField,
+  Button,
+  AppBar,
+  Toolbar,
+} from '@mui/material';
 
-function ZGPT({ user }) {
-  const [query, setQuery] = useState('');
-  const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const chatEndRef = useRef(null);
+function ZGPT() {
   const history = useHistory();
-  const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
+  const [query, setQuery] = useState('');
+  const [response, setResponse] = useState('');
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!query.trim()) return;
 
-    const userMessage = { sender: 'user', text: query, timestamp: new Date().toLocaleTimeString() };
-    setMessages((prev) => [...prev, userMessage]);
-    setQuery('');
-    setLoading(true);
-
-    try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post(
-        `${apiUrl}/api/zgpt/query`,
-        { query },
-        { headers: { 'x-auth-token': token || '' } }
-      );
-      const botMessage = { sender: 'zgpt', text: res.data.text, timestamp: new Date().toLocaleTimeString() };
-      setMessages((prev) => [...prev, botMessage]);
-    } catch (err) {
-      console.error('ZGPT Error:', err);
-      let errorMessage;
-      if (err.response?.status === 401 && !user) {
-        errorMessage = {
-          sender: 'zgpt',
-          text: 'Please log in or register to use ZGPT! Click "Subscribe" below.',
-          timestamp: new Date().toLocaleTimeString(),
-        };
-      } else if (err.response?.status === 502) {
-        errorMessage = {
-          sender: 'zgpt',
-          text: 'Server is having a hiccup. Try again soon!',
-          timestamp: new Date().toLocaleTimeString(),
-        };
-      } else {
-        errorMessage = {
-          sender: 'zgpt',
-          text: 'Oops, something went wrong. Retry?',
-          timestamp: new Date().toLocaleTimeString(),
-        };
-      }
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setLoading(false);
+    // Mock response for "What's the future of AI?"
+    if (query.toLowerCase().includes('future of ai')) {
+      setResponse('AI will revolutionize jobs—subscribe to see how!');
+    } else {
+      setResponse('Ask me about the future of AI or other topics!');
     }
+    setQuery('');
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#121212', padding: '20px', color: 'white' }}>
-      <Button startIcon={<ArrowBackIcon />} onClick={() => history.goBack()} sx={{ mb: 2 }}>
-        Back
-      </Button>
-      <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#00e676', mb: 3, textAlign: 'center' }}>
-        ZGPT - Your Free Copilot Agent
-      </Typography>
-      <Paper
-        elevation={3}
-        sx={{
-          maxWidth: '800px',
-          margin: '0 auto',
-          backgroundColor: '#1e1e1e',
-          borderRadius: '15px',
-          padding: '20px',
-          height: '70vh',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <Box sx={{ flexGrow: 1, overflowY: 'auto', mb: 2 }}>
-          {messages.length === 0 ? (
-            <Typography sx={{ color: '#b0b0b0', textAlign: 'center', mt: 5 }}>
-              Start chatting with ZGPT! Ask anything—like "What’s the best tech job in 2025?"
-            </Typography>
-          ) : (
-            messages.map((msg, index) => (
-              <Box
-                key={index}
-                sx={{
-                  display: 'flex',
-                  justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start',
-                  mb: 2,
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  {msg.sender === 'zgpt' && (
-                    <Avatar sx={{ bgcolor: '#00e676', mr: 1 }}>Z</Avatar>
-                  )}
-                  <Box
-                    sx={{
-                      backgroundColor: msg.sender === 'user' ? '#ff6d00' : '#424242',
-                      color: 'white',
-                      borderRadius: '15px',
-                      p: 2,
-                      maxWidth: '70%',
-                      boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
-                    }}
-                  >
-                    <Typography variant="body1">{msg.text}</Typography>
-                    <Typography variant="caption" sx={{ color: '#b0b0b0', mt: 1 }}>
-                      {msg.timestamp}
-                    </Typography>
-                  </Box>
-                </Box>
-              </Box>
-            ))
-          )}
-          {loading && (
-            <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
-              <Box sx={{ backgroundColor: '#424242', borderRadius: '15px', p: 2 }}>
-                <Typography variant="body1" sx={{ color: '#00e676' }}>
-                  Typing...
-                </Typography>
-              </Box>
-            </Box>
-          )}
-          <div ref={chatEndRef} />
-        </Box>
-        <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', alignItems: 'center' }}>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
+      <AppBar position="static" sx={{ backgroundColor: 'rgba(26, 42, 68, 0.9)', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+        <Toolbar>
+          <Typography variant="h5" sx={{ flexGrow: 1, fontWeight: 'bold', cursor: 'pointer' }} onClick={() => history.push('/')}>
+            ZvertexAI
+          </Typography>
+          <Button color="inherit" onClick={() => history.push('/dashboard')}>
+            Dashboard
+          </Button>
+          <Button
+            color="inherit"
+            onClick={() => {
+              localStorage.removeItem('token');
+              history.push('/');
+            }}
+          >
+            Logout
+          </Button>
+        </Toolbar>
+      </AppBar>
+
+      <Container maxWidth="lg" sx={{ pt: 8 }}>
+        <Typography variant="h4" sx={{ mb: 4 }}>ZGPT - Your AI Copilot</Typography>
+        <Box component="form" onSubmit={handleSubmit} sx={{ mb: 4 }}>
           <TextField
-            placeholder="Ask ZGPT anything..."
             fullWidth
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            variant="outlined"
+            placeholder="Ask ZGPT about AI..."
+            autoFocus
             sx={{
-              backgroundColor: '#303030',
-              borderRadius: '20px',
-              '& .MuiOutlinedInput-root': {
-                '& fieldset': { border: 'none' },
-                '&:hover fieldset': { border: 'none' },
-                '&.Mui-focused fieldset': { border: 'none' },
-              },
               input: { color: 'white' },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': { borderColor: 'white' },
+                '&:hover fieldset': { borderColor: '#ff6d00' },
+                '&.Mui-focused fieldset': { borderColor: '#ff6d00' },
+              },
             }}
           />
           <Button
             type="submit"
             variant="contained"
-            sx={{
-              ml: 2,
-              backgroundColor: '#00e676',
-              '&:hover': { backgroundColor: '#00c853' },
-              borderRadius: '20px',
-              p: '10px',
-            }}
-            disabled={loading}
+            sx={{ mt: 2, backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
           >
-            <SendIcon />
+            Ask ZGPT
           </Button>
         </Box>
-      </Paper>
-      {!user && (
-        <Box sx={{ textAlign: 'center', mt: 2 }}>
-          <Button
-            variant="outlined"
-            sx={{ color: '#00e676', borderColor: '#00e676' }}
-            onClick={() => history.push('/register')}
-          >
-            Subscribe for More Features!
-          </Button>
-        </Box>
-      )}
+        {response && (
+          <Box sx={{ backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '10px', p: 2 }}>
+            <Typography variant="body1">{response}</Typography>
+          </Box>
+        )}
+      </Container>
     </Box>
   );
 }

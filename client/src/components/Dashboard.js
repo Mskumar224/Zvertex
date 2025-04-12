@@ -37,7 +37,7 @@ function Dashboard({ user }) {
   };
 
   useEffect(() => {
-    const fetchAppliedJobs = async () => {
+    const fetchAppliedJobs = async (retryCount = 3, delay = 1000) => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -50,10 +50,17 @@ function Dashboard({ user }) {
           headers: { 'x-auth-token': token }
         });
         setAppliedJobs(res.data.jobs || []);
+        setError('');
       } catch (err) {
         console.error('Failed to fetch applied jobs:', err.response?.data || err.message);
-        if (err.response?.status === 404) {
-          setError('Jobs endpoint not found. Please contact support.');
+        if (err.response?.status === 404 && retryCount > 0) {
+          console.log(`Retrying /api/jobs/applied (${retryCount} attempts left)...`);
+          setTimeout(() => fetchAppliedJobs(retryCount - 1, delay * 2), delay);
+        } else if (err.response?.status === 404) {
+          setError('Applied jobs endpoint not found. Try logging out and back in, or contact support.');
+        } else if (err.response?.status === 401) {
+          setError('Session expired. Please log in again.');
+          history.push('/login');
         } else {
           setError(err.response?.data?.msg || 'Failed to load applied jobs.');
         }
@@ -69,7 +76,7 @@ function Dashboard({ user }) {
 
   const handleResumeUpload = async () => {
     if (!resume) {
-      setError('Please select a resume file (PDF, DOC, or DOCX).');
+      setError('Please select a resume file (PDF, DOC, or DOC - X).');
       return;
     }
     if (!['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(resume.type)) {
@@ -92,6 +99,7 @@ function Dashboard({ user }) {
 
       const formData = new FormData();
       formData.append('resume', resume);
+
       const res = await axios.post(`${API_BASE_URL}/api/auth/resume`, formData, {
         headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' }
       });
@@ -106,11 +114,11 @@ function Dashboard({ user }) {
         setError('Resume upload endpoint not found. Please contact support.');
       } else if (err.response?.status === 405) {
         setError('Invalid request method. Please use the upload button.');
+      } else if (err.response?.status === 401) {
+        setError('Session expired. Please log in again.');
+        history.push('/login');
       } else {
         setError(serverMsg);
-      }
-      if (serverMsg.includes('token')) {
-        history.push('/login');
       }
     } finally {
       setUploading(false);
