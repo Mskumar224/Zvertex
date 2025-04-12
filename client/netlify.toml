@@ -1,7 +1,8 @@
 [build]
   base = "client"
-  publish = "client/build"
   command = "npm run build"
+  publish = "client/build"
+  environment = { REACT_APP_API_URL = "https://zvertexai-orzv.onrender.com" }
 
 [[redirects]]
   from = "/api/*"
@@ -13,15 +14,3 @@
   from = "/*"
   to = "/index.html"
   status = 200
-
-[[redirects]]
-  from = "http://zvertexai.com/*"
-  to = "https://zvertexai.com/:splat"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "http://www.zvertexai.com/*"
-  to = "https://zvertexai.com/:splat"
-  status = 301
-  force = true

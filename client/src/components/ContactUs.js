@@ -1,171 +1,132 @@
 import React, { useState } from 'react';
-import { useHistory } from 'react-router-dom';
-import { Box, Typography, TextField, Button, Container, Grid } from '@mui/material';
+import { Box, Typography, TextField, Button, Container, Alert } from '@mui/material';
 import axios from 'axios';
 
-function ContactUs({ user }) {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [success, setSuccess] = useState('');
+function ContactUs({ apiUrl }) {
+  const [formData, setFormData] = useState({ name: '', email: '', message: '' });
   const [error, setError] = useState('');
-  const history = useHistory();
-  const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
     try {
-      await axios.post(`${apiUrl}/api/contact`, { name, email, message });
+      await axios.post(`${apiUrl}/api/contact`, formData);
       setSuccess('Message sent successfully!');
-      setError('');
-      setName('');
-      setEmail('');
-      setMessage('');
+      setFormData({ name: '', email: '', message: '' });
     } catch (err) {
       setError(err.response?.data?.msg || 'Failed to send message');
-      setSuccess('');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
-      <Container maxWidth="lg">
-        <Box sx={{ mt: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <Button
-            variant="text"
-            sx={{ mb: 2, color: '#00e676', alignSelf: 'flex-start' }}
-            onClick={() => history.push('/')}
-          >
-            Back to Home
-          </Button>
-          <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: '#ff6d00' }}>
+    <Box sx={{
+      minHeight: 'calc(100vh - 64px)',
+      color: 'white',
+    }}>
+      <Container maxWidth="sm">
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#ffffff' }}>
             Contact Us
           </Typography>
-          <Box component="form" onSubmit={handleSubmit} sx={{
-            width: '100%',
-            maxWidth: '400px',
-            backgroundColor: 'rgba(255,255,255,0.1)',
-            p: 4,
-            borderRadius: '15px',
-            boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
-          }}>
+          <Box
+            component="form"
+            onSubmit={handleSubmit}
+            sx={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              p: 4,
+              borderRadius: '15px',
+              boxShadow: '0 8px 20px rgba(0, 0, 0, 0.2)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+              transition: 'all 0.3s ease',
+            }}
+          >
+            {error && <Alert severity="error" sx={{ borderRadius: '10px' }}>{error}</Alert>}
+            {success && <Alert severity="success" sx={{ borderRadius: '10px' }}>{success}</Alert>}
             <TextField
               label="Name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
               fullWidth
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              required
               sx={{
-                mb: 2,
+                '& .MuiInputBase-input': { color: 'white' },
+                '& .MuiInputLabel-root': { color: 'white' },
                 '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: '#ff6d00' },
-                  '&:hover fieldset': { borderColor: '#e65100' },
+                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                  '&:hover fieldset': { borderColor: '#00e676' },
                   '&.Mui-focused fieldset': { borderColor: '#00e676' },
                 },
-                '& .MuiInputLabel-root': { color: 'white' },
-                input: { color: 'white' },
               }}
             />
             <TextField
               label="Email"
+              name="email"
               type="email"
+              value={formData.email}
+              onChange={handleChange}
               fullWidth
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              required
               sx={{
-                mb: 2,
+                '& .MuiInputBase-input': { color: 'white' },
+                '& .MuiInputLabel-root': { color: 'white' },
                 '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: '#ff6d00' },
-                  '&:hover fieldset': { borderColor: '#e65100' },
+                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                  '&:hover fieldset': { borderColor: '#00e676' },
                   '&.Mui-focused fieldset': { borderColor: '#00e676' },
                 },
-                '& .MuiInputLabel-root': { color: 'white' },
-                input: { color: 'white' },
               }}
             />
             <TextField
               label="Message"
+              name="message"
+              value={formData.message}
+              onChange={handleChange}
+              fullWidth
+              required
               multiline
               rows={4}
-              fullWidth
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
               sx={{
-                mb: 2,
+                '& .MuiInputBase-input': { color: 'white' },
+                '& .MuiInputLabel-root': { color: 'white' },
                 '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: '#ff6d00' },
-                  '&:hover fieldset': { borderColor: '#e65100' },
+                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                  '&:hover fieldset': { borderColor: '#00e676' },
                   '&.Mui-focused fieldset': { borderColor: '#00e676' },
                 },
-                '& .MuiInputLabel-root': { color: 'white' },
-                textarea: { color: 'white' },
               }}
             />
-            {success && <Typography sx={{ mb: 2, color: '#00e676' }}>{success}</Typography>}
-            {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
             <Button
               type="submit"
               variant="contained"
-              fullWidth
+              disabled={loading}
               sx={{
                 backgroundColor: '#ff6d00',
                 '&:hover': { backgroundColor: '#e65100' },
                 borderRadius: '25px',
                 py: 1.5,
                 fontWeight: 'bold',
+                transition: 'all 0.3s ease',
               }}
             >
-              Send Message
+              {loading ? 'Sending...' : 'Send Message'}
             </Button>
           </Box>
         </Box>
       </Container>
-      <Box sx={{
-        py: 4,
-        backgroundColor: '#1a2a44',
-        color: 'white',
-        textAlign: 'center',
-      }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={4}>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-                About ZvertexAI
-              </Typography>
-              <Typography variant="body2">
-                Empowering careers with AI-driven job matching, innovative projects, and ZGPT copilot.
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-                Quick Links
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Button color="inherit" onClick={() => history.push('/faq')}>Interview FAQs</Button>
-                <Button color="inherit" onClick={() => history.push('/why-us')}>Why ZvertexAI?</Button>
-                <Button color="inherit" onClick={() => history.push('/projects')}>Our Projects</Button>
-                <Button color="inherit" onClick={() => history.push('/contact-us')}>Contact Us</Button>
-              </Box>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-                Contact Info
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                Address: 5900 Balcones Dr #16790, Austin, TX 78731
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                Phone: (737) 239-0920
-              </Typography>
-              <Typography variant="body2">
-                Email: support@zvertexai.com
-              </Typography>
-            </Grid>
-          </Grid>
-          <Typography variant="body2" sx={{ mt: 4 }}>
-            © 2025 ZvertexAI. All rights reserved.
-          </Typography>
-        </Container>
-      </Box>
     </Box>
   );
 }
