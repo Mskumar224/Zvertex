@@ -75,12 +75,7 @@ router.get('/resume', (req, res) => {
 
 router.post('/resume', authMiddleware, async (req, res) => {
   try {
-    console.log('Received POST to /api/auth/resume for user:', req.user?.id);
-
-    if (!req.header('x-auth-token')) {
-      console.log('No auth token provided');
-      return res.status(401).json({ msg: 'No token, authorization denied.' });
-    }
+    console.log('POST /api/auth/resume request received for user:', req.user?.id);
 
     const user = await User.findById(req.user.id);
     if (!user) {
@@ -89,8 +84,8 @@ router.post('/resume', authMiddleware, async (req, res) => {
     }
 
     if (!req.files || !req.files.resume) {
-      console.log('No resume file provided for user:', req.user.id);
-      return res.status(400).json({ msg: 'No resume file uploaded. Please select a file.' });
+      console.log('Missing resume file for user:', req.user.id);
+      return res.status(400).json({ msg: 'Missing resume file. Please select a PDF, DOC, or DOCX file.' });
     }
 
     const resume = req.files.resume;

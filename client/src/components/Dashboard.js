@@ -27,6 +27,8 @@ function Dashboard({ user }) {
   const [servicesAnchor, setServicesAnchor] = useState(null);
   const [projectsAnchor, setProjectsAnchor] = useState(null);
 
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
+
   const handleServicesClick = (event) => setServicesAnchor(event.currentTarget);
   const handleProjectsClick = (event) => setProjectsAnchor(event.currentTarget);
   const handleClose = () => {
@@ -37,17 +39,28 @@ function Dashboard({ user }) {
   useEffect(() => {
     const fetchAppliedJobs = async () => {
       try {
-        const res = await axios.get(
-          `${process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com'}/api/jobs/applied`,
-          { headers: { 'x-auth-token': localStorage.getItem('token') } }
-        );
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('Authentication token missing. Please log in again.');
+          history.push('/login');
+          return;
+        }
+
+        const res = await axios.get(`${API_BASE_URL}/api/jobs/applied`, {
+          headers: { 'x-auth-token': token }
+        });
         setAppliedJobs(res.data.jobs || []);
       } catch (err) {
-        setError('Failed to load applied jobs.');
+        console.error('Failed to fetch applied jobs:', err.response?.data || err.message);
+        if (err.response?.status === 404) {
+          setError('Jobs endpoint not found. Please contact support.');
+        } else {
+          setError(err.response?.data?.msg || 'Failed to load applied jobs.');
+        }
       }
     };
     if (user) fetchAppliedJobs();
-  }, [user]);
+  }, [user, history]);
 
   if (!user) {
     history.push('/login');
@@ -79,18 +92,23 @@ function Dashboard({ user }) {
 
       const formData = new FormData();
       formData.append('resume', resume);
-      const res = await axios.post(
-        `${process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com'}/api/auth/resume`,
-        formData,
-        { headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' } }
-      );
+      const res = await axios.post(`${API_BASE_URL}/api/auth/resume`, formData, {
+        headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' }
+      });
       setError('');
       alert(res.data.msg || 'Resume uploaded successfully!');
       setResume(null);
       document.getElementById('resume-upload').value = ''; // Reset file input
     } catch (err) {
+      console.error('Resume upload failed:', err.response?.data || err.message);
       const serverMsg = err.response?.data?.msg || 'Failed to upload resume. Please check your file and try again.';
-      setError(serverMsg);
+      if (err.response?.status === 404) {
+        setError('Resume upload endpoint not found. Please contact support.');
+      } else if (err.response?.status === 405) {
+        setError('Invalid request method. Please use the upload button.');
+      } else {
+        setError(serverMsg);
+      }
       if (serverMsg.includes('token')) {
         history.push('/login');
       }

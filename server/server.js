@@ -32,9 +32,10 @@ try {
   console.error('Error loading routes:', err.message);
 }
 
-// Error handling for invalid routes
+// Catch-all for 404 errors
 app.use((req, res) => {
-  res.status(404).json({ msg: 'Route not found' });
+  console.log(`404 Error: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({ msg: `Route not found: ${req.method} ${req.originalUrl}` });
 });
 
 const PORT = process.env.PORT || 5000;
