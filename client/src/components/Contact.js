@@ -1,183 +1,177 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { Box, Typography, TextField, Button, Container, Divider, Grid } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Button,
+  AppBar,
+  Toolbar,
+  Menu,
+  MenuItem,
+  Container,
+  TextField,
+  Grid,
+} from '@mui/material';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import EmailIcon from '@mui/icons-material/Email';
-import PhoneIcon from '@mui/icons-material/Phone';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
 import axios from 'axios';
 
-function Contact() {
+function Contact({ user, setUser }) {
+  const history = useHistory();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const history = useHistory();
-  const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
+  const [servicesAnchor, setServicesAnchor] = useState(null);
+  const [projectsAnchor, setProjectsAnchor] = useState(null);
+
+  const handleServicesClick = (event) => setServicesAnchor(event.currentTarget);
+  const handleProjectsClick = (event) => setProjectsAnchor(event.currentTarget);
+  const handleClose = () => {
+    setServicesAnchor(null);
+    setProjectsAnchor(null);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${apiUrl}/api/contact`, { name, email, message });
-      setSuccess('Your message has been sent! We’ll get back to you soon.');
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/contact`, { name, email, message });
+      setSuccess('Message sent successfully!');
+      setError('');
       setName('');
       setEmail('');
       setMessage('');
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to send message');
+      setError(err.response?.data?.msg || 'Failed to send message.');
+      setSuccess('');
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+    history.push('/');
+  };
+
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#121212', color: 'white' }}>
-      <Container maxWidth="lg">
-        <Box sx={{ py: 2 }}>
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => history.goBack()}
-            sx={{ color: '#ff6d00', mb: 2 }}
-          >
-            Back
-          </Button>
-          <Box sx={{ maxWidth: '600px', mx: 'auto', mt: 8 }}>
-            <Typography variant="h4" sx={{ mb: 4, textAlign: 'center', fontWeight: 'bold' }}>
-              Contact Us
-            </Typography>
-            {error && <Typography color="error" sx={{ mb: 2, textAlign: 'center' }}>{error}</Typography>}
-            {success && <Typography sx={{ mb: 2, textAlign: 'center', color: '#00e676' }}>{success}</Typography>}
-            <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
-              <TextField
-                label="Name"
-                fullWidth
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                sx={{ 
-                  mb: 2, 
-                  input: { color: 'white' }, 
-                  label: { color: 'white' }, 
-                  '& .MuiOutlinedInput-root': { 
-                    '& fieldset': { borderColor: 'white' }, 
-                    '&:hover fieldset': { borderColor: '#ff6d00' },
-                    '&.Mui-focused fieldset': { borderColor: '#ff6d00' }
-                  } 
-                }}
-              />
-              <TextField
-                label="Email"
-                fullWidth
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                sx={{ 
-                  mb: 2, 
-                  input: { color: 'white' }, 
-                  label: { color: 'white' }, 
-                  '& .MuiOutlinedInput-root': { 
-                    '& fieldset': { borderColor: 'white' }, 
-                    '&:hover fieldset': { borderColor: '#ff6d00' },
-                    '&.Mui-focused fieldset': { borderColor: '#ff6d00' }
-                  } 
-                }}
-              />
-              <TextField
-                label="Message"
-                fullWidth
-                multiline
-                rows={4}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                sx={{ 
-                  mb: 2, 
-                  input: { color: 'white' }, 
-                  label: { color: 'white' }, 
-                  '& .MuiOutlinedInput-root': { 
-                    '& fieldset': { borderColor: 'white' }, 
-                    '&:hover fieldset': { borderColor: '#ff6d00' },
-                    '&.Mui-focused fieldset': { borderColor: '#ff6d00' }
-                  } 
-                }}
-              />
-              <Button 
-                type="submit" 
-                variant="contained" 
-                fullWidth 
-                sx={{ 
-                  mb: 2, 
-                  backgroundColor: '#ff6d00', 
-                  '&:hover': { backgroundColor: '#e65100' },
-                  py: 1.5
-                }}
-              >
-                Send Message
-              </Button>
-            </Box>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
+      <AppBar position="static" sx={{ backgroundColor: 'rgba(26, 42, 68, 0.9)', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+        <Toolbar>
+          <Typography variant="h5" sx={{ flexGrow: 1, fontWeight: 'bold', cursor: 'pointer' }} onClick={() => history.push('/')}>
+            ZvertexAI
+          </Typography>
+          <Box>
+            <Button color="inherit" onClick={handleServicesClick} endIcon={<ArrowDropDownIcon />}>
+              Services
+            </Button>
+            <Menu
+              anchorEl={servicesAnchor}
+              open={Boolean(servicesAnchor)}
+              onClose={handleClose}
+              PaperProps={{ sx: { backgroundColor: '#1a2a44', color: 'white' } }}
+            >
+              <MenuItem onClick={() => { handleClose(); history.push('/faq'); }}>Interview FAQs</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push('/why-us'); }}>Why ZvertexAI?</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push('/zgpt'); }}>ZGPT - Your Copilot</MenuItem>
+            </Menu>
+            <Button color="inherit" onClick={handleProjectsClick} endIcon={<ArrowDropDownIcon />}>
+              Join Our Projects
+            </Button>
+            <Menu
+              anchorEl={projectsAnchor}
+              open={Boolean(projectsAnchor)}
+              onClose={handleClose}
+              PaperProps={{ sx: { backgroundColor: '#1a2a44', color: 'white' } }}
+            >
+              <MenuItem onClick={() => { handleClose(); history.push(user ? '/projects/saas' : '/register'); }}>SaaS Solutions</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push(user ? '/projects/cloud' : '/register'); }}>Cloud Migration</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push(user ? '/projects/ai' : '/register'); }}>AI Automation</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push(user ? '/projects/bigdata' : '/register'); }}>Big Data Analytics</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push(user ? '/projects/devops' : '/register'); }}>DevOps Integration</MenuItem>
+            </Menu>
+            {user ? (
+              <Button color="inherit" onClick={handleLogout}>Logout</Button>
+            ) : (
+              <>
+                <Button color="inherit" onClick={() => history.push('/login')}>Login</Button>
+                <Button color="inherit" onClick={() => history.push('/register')}>Register</Button>
+              </>
+            )}
           </Box>
-        </Box>
+        </Toolbar>
+      </AppBar>
+
+      <Container maxWidth="sm" sx={{ pt: 8, pb: 6 }}>
+        <Button
+          variant="outlined"
+          sx={{ mb: 2, color: 'white', borderColor: 'white' }}
+          onClick={() => history.push('/')}
+          startIcon={<ArrowBackIcon />}
+        >
+          Back to Home
+        </Button>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 4 }}>
+          Contact Us
+        </Typography>
+        <form onSubmit={handleSubmit}>
+          <TextField
+            label="Name"
+            fullWidth
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            sx={{ mb: 2, input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
+          />
+          <TextField
+            label="Email"
+            fullWidth
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            sx={{ mb: 2, input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
+          />
+          <TextField
+            label="Message"
+            fullWidth
+            multiline
+            rows={4}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            sx={{ mb: 2, input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
+          />
+          {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
+          {success && <Typography sx={{ mb: 2, color: '#00e676' }}>{success}</Typography>}
+          <Button
+            type="submit"
+            variant="contained"
+            fullWidth
+            sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' }, borderRadius: '25px', py: 1.5 }}
+          >
+            Send Message
+          </Button>
+        </form>
       </Container>
 
       <Box sx={{ py: 4, backgroundColor: '#1a2a44', color: 'white' }}>
         <Container maxWidth="lg">
           <Grid container spacing={4}>
             <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-                About ZvertexAI
-              </Typography>
-              <Typography variant="body2">
-                ZvertexAI empowers careers with AI-driven job matching, innovative projects, and ZGPT, your personal copilot. Join us to shape the future of technology.
-              </Typography>
+              <Typography variant="h6" sx={{ mb: 2 }}>ZvertexAI</Typography>
+              <Typography variant="body2">Empowering careers with AI-driven job matching, projects, and ZGPT copilot.</Typography>
             </Grid>
             <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-                Quick Links
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/why-zvertexai')}>
-                Why ZvertexAI?
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/interview-faqs')}>
-                Interview FAQs
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/zgpt')}>
-                ZGPT Copilot
-              </Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/contact')}>
-                Contact Us
-              </Typography>
+              <Typography variant="h6" sx={{ mb: 2 }}>Quick Links</Typography>
+              <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer', '&:hover': { color: '#ff6d00' } }} onClick={() => history.push('/faq')}>Interview FAQs</Typography>
+              <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer', '&:hover': { color: '#ff6d00' } }} onClick={() => history.push('/why-us')}>Why ZvertexAI?</Typography>
+              <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer', '&:hover': { color: '#ff6d00' } }} onClick={() => history.push('/zgpt')}>ZGPT Copilot</Typography>
             </Grid>
             <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-                Contact Us
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <LocationOnIcon sx={{ mr: 1 }} />
-                <Typography variant="body2">
-                  5900 Balcones Dr #16790, Austin, TX 78731
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <PhoneIcon sx={{ mr: 1 }} />
-                <Typography variant="body2">
-                  (737) 239-0920
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <EmailIcon sx={{ mr: 1 }} />
-                <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/contact')}>
-                  contact@zvertexai.com
-                </Typography>
-              </Box>
-              <Button 
-                variant="contained" 
-                sx={{ mt: 2, backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }} 
-                onClick={() => history.push('/register')}
-              >
-                Subscribe Now
-              </Button>
+              <Typography variant="h6" sx={{ mb: 2 }}>Contact Us</Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>Address: 5900 BALCONES DR #16790, AUSTIN, TX 78731</Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>Phone: 737-239-0920</Typography>
+              <Typography variant="body2" sx={{ cursor: 'pointer', '&:hover': { color: '#ff6d00' } }} onClick={() => history.push('/contact')}>Email Us</Typography>
             </Grid>
           </Grid>
-          <Divider sx={{ my: 3, backgroundColor: 'rgba(255,255,255,0.2)' }} />
-          <Typography variant="body2" align="center">
-            © 2025 ZvertexAI. All rights reserved.
-          </Typography>
+          <Typography variant="body2" sx={{ mt: 4, textAlign: 'center' }}>© 2025 ZvertexAI. All rights reserved.</Typography>
         </Container>
       </Box>
     </Box>

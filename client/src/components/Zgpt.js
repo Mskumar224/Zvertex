@@ -3,28 +3,58 @@ import { useHistory } from 'react-router-dom';
 import {
   Box,
   Typography,
-  Container,
-  TextField,
   Button,
   AppBar,
   Toolbar,
+  Menu,
+  MenuItem,
+  Container,
+  TextField,
+  Grid,
 } from '@mui/material';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import axios from 'axios';
 
-function ZGPT() {
+function ZGPT({ user, setUser }) {
   const history = useHistory();
   const [query, setQuery] = useState('');
   const [response, setResponse] = useState('');
+  const [error, setError] = useState('');
+  const [servicesAnchor, setServicesAnchor] = useState(null);
+  const [projectsAnchor, setProjectsAnchor] = useState(null);
 
-  const handleSubmit = (e) => {
+  const handleServicesClick = (event) => setServicesAnchor(event.currentTarget);
+  const handleProjectsClick = (event) => setProjectsAnchor(event.currentTarget);
+  const handleClose = () => {
+    setServicesAnchor(null);
+    setProjectsAnchor(null);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!query.trim()) return;
-
-    if (query.toLowerCase().includes('future of ai')) {
-      setResponse('AI will revolutionize jobs—subscribe to see how!');
-    } else {
-      setResponse('Ask me about the future of AI or other topics!');
+    if (!user) {
+      history.push('/register');
+      return;
     }
-    setQuery('');
+    try {
+      const res = await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/zgpt`,
+        { query },
+        { headers: { 'x-auth-token': localStorage.getItem('token') } }
+      );
+      setResponse(res.data.response);
+      setError('');
+    } catch (err) {
+      setError('Failed to get response. Try again later.');
+      setResponse('');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+    history.push('/');
   };
 
   return (
@@ -34,53 +64,110 @@ function ZGPT() {
           <Typography variant="h5" sx={{ flexGrow: 1, fontWeight: 'bold', cursor: 'pointer' }} onClick={() => history.push('/')}>
             ZvertexAI
           </Typography>
-          <Button color="inherit" onClick={() => history.push('/dashboard')}>
-            Dashboard
-          </Button>
-          <Button
-            color="inherit"
-            onClick={() => {
-              localStorage.removeItem('token');
-              history.push('/');
-            }}
-          >
-            Logout
-          </Button>
+          <Box>
+            <Button color="inherit" onClick={handleServicesClick} endIcon={<ArrowDropDownIcon />}>
+              Services
+            </Button>
+            <Menu
+              anchorEl={servicesAnchor}
+              open={Boolean(servicesAnchor)}
+              onClose={handleClose}
+              PaperProps={{ sx: { backgroundColor: '#1a2a44', color: 'white' } }}
+            >
+              <MenuItem onClick={() => { handleClose(); history.push('/faq'); }}>Interview FAQs</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push('/why-us'); }}>Why ZvertexAI?</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push('/zgpt'); }}>ZGPT - Your Copilot</MenuItem>
+            </Menu>
+            <Button color="inherit" onClick={handleProjectsClick} endIcon={<ArrowDropDownIcon />}>
+              Join Our Projects
+            </Button>
+            <Menu
+              anchorEl={projectsAnchor}
+              open={Boolean(projectsAnchor)}
+              onClose={handleClose}
+              PaperProps={{ sx: { backgroundColor: '#1a2a44', color: 'white' } }}
+            >
+              <MenuItem onClick={() => { handleClose(); history.push(user ? '/projects/saas' : '/register'); }}>SaaS Solutions</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push(user ? '/projects/cloud' : '/register'); }}>Cloud Migration</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push(user ? '/projects/ai' : '/register'); }}>AI Automation</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push(user ? '/projects/bigdata' : '/register'); }}>Big Data Analytics</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push(user ? '/projects/devops' : '/register'); }}>DevOps Integration</MenuItem>
+            </Menu>
+            {user ? (
+              <Button color="inherit" onClick={handleLogout}>Logout</Button>
+            ) : (
+              <>
+                <Button color="inherit" onClick={() => history.push('/login')}>Login</Button>
+                <Button color="inherit" onClick={() => history.push('/register')}>Register</Button>
+              </>
+            )}
+          </Box>
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="lg" sx={{ pt: 8 }}>
-        <Typography variant="h4" sx={{ mb: 4 }}>ZGPT - Your AI Copilot</Typography>
-        <Box component="form" onSubmit={handleSubmit} sx={{ mb: 4 }}>
-          <TextField
-            fullWidth
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Ask ZGPT about AI..."
-            autoFocus
-            sx={{
-              input: { color: 'white' },
-              '& .MuiOutlinedInput-root': {
-                '& fieldset': { borderColor: 'white' },
-                '&:hover fieldset': { borderColor: '#ff6d00' },
-                '&.Mui-focused fieldset': { borderColor: '#ff6d00' },
-              },
-            }}
-          />
-          <Button
-            type="submit"
-            variant="contained"
-            sx={{ mt: 2, backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
-          >
-            Ask ZGPT
-          </Button>
+      <Container maxWidth="lg" sx={{ pt: 8, pb: 6 }}>
+        <Button
+          variant="outlined"
+          sx={{ mb: 2, color: 'white', borderColor: 'white' }}
+          onClick={() => history.push('/')}
+          startIcon={<ArrowBackIcon />}
+        >
+          Back to Home
+        </Button>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 4 }}>
+          ZGPT - Your Copilot
+        </Typography>
+        <Box sx={{ backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '15px', p: 4, boxShadow: '0 8px 20px rgba(0,0,0,0.3)' }}>
+          <form onSubmit={handleSubmit}>
+            <TextField
+              label="Ask ZGPT anything..."
+              fullWidth
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              sx={{ mb: 3, input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              sx={{ backgroundColor: '#00e676', '&:hover': { backgroundColor: '#00c853' }, borderRadius: '25px', py: 1.5 }}
+            >
+              Ask ZGPT
+            </Button>
+          </form>
+          {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
+          {response && (
+            <Box sx={{ mt: 3, backgroundColor: '#303030', p: 2, borderRadius: '10px' }}>
+              <Typography variant="body2" sx={{ color: '#b0b0b0' }}>You: {query}</Typography>
+              <Typography variant="body2" sx={{ color: '#00e676', mt: 1 }}>ZGPT: {response}</Typography>
+            </Box>
+          )}
         </Box>
-        {response && (
-          <Box sx={{ backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '10px', p: 2 }}>
-            <Typography variant="body1">{response}</Typography>
-          </Box>
-        )}
       </Container>
+
+      <Box sx={{ py: 4, backgroundColor: '#1a2a44', color: 'white' }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={4}>
+            <Grid item xs={12} sm={4}>
+              <Typography variant="h6" sx={{ mb: 2 }}>ZvertexAI</Typography>
+              <Typography variant="body2">Empowering careers with AI-driven job matching, projects, and ZGPT copilot.</Typography>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Typography variant="h6" sx={{ mb: 2 }}>Quick Links</Typography>
+              <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer', '&:hover': { color: '#ff6d00' } }} onClick={() => history.push('/faq')}>Interview FAQs</Typography>
+              <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer', '&:hover': { color: '#ff6d00' } }} onClick={() => history.push('/why-us')}>Why ZvertexAI?</Typography>
+              <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer', '&:hover': { color: '#ff6d00' } }} onClick={() => history.push('/zgpt')}>ZGPT Copilot</Typography>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Typography variant="h6" sx={{ mb: 2 }}>Contact Us</Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>Address: 5900 BALCONES DR #16790, AUSTIN, TX 78731</Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>Phone: 737-239-0920</Typography>
+              <Typography variant="body2" sx={{ cursor: 'pointer', '&:hover': { color: '#ff6d00' } }} onClick={() => history.push('/contact')}>Email Us</Typography>
+            </Grid>
+          </Grid>
+          <Typography variant="body2" sx={{ mt: 4, textAlign: 'center' }}>© 2025 ZvertexAI. All rights reserved.</Typography>
+        </Container>
+      </Box>
     </Box>
   );
 }

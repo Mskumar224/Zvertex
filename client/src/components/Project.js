@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useHistory, useParams } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -9,18 +9,16 @@ import {
   Menu,
   MenuItem,
   Container,
-  TextField,
   Grid,
+  Card,
+  CardContent,
 } from '@mui/material';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import axios from 'axios';
 
-function ForgotPassword({ user, setUser }) {
+function Project({ user, setUser }) {
+  const { type } = useParams();
   const history = useHistory();
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [servicesAnchor, setServicesAnchor] = useState(null);
   const [projectsAnchor, setProjectsAnchor] = useState(null);
 
@@ -31,20 +29,39 @@ function ForgotPassword({ user, setUser }) {
     setProjectsAnchor(null);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/forgot-password`, { email });
-      setSuccess('Password reset link sent to your email.');
-      setError('');
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to send reset link.');
-      setSuccess('');
-    }
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+    history.push('/');
   };
 
-  if (user) {
-    history.push('/dashboard');
+  const projectDetails = {
+    saas: {
+      title: 'SaaS Solutions',
+      description: 'Build scalable, cloud-based SaaS applications with cutting-edge technologies.',
+    },
+    cloud: {
+      title: 'Cloud Migration',
+      description: 'Seamlessly migrate your infrastructure to the cloud with our expert guidance.',
+    },
+    ai: {
+      title: 'AI Automation',
+      description: 'Automate workflows and enhance decision-making with AI-driven solutions.',
+    },
+    bigdata: {
+      title: 'Big Data Analytics',
+      description: 'Harness the power of big data to uncover actionable insights.',
+    },
+    devops: {
+      title: 'DevOps Integration',
+      description: 'Streamline development and operations with our DevOps expertise.',
+    },
+  };
+
+  const project = projectDetails[type] || { title: 'Project', description: 'Details coming soon!' };
+
+  if (!user) {
+    history.push('/register');
     return null;
   }
 
@@ -78,49 +95,43 @@ function ForgotPassword({ user, setUser }) {
               onClose={handleClose}
               PaperProps={{ sx: { backgroundColor: '#1a2a44', color: 'white' } }}
             >
-              <MenuItem onClick={() => { handleClose(); history.push('/register'); }}>SaaS Solutions</MenuItem>
-              <MenuItem onClick={() => { handleClose(); history.push('/register'); }}>Cloud Migration</MenuItem>
-              <MenuItem onClick={() => { handleClose(); history.push('/register'); }}>AI Automation</MenuItem>
-              <MenuItem onClick={() => { handleClose(); history.push('/register'); }}>Big Data Analytics</MenuItem>
-              <MenuItem onClick={() => { handleClose(); history.push('/register'); }}>DevOps Integration</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push('/projects/saas'); }}>SaaS Solutions</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push('/projects/cloud'); }}>Cloud Migration</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push('/projects/ai'); }}>AI Automation</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push('/projects/bigdata'); }}>Big Data Analytics</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push('/projects/devops'); }}>DevOps Integration</MenuItem>
             </Menu>
-            <Button color="inherit" onClick={() => history.push('/login')}>Login</Button>
-            <Button color="inherit" onClick={() => history.push('/register')}>Register</Button>
+            <Button color="inherit" onClick={handleLogout}>Logout</Button>
           </Box>
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="sm" sx={{ pt: 8, pb: 6 }}>
+      <Container maxWidth="lg" sx={{ pt: 8, pb: 6 }}>
         <Button
           variant="outlined"
           sx={{ mb: 2, color: 'white', borderColor: 'white' }}
-          onClick={() => history.push('/login')}
+          onClick={() => history.push('/dashboard')}
           startIcon={<ArrowBackIcon />}
         >
-          Back to Login
+          Back to Dashboard
         </Button>
-        <Typography variant="h4" align="center" sx={{ mb: 4 }}>
-          Forgot Password
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 4 }}>
+          {project.title}
         </Typography>
-        <form onSubmit={handleSubmit}>
-          <TextField
-            label="Email"
-            fullWidth
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            sx={{ mb: 2, input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
-          />
-          {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
-          {success && <Typography sx={{ mb: 2, color: '#00e676' }}>{success}</Typography>}
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-            sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' }, borderRadius: '25px', py: 1.5 }}
-          >
-            Send Reset Link
-          </Button>
-        </form>
+        <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px', boxShadow: '0 8px 20px rgba(0,0,0,0.3)' }}>
+          <CardContent>
+            <Typography variant="body1" sx={{ mb: 3 }}>
+              {project.description}
+            </Typography>
+            <Button
+              variant="contained"
+              sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' }, borderRadius: '25px' }}
+              onClick={() => history.push('/contact')}
+            >
+              Contact Us to Join
+            </Button>
+          </CardContent>
+        </Card>
       </Container>
 
       <Box sx={{ py: 4, backgroundColor: '#1a2a44', color: 'white' }}>
@@ -150,4 +161,4 @@ function ForgotPassword({ user, setUser }) {
   );
 }
 
-export default ForgotPassword;
+export default Project;

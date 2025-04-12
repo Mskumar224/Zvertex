@@ -4,23 +4,19 @@ import {
   Box,
   Typography,
   Button,
-  Container,
   AppBar,
   Toolbar,
   Menu,
   MenuItem,
+  Container,
   Grid,
   Card,
   CardContent,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
 } from '@mui/material';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
-function WhyUs({ user }) {
+function WhyUs({ user, setUser }) {
   const history = useHistory();
   const [servicesAnchor, setServicesAnchor] = useState(null);
   const [projectsAnchor, setProjectsAnchor] = useState(null);
@@ -32,12 +28,10 @@ function WhyUs({ user }) {
     setProjectsAnchor(null);
   };
 
-  const handleSubscribe = () => {
-    if (user) {
-      history.push('/dashboard'); // Redirect to subscription management in dashboard (future feature)
-    } else {
-      history.push('/register');
-    }
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+    history.push('/');
   };
 
   return (
@@ -48,7 +42,9 @@ function WhyUs({ user }) {
             ZvertexAI
           </Typography>
           <Box>
-            <Button color="inherit" onClick={handleServicesClick} endIcon={<ArrowDropDownIcon />}>Services</Button>
+            <Button color="inherit" onClick={handleServicesClick} endIcon={<ArrowDropDownIcon />}>
+              Services
+            </Button>
             <Menu
               anchorEl={servicesAnchor}
               open={Boolean(servicesAnchor)}
@@ -59,7 +55,9 @@ function WhyUs({ user }) {
               <MenuItem onClick={() => { handleClose(); history.push('/why-us'); }}>Why ZvertexAI?</MenuItem>
               <MenuItem onClick={() => { handleClose(); history.push('/zgpt'); }}>ZGPT - Your Copilot</MenuItem>
             </Menu>
-            <Button color="inherit" onClick={handleProjectsClick} endIcon={<ArrowDropDownIcon />}>JOIN OUR PROJECTS</Button>
+            <Button color="inherit" onClick={handleProjectsClick} endIcon={<ArrowDropDownIcon />}>
+              Join Our Projects
+            </Button>
             <Menu
               anchorEl={projectsAnchor}
               open={Boolean(projectsAnchor)}
@@ -72,178 +70,71 @@ function WhyUs({ user }) {
               <MenuItem onClick={() => { handleClose(); history.push(user ? '/projects/bigdata' : '/register'); }}>Big Data Analytics</MenuItem>
               <MenuItem onClick={() => { handleClose(); history.push(user ? '/projects/devops' : '/register'); }}>DevOps Integration</MenuItem>
             </Menu>
-            {!user && (
+            {user ? (
+              <Button color="inherit" onClick={handleLogout}>Logout</Button>
+            ) : (
               <>
                 <Button color="inherit" onClick={() => history.push('/login')}>Login</Button>
                 <Button color="inherit" onClick={() => history.push('/register')}>Register</Button>
               </>
-            )}
-            {user && (
-              <Button color="inherit" onClick={() => { localStorage.removeItem('token'); history.push('/'); }}>Logout</Button>
             )}
           </Box>
         </Toolbar>
       </AppBar>
 
       <Container maxWidth="lg" sx={{ pt: 8, pb: 6 }}>
-        <Typography variant="h3" align="center" sx={{ fontWeight: 'bold', mb: 2 }}>
+        <Button
+          variant="outlined"
+          sx={{ mb: 2, color: 'white', borderColor: 'white' }}
+          onClick={() => history.push('/')}
+          startIcon={<ArrowBackIcon />}
+        >
+          Back to Home
+        </Button>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 4 }}>
           Why Choose ZvertexAI?
         </Typography>
-        <Typography variant="h6" align="center" sx={{ mb: 6, color: '#b0b0b0' }}>
-          Unlock your career potential with AI-driven tools and exclusive project opportunities.
-        </Typography>
-
-        <Grid container spacing={4} sx={{ mb: 8 }}>
-          <Grid item xs={12} md={6}>
+        <Grid container spacing={4}>
+          <Grid item xs={12} sm={4}>
             <Card
-              sx={{
-                backgroundColor: 'rgba(255,255,255,0.1)',
-                color: 'white',
-                borderRadius: '15px',
-                height: '100%',
-                transition: 'transform 0.3s',
-                '&:hover': { transform: 'scale(1.05)' },
-              }}
+              sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px', height: '100%', transition: 'transform 0.3s', '&:hover': { transform: 'scale(1.05)' }, cursor: 'pointer' }}
+              onClick={() => history.push(user ? '/projects/ai' : '/register')}
             >
               <CardContent>
-                <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2 }}>
-                  AI Job Matching
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>AI Job Matching</Typography>
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  Our AI analyzes your resume to match you with top jobs. Subscribe for unlimited applications!
                 </Typography>
-                <Typography variant="body1" sx={{ mb: 3 }}>
-                  Our AI analyzes your resume to match you with top jobs tailored to your skills and experience. Subscribe for unlimited applications and priority matching!
-                </Typography>
-                <Typography variant="h6" sx={{ mb: 2 }}>
-                  Use Cases:
-                </Typography>
-                <List>
-                  <ListItem>
-                    <ListItemIcon>
-                      <CheckCircleIcon sx={{ color: '#00e676' }} />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary="Personalized Job Recommendations"
-                      secondary="Get job suggestions based on your unique skills, from software engineering to data science."
-                      primaryTypographyProps={{ color: 'white' }}
-                      secondaryTypographyProps={{ color: '#b0b0b0' }}
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemIcon>
-                      <CheckCircleIcon sx={{ color: '#00e676' }} />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary="Resume Optimization"
-                      secondary="Receive AI-driven tips to improve your resume for specific roles."
-                      primaryTypographyProps={{ color: 'white' }}
-                      secondaryTypographyProps={{ color: '#b0b0b0' }}
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemIcon>
-                      <CheckCircleIcon sx={{ color: '#00e676' }} />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary="Priority Applications"
-                      secondary="Subscribed users get their applications reviewed faster by top employers."
-                      primaryTypographyProps={{ color: 'white' }}
-                      secondaryTypographyProps={{ color: '#b0b0b0' }}
-                    />
-                  </ListItem>
-                </List>
-                <Button
-                  variant="contained"
-                  sx={{ mt: 2, backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
-                  onClick={handleSubscribe}
-                >
-                  {user ? 'Upgrade Subscription' : 'Subscribe Now'}
-                </Button>
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} sm={4}>
             <Card
-              sx={{
-                backgroundColor: 'rgba(255,255,255,0.1)',
-                color: 'white',
-                borderRadius: '15px',
-                height: '100%',
-                transition: 'transform 0.3s',
-                '&:hover': { transform: 'scale(1.05)' },
-              }}
+              sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px', height: '100%', transition: 'transform 0.3s', '&:hover': { transform: 'scale(1.05)' }, cursor: 'pointer' }}
+              onClick={() => history.push(user ? '/projects/saas' : '/register')}
             >
               <CardContent>
-                <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2 }}>
-                  In-house AI Projects
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>Cutting-Edge Projects</Typography>
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  Work on innovative AI, Cloud, and SaaS projects. Join us—subscribe to get started!
                 </Typography>
-                <Typography variant="body1" sx={{ mb: 3 }}>
-                  Collaborate on cutting-edge AI, Cloud, and SaaS projects with our team. Subscribe to access exclusive opportunities and build your portfolio!
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Card
+              sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px', height: '100%', transition: 'transform 0.3s', '&:hover': { transform: 'scale(1.05)' }, cursor: 'pointer' }}
+              onClick={() => history.push('/zgpt')}
+            >
+              <CardContent>
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>ZGPT Copilot</Typography>
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  Get personalized career advice and job insights with our AI-powered ZGPT.
                 </Typography>
-                <Typography variant="h6" sx={{ mb: 2 }}>
-                  Use Cases:
-                </Typography>
-                <List>
-                  <ListItem>
-                    <ListItemIcon>
-                      <CheckCircleIcon sx={{ color: '#00e676' }} />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary="Real-World AI Development"
-                      secondary="Work on projects like AI chatbots or predictive analytics tools."
-                      primaryTypographyProps={{ color: 'white' }}
-                      secondaryTypographyProps={{ color: '#b0b0b0' }}
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemIcon>
-                      <CheckCircleIcon sx={{ color: '#00e676' }} />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary="Cloud Migration Expertise"
-                      secondary="Contribute to enterprise-grade cloud solutions for scalability."
-                      primaryTypographyProps={{ color: 'white' }}
-                      secondaryTypographyProps={{ color: '#b0b0b0' }}
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemIcon>
-                      <CheckCircleIcon sx={{ color: '#00e676' }} />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary="Portfolio Boost"
-                      secondary="Showcase your work on high-impact projects to future employers."
-                      primaryTypographyProps={{ color: 'white' }}
-                      secondaryTypographyProps={{ color: '#b0b0b0' }}
-                    />
-                  </ListItem>
-                </List>
-                <Button
-                  variant="contained"
-                  sx={{ mt: 2, backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
-                  onClick={handleSubscribe}
-                >
-                  {user ? 'Join Projects' : 'Subscribe Now'}
-                </Button>
               </CardContent>
             </Card>
           </Grid>
         </Grid>
-
-        <Box sx={{ textAlign: 'center', mt: 8 }}>
-          <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3 }}>
-            Ready to Transform Your Career?
-          </Typography>
-          <Typography variant="body1" sx={{ mb: 4, color: '#b0b0b0', maxWidth: '600px', mx: 'auto' }}>
-            Subscribe to ZvertexAI to access AI-driven job matching, exclusive projects, and ZGPT—your personal career copilot.
-          </Typography>
-          <Button
-            variant="contained"
-            size="large"
-            sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' }, borderRadius: '25px', px: 4, py: 1.5 }}
-            onClick={handleSubscribe}
-          >
-            {user ? 'Explore Subscription' : 'Get Started Now'}
-          </Button>
-        </Box>
       </Container>
 
       <Box sx={{ py: 4, backgroundColor: '#1a2a44', color: 'white' }}>
@@ -255,23 +146,15 @@ function WhyUs({ user }) {
             </Grid>
             <Grid item xs={12} sm={4}>
               <Typography variant="h6" sx={{ mb: 2 }}>Quick Links</Typography>
-              <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer', '&:hover': { color: '#ff6d00' } }} onClick={() => history.push('/faq')}>
-                Interview FAQs
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer', '&:hover': { color: '#ff6d00' } }} onClick={() => history.push('/why-us')}>
-                Why ZvertexAI?
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer', '&:hover': { color: '#ff6d00' } }} onClick={() => history.push('/zgpt')}>
-                ZGPT Copilot
-              </Typography>
+              <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer', '&:hover': { color: '#ff6d00' } }} onClick={() => history.push('/faq')}>Interview FAQs</Typography>
+              <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer', '&:hover': { color: '#ff6d00' } }} onClick={() => history.push('/why-us')}>Why ZvertexAI?</Typography>
+              <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer', '&:hover': { color: '#ff6d00' } }} onClick={() => history.push('/zgpt')}>ZGPT Copilot</Typography>
             </Grid>
             <Grid item xs={12} sm={4}>
               <Typography variant="h6" sx={{ mb: 2 }}>Contact Us</Typography>
               <Typography variant="body2" sx={{ mb: 1 }}>Address: 5900 BALCONES DR #16790, AUSTIN, TX 78731</Typography>
               <Typography variant="body2" sx={{ mb: 1 }}>Phone: 737-239-0920</Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer', '&:hover': { color: '#ff6d00' } }} onClick={() => history.push('/contact')}>
-                Email Us
-              </Typography>
+              <Typography variant="body2" sx={{ cursor: 'pointer', '&:hover': { color: '#ff6d00' } }} onClick={() => history.push('/contact')}>Email Us</Typography>
             </Grid>
           </Grid>
           <Typography variant="body2" sx={{ mt: 4, textAlign: 'center' }}>© 2025 ZvertexAI. All rights reserved.</Typography>

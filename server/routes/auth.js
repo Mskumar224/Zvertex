@@ -3,37 +3,35 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const authMiddleware = require('../middleware/auth');
-const path = require('path');
-const fs = require('fs');
+require('dotenv').config();
 
 router.post('/register', async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({ msg: 'Email and password are required.' });
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({ msg: 'Invalid email format.' });
-  }
-  if (password.length < 8) {
-    return res.status(400).json({ msg: 'Password must be at least 8 characters long.' });
-  }
+  const { name, email, password, subscriptionType } = req.body;
 
   try {
     let user = await User.findOne({ email });
-    if (user) return res.status(400).json({ msg: 'User already exists.' });
+    if (user) return res.status(400).json({ msg: 'User already exists' });
 
-    user = new User({ email, password: await bcrypt.hash(password, 10), subscriptionType: 'Free', paid: false, appliedJobs: [] });
+    user = new User({
+      name,
+      email,
+      password,
+      subscriptionType: subscriptionType || 'trial',
+      trialEnd: subscriptionType === 'trial' ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : undefined,
+    });
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+
     await user.save();
 
-    const payload = { id: user._id };
+    const payload = { user: { id: user.id, subscriptionType: user.subscriptionType } };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     res.json({ token, email: user.email, subscriptionType: user.subscriptionType });
   } catch (err) {
-    console.error('Registration error:', err);
-    res.status(500).json({ msg: 'Server error during registration.' });
+    console.error(err.message);
+    res.status(500).send('Server error');
   }
 });
 
@@ -42,89 +40,128 @@ router.post('/login', async (req, res) => {
 
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ msg: 'Invalid credentials.' });
+    if (!user) return res.status(400).json({ msg: 'Invalid credentials' });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ msg: 'Invalid credentials.' });
+    if (!isMatch) return res.status(400).json({ msg: 'Invalid credentials' });
 
-    const payload = { id: user._id };
+    const payload = { user: { id: user.id, subscriptionType: user.subscriptionType } };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     res.json({ token, email: user.email, subscriptionType: user.subscriptionType });
   } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ msg: 'Server error during login.' });
+    console.error(err.message);
+    res.status(500).send('Server error');
   }
 });
 
-router.get('/me', authMiddleware, async (req, res) => {
+router.get('/profile', async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');
-    if (!user) return res.status(404).json({ msg: 'User not found.' });
-    res.json({ email: user.email, subscriptionType: user.subscriptionType });
+    const token = req.header('x-auth-token');
+    if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.user.id).select('-password');
+    res.json(user);
   } catch (err) {
-    console.error('Fetch user error:', err);
-    res.status(500).json({ msg: 'Server error fetching user data.' });
+    res.status(401).json({ msg: 'Token is not valid' });
   }
 });
 
-router.options('/resume', (req, res) => {
-  console.log('Handling OPTIONS /api/auth/resume');
-  res.status(204).send();
-});
-
-router.get('/resume', (req, res) => {
-  console.log('Invalid GET request to /api/auth/resume');
-  res.status(405).json({ msg: 'Method not allowed. Use POST to upload a resume.' });
-});
-
-router.post('/resume', authMiddleware, async (req, res) => {
+router.post('/recruiter-profile', async (req, res) => {
   try {
-    console.log('POST /api/auth/resume request received for user:', req.user?.id);
+    const token = req.header('x-auth-token');
+    if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
 
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      console.log('User not found:', req.user.id);
-      return res.status(404).json({ msg: 'User not found.' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.user.id);
+
+    if (user.subscriptionType !== 'recruiter' && user.subscriptionType !== 'business') {
+      return res.status(403).json({ msg: 'Unauthorized subscription type' });
     }
 
-    if (!req.files || !req.files.resume) {
-      console.log('Missing resume file for user:', req.user.id);
-      return res.status(400).json({ msg: 'Missing resume file. Please select a PDF, DOC, or DOCX file.' });
+    if (user.recruiterProfiles.length >= 5) {
+      return res.status(400).json({ msg: 'Maximum 5 profiles allowed' });
     }
 
-    const resume = req.files.resume;
-    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    if (!allowedTypes.includes(resume.mimetype)) {
-      console.log('Invalid file type:', resume.mimetype);
-      return res.status(400).json({ msg: 'Invalid file type. Only PDF, DOC, or DOCX allowed.' });
-    }
-    if (resume.size > 5 * 1024 * 1024) {
-      console.log('File size too large:', resume.size);
-      return res.status(400).json({ msg: 'File size exceeds 5MB limit.' });
-    }
-
-    const uploadPath = path.join(__dirname, '..', 'Uploads', 'resumes');
-    if (!fs.existsSync(uploadPath)) {
-      console.log('Creating uploads directory:', uploadPath);
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
-
-    const sanitizedFileName = resume.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const fileName = `${req.user.id}-${Date.now()}-${sanitizedFileName}`;
-    const filePath = path.join(uploadPath, fileName);
-
-    console.log('Saving resume to:', filePath);
-    await resume.mv(filePath);
-
-    user.resume = `/uploads/resumes/${fileName}`;
+    const profile = req.body;
+    user.recruiterProfiles.push(profile);
     await user.save();
 
-    console.log('Resume uploaded successfully for user:', req.user.id);
-    res.json({ msg: 'Resume uploaded successfully.', filePath: user.resume });
+    res.json(profile);
   } catch (err) {
-    console.error('Resume upload error for user:', req.user?.id, err.message, err.stack);
-    res.status(500).json({ msg: `Server error uploading resume: ${err.message}` });
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+router.delete('/recruiter-profile/:id', async (req, res) => {
+  try {
+    const token = req.header('x-auth-token');
+    if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.user.id);
+
+    user.recruiterProfiles = user.recruiterProfiles.filter((p, i) => i !== parseInt(req.params.id));
+    await user.save();
+
+    res.json({ msg: 'Profile deleted' });
+  } catch (err) {
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+router.get('/recruiter-profiles', async (req, res) => {
+  try {
+    const token = req.header('x-auth-token');
+    if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.user.id);
+
+    res.json(user.recruiterProfiles);
+  } catch (err) {
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+router.post('/business-recruiter', async (req, res) => {
+  try {
+    const token = req.header('x-auth-token');
+    if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.user.id);
+
+    if (user.subscriptionType !== 'business') {
+      return res.status(403).json({ msg: 'Unauthorized subscription type' });
+    }
+
+    if (user.businessRecruiters.length >= 3) {
+      return res.status(400).json({ msg: 'Maximum 3 recruiters allowed' });
+    }
+
+    const recruiter = { ...req.body, profiles: [] };
+    user.businessRecruiters.push(recruiter);
+    await user.save();
+
+    res.json(recruiter);
+  } catch (err) {
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+router.get('/business-recruiters', async (req, res) => {
+  try {
+    const token = req.header('x-auth-token');
+    if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.user.id);
+
+    res.json(user.businessRecruiters);
+  } catch (err) {
+    res.status(500).json({ msg: 'Server error' });
   }
 });
 
