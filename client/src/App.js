@@ -7,6 +7,7 @@ import Landing from './components/Landing';
 import ZGPT from './components/Zgpt';
 import JobDetails from './components/JobDetails';
 import Faq from './components/FAQ';
+import WhyUs from './components/WhyUs';
 import axios from 'axios';
 
 function App() {
@@ -46,6 +47,7 @@ function App() {
         <Route path="/zgpt" component={() => <ZGPT user={user} />} />
         <Route path="/job/:jobId" component={() => <JobDetails user={user} />} />
         <Route path="/faq" component={() => <Faq user={user} />} />
+        <Route path="/why-us" component={() => <WhyUs user={user} />} />
       </Switch>
     </Router>
   );

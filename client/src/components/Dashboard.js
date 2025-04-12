@@ -13,6 +13,7 @@ import {
   Toolbar,
   Menu,
   MenuItem,
+  CircularProgress,
 } from '@mui/material';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import axios from 'axios';
@@ -22,6 +23,7 @@ function Dashboard({ user }) {
   const [resume, setResume] = useState(null);
   const [appliedJobs, setAppliedJobs] = useState([]);
   const [error, setError] = useState('');
+  const [uploading, setUploading] = useState(false);
   const [servicesAnchor, setServicesAnchor] = useState(null);
   const [projectsAnchor, setProjectsAnchor] = useState(null);
 
@@ -54,21 +56,34 @@ function Dashboard({ user }) {
 
   const handleResumeUpload = async () => {
     if (!resume) {
-      setError('Please select a resume file to upload.');
+      setError('Please select a resume file (PDF, DOC, or DOCX).');
       return;
     }
+    if (!['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(resume.type)) {
+      setError('Please upload a valid file (PDF, DOC, or DOCX).');
+      return;
+    }
+    if (resume.size > 5 * 1024 * 1024) {
+      setError('File size exceeds 5MB limit.');
+      return;
+    }
+
+    setUploading(true);
     try {
       const formData = new FormData();
       formData.append('resume', resume);
-      await axios.post(
+      const res = await axios.post(
         `${process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com'}/api/auth/resume`,
         formData,
         { headers: { 'x-auth-token': localStorage.getItem('token'), 'Content-Type': 'multipart/form-data' } }
       );
       setError('');
-      alert('Resume uploaded successfully!');
+      alert(res.data.msg || 'Resume uploaded successfully!');
+      setResume(null);
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to upload resume. Ensure a valid file is selected.');
+      setError(err.response?.data?.msg || 'Failed to upload resume. Try again.');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -156,8 +171,14 @@ function Dashboard({ user }) {
             sx={{ mb: 2, input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
           />
           {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
-          <Button variant="contained" sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }} onClick={handleResumeUpload}>
-            Upload Resume
+          <Button
+            variant="contained"
+            sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
+            onClick={handleResumeUpload}
+            disabled={uploading}
+            startIcon={uploading && <CircularProgress size={20} />}
+          >
+            {uploading ? 'Uploading...' : 'Upload Resume'}
           </Button>
         </Box>
 
