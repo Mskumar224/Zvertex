@@ -70,25 +70,36 @@ function Dashboard({ user }) {
 
     setUploading(true);
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Authentication token missing. Please log in again.');
+        history.push('/login');
+        return;
+      }
+
       const formData = new FormData();
       formData.append('resume', resume);
       const res = await axios.post(
         `${process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com'}/api/auth/resume`,
         formData,
-        { headers: { 'x-auth-token': localStorage.getItem('token'), 'Content-Type': 'multipart/form-data' } }
+        { headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' } }
       );
       setError('');
       alert(res.data.msg || 'Resume uploaded successfully!');
       setResume(null);
       document.getElementById('resume-upload').value = ''; // Reset file input
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to upload resume. Please try again.');
+      const serverMsg = err.response?.data?.msg || 'Failed to upload resume. Please check your file and try again.';
+      setError(serverMsg);
+      if (serverMsg.includes('token')) {
+        history.push('/login');
+      }
     } finally {
       setUploading(false);
     }
   };
 
-  const handleRetry = () => {
+  const handleClear = () => {
     setError('');
     setResume(null);
     document.getElementById('resume-upload').value = ''; // Reset file input
@@ -183,8 +194,15 @@ function Dashboard({ user }) {
               <Typography color="error">{error}</Typography>
               <Button
                 variant="outlined"
+                sx={{ mt: 1, mr: 1, color: 'white', borderColor: 'white' }}
+                onClick={handleClear}
+              >
+                Clear
+              </Button>
+              <Button
+                variant="outlined"
                 sx={{ mt: 1, color: 'white', borderColor: 'white' }}
-                onClick={handleRetry}
+                onClick={handleClear}
               >
                 Retry
               </Button>

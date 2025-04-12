@@ -68,8 +68,20 @@ router.get('/me', authMiddleware, async (req, res) => {
   }
 });
 
+router.get('/resume', (req, res) => {
+  console.log('Invalid GET request to /api/auth/resume');
+  res.status(405).json({ msg: 'Method not allowed. Use POST to upload a resume.' });
+});
+
 router.post('/resume', authMiddleware, async (req, res) => {
   try {
+    console.log('Received POST to /api/auth/resume for user:', req.user?.id);
+
+    if (!req.header('x-auth-token')) {
+      console.log('No auth token provided');
+      return res.status(401).json({ msg: 'No token, authorization denied.' });
+    }
+
     const user = await User.findById(req.user.id);
     if (!user) {
       console.log('User not found:', req.user.id);
