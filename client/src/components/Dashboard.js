@@ -52,12 +52,16 @@ function Dashboard({ user }) {
         setAppliedJobs(res.data.jobs || []);
         setError('');
       } catch (err) {
-        console.error('Failed to fetch applied jobs:', err.response?.data || err.message);
+        console.error('Failed to fetch applied jobs:', {
+          status: err.response?.status,
+          data: err.response?.data,
+          message: err.message
+        });
         if (err.response?.status === 404 && retryCount > 0) {
           console.log(`Retrying /api/jobs/applied (${retryCount} attempts left)...`);
           setTimeout(() => fetchAppliedJobs(retryCount - 1, delay * 2), delay);
         } else if (err.response?.status === 404) {
-          setError('Applied jobs endpoint not found. Try logging out and back in, or contact support.');
+          setError('Server missing jobs endpoint. Try refreshing the page or contact support.');
         } else if (err.response?.status === 401) {
           setError('Session expired. Please log in again.');
           history.push('/login');
@@ -76,7 +80,7 @@ function Dashboard({ user }) {
 
   const handleResumeUpload = async () => {
     if (!resume) {
-      setError('Please select a resume file (PDF, DOC, or DOC - X).');
+      setError('Please select a resume file (PDF, DOC, or DOCX).');
       return;
     }
     if (!['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(resume.type)) {

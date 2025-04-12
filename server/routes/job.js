@@ -54,12 +54,13 @@ router.post('/apply', authMiddleware, async (req, res) => {
 
 router.get('/applied', authMiddleware, async (req, res) => {
   try {
-    console.log('Fetching applied jobs for user:', req.user?.id);
+    console.log('Entering /api/jobs/applied for user:', req.user?.id);
     const user = await User.findById(req.user.id);
     if (!user) {
       console.log('User not found for /applied:', req.user.id);
       return res.status(404).json({ msg: 'User not found' });
     }
+    console.log('Returning applied jobs:', user.appliedJobs || []);
     res.json({ jobs: user.appliedJobs || [] });
   } catch (err) {
     console.error('Error fetching applied jobs:', err);

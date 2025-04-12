@@ -20,29 +20,38 @@ if (!fs.existsSync(uploadDir)) {
 
 app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));
 
-// Log all /api/jobs/* requests for debugging
+// Log all /api/jobs/* requests
 app.use('/api/jobs', (req, res, next) => {
   console.log(`Jobs route hit: ${req.method} ${req.originalUrl}`);
   next();
 });
 
-mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
-
 // Routes
 try {
+  console.log('Loading auth routes...');
   app.use('/api/auth', require('./routes/auth'));
+  console.log('Loading jobs routes...');
   app.use('/api/jobs', require('./routes/jobs'));
+  console.log('Routes loaded successfully.');
 } catch (err) {
-  console.error('Error loading routes:', err.message);
+  console.error('Error loading routes:', err.message, err.stack);
 }
+
+// Test route to confirm /api/jobs is mounted
+app.get('/api/jobs/test', (req, res) => {
+  console.log('Test route hit: GET /api/jobs/test');
+  res.json({ msg: 'Jobs router is working' });
+});
 
 // Catch-all for 404 errors
 app.use((req, res) => {
   console.log(`404 Error: ${req.method} ${req.originalUrl}`);
   res.status(404).json({ msg: `Route not found: ${req.method} ${req.originalUrl}` });
 });
+
+mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => console.error('MongoDB connection error:', err));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
