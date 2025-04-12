@@ -2,7 +2,10 @@
   base = "client"
   command = "npm run build"
   publish = "client/build"
-  environment = { REACT_APP_API_URL = "https://zvertexai-orzv.onrender.com" }
+  environment = { 
+    REACT_APP_API_URL = "https://zvertexai-orzv.onrender.com",
+    REACT_APP_HF_TOKEN = ""
+  }
 
 [[redirects]]
   from = "/api/*"
