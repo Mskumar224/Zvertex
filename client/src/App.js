@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Switch, Route, Redirect } from 'react-router-dom';
 import { Box, AppBar, Toolbar, Typography, Button } from '@mui/material';
 import Landing from './components/Landing';
-import ZGPT from './components/ZGPT';
+import ZGPT from './components/Zgpt';
 import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
