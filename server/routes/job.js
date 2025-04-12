@@ -2,63 +2,80 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const auth = require('../middleware/auth');
-const cron = require('node-cron');
 const User = require('../models/User');
 
-router.post('/fetch', async (req, res) => {
-  const { technology, location } = req.body;
+router.post('/fetch', auth, async (req, res) => {
+  const { technology, companies } = req.body;
   try {
+    if (!technology) {
+      return res.status(400).json({ msg: 'Technology is required' });
+    }
+
     const appId = process.env.ADZUNA_APP_ID;
     const appKey = process.env.ADZUNA_APP_KEY;
-    const response = await axios.get('https://api.adzuna.com/v1/api/jobs/us/search/1', {
-      params: {
-        app_id: appId,
-        app_key: appKey,
-        what: technology || 'software developer',
-        where: location || 'United States',
-        max_days_old: 30,
-      },
+    if (!appId || !appKey) {
+      return res.status(500).json({ msg: 'Adzuna API credentials missing' });
+    }
+
+    const queryParams = new URLSearchParams({
+      app_id: appId,
+      app_key: appKey,
+      what: technology,
+      results_per_page: 10,
     });
-    res.json({ jobs: response.data.results });
+
+    if (companies && Array.isArray(companies)) {
+      queryParams.append('company', companies.join(','));
+    }
+
+    const url = `https://api.adzuna.com/v1/api/jobs/us/search/1?${queryParams.toString()}`;
+    const response = await axios.get(url);
+
+    const jobs = response.data.results.map(job => ({
+      id: job.id,
+      title: job.title,
+      company: job.company.display_name,
+      location: job.location.display_name,
+      description: job.description,
+      redirect_url: job.redirect_url,
+      created: job.created,
+    }));
+
+    res.json({ jobs });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ msg: 'Failed to fetch jobs' });
+    console.error(`${new Date().toISOString()} - Fetch Jobs Error:`, error);
+    res.status(500).json({ msg: 'Server error' });
   }
 });
 
 router.post('/apply', auth, async (req, res) => {
-  const { jobId, jobUrl } = req.body;
+  const { jobId, jobUrl, jobTitle, company } = req.body;
   try {
+    if (!jobId || !jobUrl) {
+      return res.status(400).json({ msg: 'Job ID and URL are required' });
+    }
+
     const user = await User.findById(req.user.id);
-    user.jobApplications.push({ jobId, jobUrl, appliedAt: new Date() });
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+
+    user.jobApplications = user.jobApplications || [];
+    if (user.jobApplications.some(app => app.jobId === jobId)) {
+      return res.status(400).json({ msg: 'Already applied to this job' });
+    }
+
+    user.jobApplications.push({
+      jobId,
+      jobUrl,
+      jobTitle,
+      company,
+      appliedAt: new Date(),
+    });
     await user.save();
+
     res.json({ msg: 'Application submitted' });
   } catch (error) {
-    res.status(500).json({ msg: 'Failed to apply' });
-  }
-});
-
-cron.schedule('*/30 * * * *', async () => {
-  try {
-    const users = await User.find({ subscriptionStatus: { $in: ['active', 'trialing'] } });
-    for (const user of users) {
-      const response = await axios.get('https://api.adzuna.com/v1/api/jobs/us/search/1', {
-        params: {
-          app_id: process.env.ADZUNA_APP_ID,
-          app_key: process.env.ADZUNA_APP_KEY,
-          what: user.preferredTechnology || 'software developer',
-          where: user.preferredLocation || 'United States',
-        },
-      });
-      for (const job of response.data.results) {
-        if (!user.jobApplications.some((app) => app.jobId === job.id)) {
-          user.jobApplications.push({ jobId: job.id, jobUrl: job.redirect_url, appliedAt: new Date() });
-        }
-      }
-      await user.save();
-    }
-  } catch (error) {
-    console.error('Cron job error:', error);
+    console.error(`${new Date().toISOString()} - Apply Job Error:`, error);
+    res.status(500).json({ msg: 'Server error' });
   }
 });
 

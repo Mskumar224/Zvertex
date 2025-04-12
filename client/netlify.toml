@@ -1,0 +1,14 @@
+[build]
+  base = "client"
+  command = "npm run build"
+  publish = "build"
+  environment = { NODE_VERSION = "22.14.0", REACT_APP_API_URL = "https://zvertexai-orzv.onrender.com" }
+
+[dev]
+  command = "npm start"
+  port = 3000
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -23,7 +23,11 @@ connectDB();
 // CORS Configuration
 const corsOptions = {
   origin: (origin, callback) => {
-    const allowedOrigins = ['https://zvertexai-orzv.onrender.com', 'http://localhost:3000'];
+    const allowedOrigins = [
+      'https://zvertexai-orzv.onrender.com',
+      'https://zvertexai.com',
+      'http://localhost:3000',
+    ];
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, origin || '*');
     } else {
