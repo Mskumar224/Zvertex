@@ -7,7 +7,7 @@ import Dashboard from './components/Dashboard';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
 import JobDetails from './components/JobDetails';
-import Faq from './components/FAQ';
+import Faq from './components/Faq';
 import WhyUs from './components/WhyUs';
 import ZGPT from './components/ZGPT';
 import Contact from './components/Contact';
