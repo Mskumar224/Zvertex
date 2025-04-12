@@ -1,113 +1,64 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useHistory } from 'react-router-dom';
-import { Box, Typography, TextField, Container, Grid, Card, CardContent, Divider, Button } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { Box, Typography, Button, Container, AppBar, Toolbar, Menu, MenuItem } from '@mui/material';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 
-function FAQ() {
+function Faq({ user }) {
   const history = useHistory();
-  const [search, setSearch] = useState('');
+  const [servicesAnchor, setServicesAnchor] = useState(null);
+  const [projectsAnchor, setProjectsAnchor] = useState(null);
 
-  const technologies = [
-    'JavaScript', 'Python', 'Java', 'C++', 'C#', 'Ruby', 'PHP', 'Go', 'Rust', 'TypeScript',
-    'React', 'Angular', 'Vue.js', 'Node.js', 'Django', 'Spring', 'Flutter', 'Swift', 'Kotlin',
-    'AWS', 'Azure', 'Google Cloud', 'Docker', 'Kubernetes', 'Terraform', 'Jenkins', 'Git',
-    'SQL', 'NoSQL', 'MongoDB', 'PostgreSQL', 'MySQL', 'Redis', 'Elasticsearch', 'GraphQL'
-  ];
-
-  const filteredTechnologies = technologies.filter(tech => 
-    tech.toLowerCase().includes(search.toLowerCase())
-  );
+  const handleServicesClick = (event) => setServicesAnchor(event.currentTarget);
+  const handleProjectsClick = (event) => setProjectsAnchor(event.currentTarget);
+  const handleClose = () => {
+    setServicesAnchor(null);
+    setProjectsAnchor(null);
+  };
 
   return (
     <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
-      <Container maxWidth="lg">
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => history.goBack()}
-          sx={{ mt: 2, color: '#ff6d00' }}
-        >
-          Back
-        </Button>
-        <Typography variant="h4" sx={{ mt: 4, mb: 4, fontWeight: 'bold', textAlign: 'center' }}>
-          Interview FAQs
-        </Typography>
-        <TextField
-          label="Search Technology"
-          fullWidth
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          sx={{ 
-            mb: 4, 
-            input: { color: 'white' }, 
-            label: { color: '#b0b0b0' }, 
-            '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: '#ff6d00' } } 
-          }}
-        />
-        <Grid container spacing={3}>
-          {filteredTechnologies.map((tech, index) => (
-            <Grid item xs={12} sm={6} md={4} key={index}>
-              <Card 
-                sx={{ 
-                  backgroundColor: 'rgba(255,255,255,0.1)', 
-                  color: 'white', 
-                  borderRadius: '15px', 
-                  transition: 'transform 0.3s', 
-                  '&:hover': { transform: 'scale(1.05)' }, 
-                  cursor: 'pointer' 
-                }}
-                onClick={() => alert(`Q&A for ${tech} coming soon!`)}
-              >
-                <CardContent>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{tech}</Typography>
-                  <Typography variant="body2" sx={{ mt: 1 }}>
-                    Click to explore common interview questions (coming soon).
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
+      <AppBar position="static" sx={{ backgroundColor: 'rgba(26, 42, 68, 0.9)', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+        <Toolbar>
+          <Typography variant="h5" sx={{ flexGrow: 1, fontWeight: 'bold', cursor: 'pointer' }} onClick={() => history.push('/')}>ZvertexAI</Typography>
+          <Box>
+            <Button color="inherit" onClick={handleServicesClick} endIcon={<ArrowDropDownIcon />}>Services</Button>
+            <Menu anchorEl={servicesAnchor} open={Boolean(servicesAnchor)} onClose={handleClose} PaperProps={{ sx: { backgroundColor: '#1a2a44', color: 'white' } }}>
+              <MenuItem onClick={() => { handleClose(); history.push('/faq'); }}>Interview FAQs</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push('/why-us'); }}>Why ZvertexAI?</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push('/zgpt'); }}>ZGPT - Your Copilot</MenuItem>
+            </Menu>
+            <Button color="inherit" onClick={handleProjectsClick} endIcon={<ArrowDropDownIcon />}>JOIN OUR PROJECTS</Button>
+            <Menu anchorEl={projectsAnchor} open={Boolean(projectsAnchor)} onClose={handleClose} PaperProps={{ sx: { backgroundColor: '#1a2a44', color: 'white' } }}>
+              <MenuItem onClick={() => { handleClose(); history.push(user ? '/projects/saas' : '/register'); }}>SaaS Solutions</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push(user ? '/projects/cloud' : '/register'); }}>Cloud Migration</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push(user ? '/projects/ai' : '/register'); }}>AI Automation</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push(user ? '/projects/bigdata' : '/register'); }}>Big Data Analytics</MenuItem>
+              <MenuItem onClick={() => { handleClose(); history.push(user ? '/projects/devops' : '/register'); }}>DevOps Integration</MenuItem>
+            </Menu>
+            {!user && (
+              <>
+                <Button color="inherit" onClick={() => history.push('/login')}>Login</Button>
+                <Button color="inherit" onClick={() => history.push('/register')}>Register</Button>
+              </>
+            )}
+            {user && (
+              <Button color="inherit" onClick={() => { localStorage.removeItem('token'); history.push('/'); }}>Logout</Button>
+            )}
+          </Box>
+        </Toolbar>
+      </AppBar>
 
-      <Box sx={{ py: 4, backgroundColor: '#1a2a44', textAlign: 'center', mt: 4 }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={4}>
-            <Grid item xs={12} md={4}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>ZvertexAI</Typography>
-              <Typography variant="body2">
-                Empowering careers and businesses with AI-driven solutions.
-              </Typography>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>Quick Links</Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/contact')}>
-                Contact Us
-              </Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/faq')}>
-                Interview FAQs
-              </Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/why-us')}>
-                Why ZvertexAI?
-              </Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/zgpt')}>
-                ZGPT Copilot
-              </Typography>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>Contact</Typography>
-              <Typography variant="body2">5900 Balcones Dr #16790, Austin, TX 78731</Typography>
-              <Typography variant="body2">Phone: 737-239-0920 (151)</Typography>
-              <Typography variant="body2">Email: support@zvertexai.com</Typography>
-            </Grid>
-          </Grid>
-          <Divider sx={{ my: 2, backgroundColor: '#fff' }} />
-          <Typography variant="body2">
-            © 2025 ZvertexAI. All rights reserved.
-          </Typography>
-        </Container>
-      </Box>
+      <Container maxWidth="lg" sx={{ pt: 8, textAlign: 'center' }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 4 }}>Interview FAQs</Typography>
+        <Typography variant="body1" sx={{ mb: 4, color: '#b0b0b0' }}>
+          Coming soon! Stay with ZvertexAI to unlock AI-powered tools that simplify your job search and prepare you for success.
+        </Typography>
+        <Button variant="contained" sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }} onClick={() => history.push('/')}>
+          Back to Home
+        </Button>
+      </Container>
     </Box>
   );
 }
 
-export default FAQ;
+export default Faq;

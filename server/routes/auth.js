@@ -12,14 +12,7 @@ router.post('/register', async (req, res) => {
     let user = await User.findOne({ email });
     if (user) return res.status(400).json({ msg: 'User already exists' });
 
-    user = new User({
-      email,
-      password: await bcrypt.hash(password, 10),
-      subscriptionType: 'Free',
-      paid: false,
-      appliedJobs: [],
-    });
-
+    user = new User({ email, password: await bcrypt.hash(password, 10), subscriptionType: 'Free', paid: false, appliedJobs: [] });
     await user.save();
 
     const payload = { id: user._id };
@@ -68,12 +61,11 @@ router.post('/resume', authMiddleware, async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ msg: 'User not found' });
 
-    if (!req.files?.resume) {
-      return res.status(400).json({ msg: 'No resume uploaded' });
+    if (!req.files || !req.files.resume) {
+      return res.status(400).json({ msg: 'Please upload a resume file.' });
     }
 
     user.resume = `/uploads/resumes/${req.user.id}-${Date.now()}-${req.files.resume.name}`;
-    // In production, save the file to a storage service
     await user.save();
 
     res.json({ msg: 'Resume uploaded successfully' });
