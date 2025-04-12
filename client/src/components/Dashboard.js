@@ -80,11 +80,18 @@ function Dashboard({ user }) {
       setError('');
       alert(res.data.msg || 'Resume uploaded successfully!');
       setResume(null);
+      document.getElementById('resume-upload').value = ''; // Reset file input
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to upload resume. Try again.');
+      setError(err.response?.data?.msg || 'Failed to upload resume. Please try again.');
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleRetry = () => {
+    setError('');
+    setResume(null);
+    document.getElementById('resume-upload').value = ''; // Reset file input
   };
 
   return (
@@ -164,13 +171,25 @@ function Dashboard({ user }) {
         <Box sx={{ mb: 4 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>Upload Your Resume</Typography>
           <TextField
+            id="resume-upload"
             type="file"
             fullWidth
             inputProps={{ accept: '.pdf,.doc,.docx' }}
             onChange={(e) => setResume(e.target.files[0])}
             sx={{ mb: 2, input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
           />
-          {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
+          {error && (
+            <Box sx={{ mb: 2 }}>
+              <Typography color="error">{error}</Typography>
+              <Button
+                variant="outlined"
+                sx={{ mt: 1, color: 'white', borderColor: 'white' }}
+                onClick={handleRetry}
+              >
+                Retry
+              </Button>
+            </Box>
+          )}
           <Button
             variant="contained"
             sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
