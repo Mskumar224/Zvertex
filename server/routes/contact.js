@@ -1,37 +1,32 @@
 const express = require('express');
 const router = express.Router();
-const { body, validationResult } = require('express-validator');
+const nodemailer = require('nodemailer');
 
-// @route   POST /api/contact
-// @desc    Submit contact form
-// @access  Public
-router.post(
-  '/',
-  [
-    body('name').trim().notEmpty().withMessage('Name is required'),
-    body('email').isEmail().withMessage('Valid email is required'),
-    body('message').trim().notEmpty().withMessage('Message is required'),
-  ],
-  async (req, res) => {
-    // Validate input
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ msg: errors.array()[0].msg });
-    }
-
-    try {
-      const { name, email, message } = req.body;
-
-      // Here, you could save to MongoDB, send an email, or log the message.
-      // For simplicity, we'll just return success (extend as needed).
-      console.log(`Contact form submission: ${name}, ${email}, ${message}`);
-
-      res.json({ msg: 'Message sent successfully' });
-    } catch (err) {
-      console.error(err.message);
-      res.status(500).json({ msg: 'Server error' });
-    }
+router.post('/', async (req, res) => {
+  const { name, email, message } = req.body;
+  if (!name || !email || !message) {
+    return res.status(400).json({ msg: 'Please provide name, email, and message' });
   }
-);
+
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+    });
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: 'support@zvertexai.com',
+      replyTo: email,
+      subject: `Contact Form Submission from ${name}`,
+      text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
+    });
+
+    res.json({ msg: 'Message sent successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: 'Failed to send message' });
+  }
+});
 
 module.exports = router;

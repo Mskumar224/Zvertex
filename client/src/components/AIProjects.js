@@ -3,8 +3,13 @@ import { useHistory } from 'react-router-dom';
 import { Box, Typography, Button, Container, IconButton, Grid } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
-function AIAutomation({ user }) {
+function AIProjects({ user }) {
   const history = useHistory();
+
+  if (!user) {
+    history.push('/register');
+    return null;
+  }
 
   return (
     <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
@@ -15,11 +20,11 @@ function AIAutomation({ user }) {
               <ArrowBackIcon />
             </IconButton>
             <Typography variant="h4" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
-              AI Automation
+              In-house AI Projects
             </Typography>
           </Box>
           <Typography variant="h5" sx={{ mb: 4 }}>
-            Automate Smarter with ZvertexAI
+            Collaborate on Cutting-Edge Solutions
           </Typography>
           <Grid container spacing={4}>
             <Grid item xs={12} sm={6}>
@@ -28,10 +33,11 @@ function AIAutomation({ user }) {
                   Use Case for Clients
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2 }}>
-                  Automate repetitive tasks with our AI solutions, from customer support chatbots to data processing pipelines, boosting efficiency and reducing costs.
+                  Partner with us to develop AI, Cloud, and SaaS solutions tailored to your business needs. 
+                  Our projects drive innovation, scalability, and efficiency.
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Why Join Us?</strong> Streamline operations, enhance customer experiences, and scale with AI tailored to your business needs.
+                  <strong>Why Join Us?</strong> Access advanced AI technologies, reduce development costs, and accelerate your digital transformation with our expertise.
                 </Typography>
               </Box>
             </Grid>
@@ -41,10 +47,11 @@ function AIAutomation({ user }) {
                   Use Case for Users
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2 }}>
-                  Develop AI automation tools using Python, TensorFlow, and cloud APIs. Build solutions that solve real-world problems and enhance workflows.
+                  Contribute to real-world AI projects and gain hands-on experience. 
+                  Work alongside experts in AI, Cloud, and SaaS development.
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Why Join Us?</strong> Gain expertise in AI development, work on impactful projects, and showcase your skills to top employers.
+                  <strong>Why Join Us?</strong> Build your portfolio, enhance your skills, and network with industry leaders while shaping the future of technology.
                 </Typography>
               </Box>
             </Grid>
@@ -59,7 +66,7 @@ function AIAutomation({ user }) {
                 px: 4,
                 py: 1.5
               }}
-              onClick={() => history.push(user ? '/contact' : '/register')}
+              onClick={() => history.push('/contact')}
             >
               Contact Us to Join
             </Button>
@@ -116,4 +123,4 @@ function AIAutomation({ user }) {
   );
 }
 
-export default AIAutomation;
+export default AIProjects;

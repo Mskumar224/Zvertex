@@ -1,7 +1,7 @@
 {
   "name": "zvertexai-server",
   "version": "1.0.0",
-  "description": "ZvertexAI backend",
+  "description": "Backend for ZvertexAI platform",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -13,12 +13,12 @@
     "cors": "^2.8.5",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
-    "express-validator": "^6.12.1",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^6.0.12",
     "multer": "^1.4.3",
     "node-cron": "^3.0.0",
-    "nodemailer": "^6.7.0"
+    "nodemailer": "^6.7.0",
+    "stripe": "^10.0.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.14"

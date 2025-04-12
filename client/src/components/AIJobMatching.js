@@ -3,8 +3,13 @@ import { useHistory } from 'react-router-dom';
 import { Box, Typography, Button, Container, IconButton, Grid } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
-function AIAutomation({ user }) {
+function AIJobMatching({ user }) {
   const history = useHistory();
+
+  if (!user) {
+    history.push('/register');
+    return null;
+  }
 
   return (
     <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
@@ -15,11 +20,11 @@ function AIAutomation({ user }) {
               <ArrowBackIcon />
             </IconButton>
             <Typography variant="h4" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
-              AI Automation
+              AI Job Matching
             </Typography>
           </Box>
           <Typography variant="h5" sx={{ mb: 4 }}>
-            Automate Smarter with ZvertexAI
+            Unlock Your Career Potential with ZvertexAI
           </Typography>
           <Grid container spacing={4}>
             <Grid item xs={12} sm={6}>
@@ -28,10 +33,11 @@ function AIAutomation({ user }) {
                   Use Case for Clients
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2 }}>
-                  Automate repetitive tasks with our AI solutions, from customer support chatbots to data processing pipelines, boosting efficiency and reducing costs.
+                  Our AI Job Matching service streamlines hiring by analyzing resumes and matching candidates to your job requirements with precision. 
+                  Save time and find top talent effortlessly.
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Why Join Us?</strong> Streamline operations, enhance customer experiences, and scale with AI tailored to your business needs.
+                  <strong>Why Join Us?</strong> Reduce recruitment costs, access a curated talent pool, and leverage AI for unbiased hiring decisions.
                 </Typography>
               </Box>
             </Grid>
@@ -41,10 +47,11 @@ function AIAutomation({ user }) {
                   Use Case for Users
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2 }}>
-                  Develop AI automation tools using Python, TensorFlow, and cloud APIs. Build solutions that solve real-world problems and enhance workflows.
+                  Upload your resume and let our AI match you with jobs tailored to your skills and preferences. 
+                  Automate applications and receive personalized job recommendations.
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Why Join Us?</strong> Gain expertise in AI development, work on impactful projects, and showcase your skills to top employers.
+                  <strong>Why Join Us?</strong> Land your dream job faster with AI-driven insights, unlimited applications, and real-time job alerts.
                 </Typography>
               </Box>
             </Grid>
@@ -59,7 +66,7 @@ function AIAutomation({ user }) {
                 px: 4,
                 py: 1.5
               }}
-              onClick={() => history.push(user ? '/contact' : '/register')}
+              onClick={() => history.push('/contact')}
             >
               Contact Us to Join
             </Button>
@@ -87,6 +94,7 @@ function AIAutomation({ user }) {
                 <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/zgpt')}>
                   ZGPT Copilot
                 </Typography>
+拆掉：
                 <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/contact')}>
                   Contact Us
                 </Typography>
@@ -116,4 +124,4 @@ function AIAutomation({ user }) {
   );
 }
 
-export default AIAutomation;
+export default AIJobMatching;

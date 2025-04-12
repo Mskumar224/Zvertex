@@ -3,7 +3,7 @@ import { useHistory } from 'react-router-dom';
 import { Box, Typography, Button, Container, IconButton, Grid } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
-function AIAutomation({ user }) {
+function Cloud({ user }) {
   const history = useHistory();
 
   return (
@@ -15,11 +15,11 @@ function AIAutomation({ user }) {
               <ArrowBackIcon />
             </IconButton>
             <Typography variant="h4" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
-              AI Automation
+              Cloud Migration
             </Typography>
           </Box>
           <Typography variant="h5" sx={{ mb: 4 }}>
-            Automate Smarter with ZvertexAI
+            Scale Seamlessly with ZvertexAI
           </Typography>
           <Grid container spacing={4}>
             <Grid item xs={12} sm={6}>
@@ -28,10 +28,10 @@ function AIAutomation({ user }) {
                   Use Case for Clients
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2 }}>
-                  Automate repetitive tasks with our AI solutions, from customer support chatbots to data processing pipelines, boosting efficiency and reducing costs.
+                  Migrate your infrastructure to the cloud with our expert guidance. We ensure minimal downtime, enhanced security, and cost optimization using AWS, Azure, or GCP.
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Why Join Us?</strong> Streamline operations, enhance customer experiences, and scale with AI tailored to your business needs.
+                  <strong>Why Join Us?</strong> Achieve scalability, reduce IT costs, and leverage our expertise for a smooth transition to cloud-native solutions.
                 </Typography>
               </Box>
             </Grid>
@@ -41,10 +41,10 @@ function AIAutomation({ user }) {
                   Use Case for Users
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2 }}>
-                  Develop AI automation tools using Python, TensorFlow, and cloud APIs. Build solutions that solve real-world problems and enhance workflows.
+                  Gain hands-on experience in cloud migration projects. Work with tools like Terraform, Kubernetes, and cloud provider APIs to build scalable systems.
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Why Join Us?</strong> Gain expertise in AI development, work on impactful projects, and showcase your skills to top employers.
+                  <strong>Why Join Us?</strong> Master cloud technologies, enhance your resume, and collaborate with experts on real-world deployments.
                 </Typography>
               </Box>
             </Grid>
@@ -116,4 +116,4 @@ function AIAutomation({ user }) {
   );
 }
 
-export default AIAutomation;
+export default Cloud;

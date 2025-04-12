@@ -3,7 +3,7 @@ import { useHistory } from 'react-router-dom';
 import { Box, Typography, Button, Container, IconButton, Grid } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
-function AIAutomation({ user }) {
+function BigData({ user }) {
   const history = useHistory();
 
   return (
@@ -15,11 +15,11 @@ function AIAutomation({ user }) {
               <ArrowBackIcon />
             </IconButton>
             <Typography variant="h4" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
-              AI Automation
+              Big Data Analytics
             </Typography>
           </Box>
           <Typography variant="h5" sx={{ mb: 4 }}>
-            Automate Smarter with ZvertexAI
+            Unlock Insights with ZvertexAI
           </Typography>
           <Grid container spacing={4}>
             <Grid item xs={12} sm={6}>
@@ -28,10 +28,10 @@ function AIAutomation({ user }) {
                   Use Case for Clients
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2 }}>
-                  Automate repetitive tasks with our AI solutions, from customer support chatbots to data processing pipelines, boosting efficiency and reducing costs.
+                  Harness big data with our analytics platforms to drive decision-making. Process massive datasets with tools like Hadoop, Spark, and AI-driven insights.
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Why Join Us?</strong> Streamline operations, enhance customer experiences, and scale with AI tailored to your business needs.
+                  <strong>Why Join Us?</strong> Gain actionable insights, optimize operations, and stay ahead with real-time data analytics tailored to your industry.
                 </Typography>
               </Box>
             </Grid>
@@ -41,10 +41,10 @@ function AIAutomation({ user }) {
                   Use Case for Users
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2 }}>
-                  Develop AI automation tools using Python, TensorFlow, and cloud APIs. Build solutions that solve real-world problems and enhance workflows.
+                  Work on big data projects, building pipelines and analytics dashboards. Learn to handle large-scale data with cutting-edge tools and AI.
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Why Join Us?</strong> Gain expertise in AI development, work on impactful projects, and showcase your skills to top employers.
+                  <strong>Why Join Us?</strong> Develop expertise in data engineering, boost your career, and contribute to transformative analytics solutions.
                 </Typography>
               </Box>
             </Grid>
@@ -116,4 +116,4 @@ function AIAutomation({ user }) {
   );
 }
 
-export default AIAutomation;
+export default BigData;

@@ -3,7 +3,7 @@ import { useHistory } from 'react-router-dom';
 import { Box, Typography, Container, Button, Grid, Card, CardContent, IconButton } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
-function ProjectAI({ user }) {
+function ProjectSaas({ user }) {
   const history = useHistory();
 
   return (
@@ -13,10 +13,10 @@ function ProjectAI({ user }) {
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h4" sx={{ mt: 4, mb: 4, textAlign: 'center', fontWeight: 'bold' }}>
-          AI Automation
+          SaaS Solutions
         </Typography>
         <Typography variant="h6" sx={{ mb: 4, textAlign: 'center', opacity: 0.9 }}>
-          Automate workflows with cutting-edge AI technologies.
+          Build scalable, AI-driven SaaS tools to empower businesses worldwide.
         </Typography>
         <Grid container spacing={4}>
           <Grid item xs={12}>
@@ -24,7 +24,7 @@ function ProjectAI({ user }) {
               <CardContent>
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>Use Case</Typography>
                 <Typography variant="body2" sx={{ mt: 1 }}>
-                  Our AI automation project streamlines customer support with chatbots that handle 80% of queries, freeing up human agents for complex tasks.
+                  Our SaaS platform automates HR processes for small businesses, using AI to screen resumes, schedule interviews, and predict candidate fit, reducing hiring time by 50%.
                 </Typography>
               </CardContent>
             </Card>
@@ -34,7 +34,7 @@ function ProjectAI({ user }) {
               <CardContent>
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>For Clients</Typography>
                 <Typography variant="body2" sx={{ mt: 1 }}>
-                  Boost efficiency with AI-powered automation for repetitive tasks, tailored to your industry.
+                  Streamline your operations with our SaaS tools. Save costs and boost efficiency with AI-driven automation tailored to your needs.
                 </Typography>
               </CardContent>
             </Card>
@@ -44,7 +44,7 @@ function ProjectAI({ user }) {
               <CardContent>
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>For Users</Typography>
                 <Typography variant="body2" sx={{ mt: 1 }}>
-                  Develop expertise in machine learning, NLP, and AI frameworks like TensorFlow and PyTorch.
+                  Join our team to develop SaaS solutions, gaining hands-on experience with AI, cloud, and scalable architectures.
                 </Typography>
               </CardContent>
             </Card>
@@ -108,4 +108,4 @@ function ProjectAI({ user }) {
   );
 }
 
-export default ProjectAI;
+export default ProjectSaas;

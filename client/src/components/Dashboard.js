@@ -1,131 +1,201 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, TextField, Button, Container, CircularProgress, Card, CardContent } from '@mui/material';
-import axios from 'axios';
 import { useHistory } from 'react-router-dom';
+import { Box, Typography, Button, Container, Grid, Card, CardContent, CircularProgress } from '@mui/material';
+import axios from 'axios';
 
-function Dashboard({ user, apiUrl }) {
-  const [jobs, setJobs] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(false);
+function Dashboard({ user }) {
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [subscription, setSubscription] = useState(null);
   const history = useHistory();
+  const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
   useEffect(() => {
-    if (!user) {
+    let mounted = true;
+
+    const fetchSubscription = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get(`${apiUrl}/api/auth/subscription`, {
+          headers: { 'x-auth-token': token },
+        });
+        if (mounted) {
+          setSubscription(res.data);
+          setLoading(false);
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err.response?.data?.msg || 'Failed to load subscription');
+          setLoading(false);
+        }
+      }
+    };
+
+    if (user) {
+      fetchSubscription();
+    } else {
       history.push('/login');
     }
-  }, [user, history]);
 
-  const handleSearch = async () => {
-    if (!user) return;
-    setLoading(true);
-    setError('');
+    return () => {
+      mounted = false;
+    };
+  }, [user, history, apiUrl]);
+
+  const handleResumeUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('resume', file);
+
     try {
-      const res = await axios.get(`${apiUrl}/api/job`, {
-        headers: { 'x-auth-token': localStorage.getItem('token') },
-        params: { query: searchTerm, subscriptionType: user.subscriptionType },
+      const token = localStorage.getItem('token');
+      await axios.post(`${apiUrl}/api/auth/upload-resume`, formData, {
+        headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' },
       });
-      setJobs(res.data.results || []);
+      alert('Resume uploaded successfully!');
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to fetch jobs');
-    } finally {
-      setLoading(false);
+      alert(err.response?.data?.msg || 'Failed to upload resume');
     }
   };
 
+  if (!user) return null;
+
+  if (loading) {
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Typography color="error">{error}</Typography>
+      </Box>
+    );
+  }
+
   return (
-    <Box sx={{
-      minHeight: 'calc(100vh - 64px)',
-      color: 'white',
-    }}>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
       <Container maxWidth="lg">
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#ffffff' }}>
-            Job Dashboard
+        <Box sx={{ mt: 4, mb: 8 }}>
+          <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 2 }}>
+            Welcome, {user?.name || 'User'}
           </Typography>
-          <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
-            <TextField
-              label="Search Jobs"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              fullWidth
-              sx={{
-                '& .MuiInputBase-input': { color: 'white' },
-                '& .MuiInputLabel-root': { color: 'white' },
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
-                  '&:hover fieldset': { borderColor: '#00e676' },
-                  '&.Mui-focused fieldset': { borderColor: '#00e676' },
-                },
-              }}
-            />
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6}>
+              <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px' }}>
+                <CardContent>
+                  <Typography variant="h6" sx={{ mb: 2 }}>
+                    Subscription Details
+                  </Typography>
+                  <Typography variant="body1">
+                    Plan: {subscription?.plan || 'Free Trial'}
+                  </Typography>
+                  <Typography variant="body1">
+                    Status: {subscription?.status || 'Active'}
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    sx={{
+                      mt: 2,
+                      backgroundColor: '#ff6d00',
+                      '&:hover': { backgroundColor: '#e65100' },
+                      color: 'white',
+                    }}
+                    onClick={() => history.push('/subscription')}
+                  >
+                    Upgrade Plan
+                  </Button>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px' }}>
+                <CardContent>
+                  <Typography variant="h6" sx={{ mb: 2 }}>
+                    Upload Resume
+                  </Typography>
+                  <input
+                    type="file"
+                    accept="*/*"
+                    onChange={handleResumeUpload}
+                    style={{ display: 'block', marginBottom: '16px' }}
+                  />
+                  <Typography variant="body2">
+                    Upload your latest resume to enhance job matching.
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+          <Box sx={{ mt: 4, textAlign: 'center' }}>
             <Button
               variant="contained"
-              onClick={handleSearch}
-              disabled={loading}
               sx={{
                 backgroundColor: '#ff6d00',
                 '&:hover': { backgroundColor: '#e65100' },
+                color: 'white',
                 borderRadius: '25px',
                 px: 4,
-                fontWeight: 'bold',
-                transition: 'all 0.3s ease',
+                py: 1.5,
               }}
+              onClick={() => history.push('/job-matching')}
             >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Search'}
+              Find Jobs
             </Button>
-          </Box>
-          {error && (
-            <Typography color="error" sx={{ textAlign: 'center' }}>
-              {error}
-            </Typography>
-          )}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {jobs.length > 0 ? (
-              jobs.map((job, index) => (
-                <Card
-                  key={index}
-                  sx={{
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    borderRadius: '10px',
-                    boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
-                    transition: 'all 0.3s ease',
-                    '&:hover': { transform: 'translateY(-5px)' },
-                  }}
-                >
-                  <CardContent>
-                    <Typography variant="h6" sx={{ color: '#00e676' }}>
-                      {job.title || 'No Title'}
-                    </Typography>
-                    <Typography sx={{ color: 'white', opacity: 0.9 }}>
-                      {job.company?.display_name || 'Unknown Company'}
-                    </Typography>
-                    <Typography sx={{ color: 'white', opacity: 0.7 }}>
-                      {job.location?.display_name || 'Remote'}
-                    </Typography>
-                    <Button
-                      href={job.redirect_url || '#'}
-                      target="_blank"
-                      sx={{
-                        mt: 2,
-                        color: '#ff6d00',
-                        textTransform: 'none',
-                        transition: 'all 0.3s ease',
-                      }}
-                    >
-                      Apply Now
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <Typography sx={{ color: 'white', textAlign: 'center' }}>
-                No jobs found. Try a different search.
-              </Typography>
-            )}
           </Box>
         </Box>
       </Container>
+      <Box sx={{ py: 4, backgroundColor: '#1a2a44', color: 'white' }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={4}>
+            <Grid item xs={12} sm={4}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>About ZvertexAI</Typography>
+              <Typography variant="body2">
+                ZvertexAI empowers your career with AI-driven job matching, innovative projects, and ZGPT, your personal copilot.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>Quick Links</Typography>
+              <Box>
+                <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/faq')}>
+                  Interview FAQs
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/why-us')}>
+                  Why ZvertexAI?
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/zgpt')}>
+                  ZGPT Copilot
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/contact')}>
+                  Contact Us
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>Contact Us</Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Address: 5900 Balcones Dr #16790, Austin, TX 78731
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Phone: (737) 239-0920
+              </Typography>
+              <Typography variant="body2">
+                Email: support@zvertexai.com
+              </Typography>
+            </Grid>
+          </Grid>
+          <Box sx={{ mt: 4, textAlign: 'center' }}>
+            <Typography variant="body2">
+              © 2025 ZvertexAI. All rights reserved.
+            </Typography>
+          </Box>
+        </Container>
+      </Box>
     </Box>
   );
 }

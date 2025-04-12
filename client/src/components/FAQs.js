@@ -1,17 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { Box, Typography, Container, Button, Grid, Card, CardContent, IconButton } from '@mui/material';
+import { Box, Typography, Container, TextField, Grid, Card, CardContent, IconButton } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
-function Projects({ user }) {
+function FAQs({ user }) {
   const history = useHistory();
-  const projects = [
-    { title: 'SaaS Solutions', path: '/project-saas', desc: 'Build scalable AI-driven tools for businesses.' },
-    { title: 'Cloud Migration', path: '/project-cloud', desc: 'Seamlessly transition enterprises to the cloud.' },
-    { title: 'AI Automation', path: '/project-ai', desc: 'Automate workflows with cutting-edge AI.' },
-    { title: 'Big Data Analytics', path: '/project-bigdata', desc: 'Unlock insights from massive datasets.' },
-    { title: 'DevOps Integration', path: '/project-devops', desc: 'Streamline development and operations.' },
+  const [search, setSearch] = useState('');
+  const technologies = [
+    'JavaScript', 'Python', 'Java', 'C++', 'C#', 'Ruby', 'PHP', 'Swift', 'Kotlin', 'TypeScript',
+    'Go', 'Rust', 'SQL', 'R', 'MATLAB', 'Scala', 'Perl', 'Haskell', 'Dart', 'Lua'
   ];
+
+  const filteredTechnologies = technologies.filter(tech =>
+    tech.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
@@ -20,10 +22,17 @@ function Projects({ user }) {
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h4" sx={{ mt: 4, mb: 4, textAlign: 'center', fontWeight: 'bold' }}>
-          Join Our Projects
+          Interview FAQs
         </Typography>
-        <Grid container spacing={4}>
-          {projects.map((project, index) => (
+        <TextField
+          label="Search Technologies"
+          fullWidth
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          sx={{ mb: 4, input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
+        />
+        <Grid container spacing={3}>
+          {filteredTechnologies.map((tech, index) => (
             <Grid item xs={12} sm={6} md={4} key={index}>
               <Card
                 sx={{
@@ -31,33 +40,18 @@ function Projects({ user }) {
                   color: 'white',
                   borderRadius: '15px',
                   transition: 'transform 0.3s',
-                  '&:hover': { transform: 'scale(1.05)' },
+                  '&:hover': { transform: 'scale(1.05)', cursor: 'pointer' },
                 }}
+                onClick={() => alert(`FAQs for ${tech} coming soon!`)}
               >
                 <CardContent>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{project.title}</Typography>
-                  <Typography variant="body2" sx={{ mt: 1, mb: 2 }}>{project.desc}</Typography>
-                  <Button
-                    variant="contained"
-                    sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
-                    onClick={() => history.push(user ? project.path : '/register')}
-                  >
-                    Learn More
-                  </Button>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{tech}</Typography>
+                  <Typography variant="body2">Click to view common interview questions.</Typography>
                 </CardContent>
               </Card>
             </Grid>
           ))}
         </Grid>
-        <Box sx={{ textAlign: 'center', mt: 4 }}>
-          <Button
-            variant="text"
-            sx={{ color: '#ff6d00' }}
-            onClick={() => history.push('/contact')}
-          >
-            Contact Us to Join
-          </Button>
-        </Box>
       </Container>
       <Box sx={{ py: 3, backgroundColor: '#1a2a44', textAlign: 'center', mt: 4 }}>
         <Container maxWidth="lg">
@@ -100,4 +94,4 @@ function Projects({ user }) {
   );
 }
 
-export default Projects;
+export default FAQs;
