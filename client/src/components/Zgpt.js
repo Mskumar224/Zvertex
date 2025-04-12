@@ -1,174 +1,200 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useHistory } from 'react-router-dom';
-import {
-  Box,
-  Typography,
-  AppBar,
-  Toolbar,
-  Button,
-  Container,
-  TextField,
-  Paper,
-  List,
-  ListItem,
-  ListItemText,
-} from '@mui/material';
-import SendIcon from '@mui/icons-material/Send';
+import { Box, Typography, TextField, Button, Container, Grid, CircularProgress, Alert } from '@mui/material';
 import axios from 'axios';
 
-function ZGPT() {
-  const history = useHistory();
+function ZGPT({ user }) {
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState([]);
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const history = useHistory();
+  const messagesEndRef = useRef(null);
+  const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
+
+  useEffect(() => {
+    if (!user) {
+      history.push('/login');
+      return;
+    }
+  }, [user, history]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!query.trim()) return;
 
-    // Add user message
-    const userMessage = { role: 'user', content: query };
-    setMessages((prev) => [...prev, userMessage]);
+    const userMessage = { sender: 'user', text: query };
+    setMessages([...messages, userMessage]);
     setQuery('');
     setLoading(true);
 
     try {
-      // Call ZGPT API (placeholder)
-      const res = await axios.post(
-        `${process.env.REACT_APP_API_URL}/api/zgpt`,
-        { query },
-        { headers: { 'x-auth-token': localStorage.getItem('token') } }
-      );
-      const aiMessage = { role: 'assistant', content: res.data.response };
-      setMessages((prev) => [...prev, aiMessage]);
+      const res = await axios.post(`${apiUrl}/api/zgpt/query`, { query }, {
+        headers: { 'x-auth-token': localStorage.getItem('token') },
+      });
+      setMessages((prev) => [...prev, { sender: 'zgpt', text: res.data.text || 'No response' }]);
+      setError('');
     } catch (err) {
-      const errorMessage = { role: 'assistant', content: 'Sorry, I couldn’t process your request. Try again later.' };
-      setMessages((prev) => [...prev, errorMessage]);
+      setError(err.response?.data?.msg || 'Failed to get response');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    history.push('/');
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
-      <AppBar position="static" sx={{ backgroundColor: 'rgba(26, 42, 68, 0.9)', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
-        <Toolbar>
-          <Typography
-            variant="h5"
-            sx={{ flexGrow: 1, fontWeight: 'bold', cursor: 'pointer', color: '#ffffff' }}
-            onClick={() => history.push('/')}
-          >
-            ZvertexAI
-          </Typography>
-          <Button sx={{ color: '#ffffff' }} onClick={() => history.push('/')}>
-            Home
-          </Button>
-          <Button sx={{ color: '#ffffff' }} onClick={() => history.push('/login')}>
-            Login
-          </Button>
-          <Button sx={{ color: '#ffffff' }} onClick={handleLogout}>
-            Logout
-          </Button>
-        </Toolbar>
-      </AppBar>
-
-      <Container maxWidth="md" sx={{ pt: 8, pb: 6 }}>
-        <Typography
-          variant="h4"
-          sx={{
-            mb: 4,
-            textAlign: 'center',
-            textShadow: '0 0 10px rgba(255,109,0,0.5)',
-          }}
-        >
-          ZGPT Copilot
-        </Typography>
-        <Typography variant="h6" sx={{ mb: 4, textAlign: 'center', color: '#d0d0d0' }}>
-          Your AI-powered career advisor. Ask about jobs, resumes, or career paths!
-        </Typography>
-
-        <Paper
-          sx={{
-            backgroundColor: 'rgba(255,255,255,0.05)',
-            borderRadius: '15px',
+    <Box sx={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)',
+      color: 'white',
+      py: 8,
+    }}>
+      <Container maxWidth="lg">
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+          <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#ff6d00' }}>
+              ZGPT Copilot
+            </Typography>
+            <Button
+              variant="text"
+              sx={{ color: '#00e676', textTransform: 'none' }}
+              onClick={() => history.push('/dashboard')}
+            >
+              Back to Dashboard
+            </Button>
+          </Box>
+          <Box sx={{
+            width: '100%',
+            maxWidth: '800px',
+            height: '400px',
+            overflowY: 'auto',
+            backgroundColor: 'rgba(255,255,255,0.1)',
             p: 3,
-            minHeight: '400px',
+            borderRadius: '15px',
+            boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
             display: 'flex',
             flexDirection: 'column',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-          }}
-        >
-          <List sx={{ flexGrow: 1, overflowY: 'auto' }}>
+            gap: 2,
+          }}>
+            {messages.length === 0 && !loading && (
+              <Typography sx={{ color: 'white', textAlign: 'center', py: 4 }}>
+                Start by asking ZGPT a question!
+              </Typography>
+            )}
             {messages.map((msg, index) => (
-              <ListItem
+              <Box
                 key={index}
                 sx={{
-                  justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                  p: 2,
+                  borderRadius: '10px',
+                  backgroundColor: msg.sender === 'user' ? '#ff6d00' : '#00e676',
+                  alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                  maxWidth: '70%',
+                  color: 'white',
                 }}
               >
-                <Paper
-                  sx={{
-                    maxWidth: '70%',
-                    p: 2,
-                    backgroundColor: msg.role === 'user' ? '#ff6d00' : 'rgba(255,255,255,0.1)',
-                    color: msg.role === 'user' ? 'white' : '#d0d0d0',
-                    borderRadius: msg.role === 'user' ? '20px 20px 0 20px' : '20px 20px 20px 0',
-                  }}
-                >
-                  <ListItemText primary={msg.content} />
-                </Paper>
-              </ListItem>
+                <Typography variant="body2">{msg.text}</Typography>
+              </Box>
             ))}
             {loading && (
-              <ListItem>
-                <Typography sx={{ color: '#d0d0d0' }}>ZGPT is thinking...</Typography>
-              </ListItem>
+              <Box sx={{ alignSelf: 'center', py: 2 }}>
+                <CircularProgress size={24} color="inherit" />
+              </Box>
             )}
-          </List>
-          <Box
-            component="form"
-            onSubmit={handleSubmit}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              mt: 2,
-              backgroundColor: 'rgba(255,255,255,0.05)',
-              borderRadius: '30px',
-              p: 1,
-              boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
-            }}
-          >
+            <div ref={messagesEndRef} />
+          </Box>
+          {error && <Alert severity="error" sx={{ borderRadius: '10px', width: '100%', maxWidth: '800px' }}>{error}</Alert>}
+          <Box component="form" onSubmit={handleSubmit} sx={{
+            width: '100%',
+            maxWidth: '800px',
+            display: 'flex',
+            gap: 2,
+            flexWrap: 'wrap',
+          }}>
             <TextField
-              placeholder="Ask ZGPT about your career..."
+              placeholder="Ask ZGPT anything..."
+              fullWidth
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              fullWidth
+              disabled={loading}
               sx={{
-                '& .MuiInputBase-root': { color: '#d0d0d0' },
-                '& fieldset': { border: 'none' },
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': { borderColor: '#ff6d00' },
+                  '&:hover fieldset': { borderColor: '#e65100' },
+                  '&.Mui-focused fieldset': { borderColor: '#00e676' },
+                },
+                '& .MuiInputBase-input': { color: 'white' },
               }}
             />
             <Button
               type="submit"
+              variant="contained"
               disabled={loading || !query.trim()}
               sx={{
                 backgroundColor: '#ff6d00',
-                borderRadius: '25px',
-                p: 1,
-                minWidth: '40px',
                 '&:hover': { backgroundColor: '#e65100' },
-                '&:disabled': { backgroundColor: '#b0b0b0' },
+                borderRadius: '25px',
+                py: 1.5,
+                px: 4,
+                fontWeight: 'bold',
               }}
             >
-              <SendIcon sx={{ color: 'white' }} />
+              Send
             </Button>
           </Box>
-        </Paper>
+        </Box>
       </Container>
+      <Box sx={{
+        py: 4,
+        mt: 8,
+        backgroundColor: '#1a2a44',
+        color: 'white',
+        textAlign: 'center',
+      }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={4}>
+            <Grid item xs={12} sm={4}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', color: '#ff6d00' }}>
+                About ZvertexAI
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'white' }}>
+                Empowering careers with AI-driven job matching and ZGPT copilot.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', color: '#ff6d00' }}>
+                Quick Links
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Button sx={{ color: '#00e676' }} onClick={() => history.push('/faq')}>Interview FAQs</Button>
+                <Button sx={{ color: '#00e676' }} onClick={() => history.push('/why-us')}>Why ZvertexAI?</Button>
+                <Button sx={{ color: '#00e676' }} onClick={() => history.push('/projects')}>Our Projects</Button>
+                <Button sx={{ color: '#00e676' }} onClick={() => history.push('/contact-us')}>Contact Us</Button>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', color: '#ff6d00' }}>
+                Contact Info
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1, color: 'white' }}>
+                Address: 5900 Balcones Dr #16790, Austin, TX 78731
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1, color: 'white' }}>
+                Phone: (737) 239-0920
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'white' }}>
+                Email: support@zvertexai.com
+              </Typography>
+            </Grid>
+          </Grid>
+          <Typography variant="body2" sx={{ mt: 4, color: 'white' }}>
+            © 2025 ZvertexAI. All rights reserved.
+          </Typography>
+        </Container>
+      </Box>
     </Box>
   );
 }

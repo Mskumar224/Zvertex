@@ -1,95 +1,73 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useHistory } from 'react-router-dom';
-import { Box, Typography, TextField, Container, Grid, Card, CardContent, Divider, Button } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import EmailIcon from '@mui/icons-material/Email';
-import PhoneIcon from '@mui/icons-material/Phone';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import SearchIcon from '@mui/icons-material/Search';
+import { Box, Typography, Container, Grid, Accordion, AccordionSummary, AccordionDetails, Button } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 function InterviewFAQs() {
   const history = useHistory();
-  const [search, setSearch] = useState('');
-  
-  const technologies = [
-    'JavaScript', 'Python', 'Java', 'C++', 'C#', 'Ruby', 'PHP', 'Swift', 'Kotlin', 'TypeScript',
-    'React', 'Angular', 'Vue.js', 'Node.js', 'Django', 'Flask', 'Spring', 'ASP.NET', 'Express.js',
-    'SQL', 'MongoDB', 'PostgreSQL', 'MySQL', 'Redis', 'Oracle', 'AWS', 'Azure', 'Google Cloud',
-    'Docker', 'Kubernetes', 'TensorFlow', 'PyTorch', 'Git', 'Jenkins', 'Ansible', 'Terraform'
+
+  const faqs = [
+    {
+      question: 'How should I prepare for a technical interview?',
+      answer: 'Focus on core concepts like data structures, algorithms, and system design. Practice coding problems on platforms like LeetCode and review your resume projects. Use ZGPT to simulate mock interviews!'
+    },
+    {
+      question: 'What are common behavioral questions?',
+      answer: 'Expect questions like "Tell me about a challenge you faced" or "Describe a time you led a team." Use the STAR method (Situation, Task, Action, Result) to structure your answers.'
+    },
+    {
+      question: 'How does ZvertexAI help with interviews?',
+      answer: 'ZvertexAI offers AI-driven resume optimization, job matching, and ZGPT for real-time interview coaching. Subscribe to access personalized prep tools!'
+    },
+    {
+      question: 'What’s the best way to follow up after an interview?',
+      answer: 'Send a concise thank-you email within 24 hours, referencing specific discussion points. ZGPT can help draft professional follow-ups.'
+    }
   ];
 
-  const filteredTechnologies = technologies.filter(tech => 
-    tech.toLowerCase().includes(search.toLowerCase())
-  );
-
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#121212', color: 'white' }}>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
       <Container maxWidth="lg">
-        <Box sx={{ py: 2 }}>
+        <Box sx={{ mt: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => history.goBack()}
-            sx={{ color: '#ff6d00', mb: 2 }}
+            variant="text"
+            sx={{ mb: 2, color: '#00e676', alignSelf: 'flex-start' }}
+            onClick={() => history.push('/')}
           >
-            Back
+            Back to Home
           </Button>
-          <Typography variant="h4" sx={{ mb: 4, textAlign: 'center', fontWeight: 'bold' }}>
+          <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: '#ff6d00' }}>
             Interview FAQs
           </Typography>
-          <Box sx={{ maxWidth: '600px', mx: 'auto', mb: 4 }}>
-            <TextField
-              fullWidth
-              placeholder="Search technologies..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              InputProps={{
-                startAdornment: <SearchIcon sx={{ color: 'white', mr: 1 }} />,
-              }}
-              sx={{ 
-                input: { color: 'white' }, 
-                '& .MuiOutlinedInput-root': { 
-                  '& fieldset': { borderColor: 'white' }, 
-                  '&:hover fieldset': { borderColor: '#ff6d00' },
-                  '&.Mui-focused fieldset': { borderColor: '#ff6d00' }
-                } 
-              }}
-            />
+          <Box sx={{ width: '100%', maxWidth: '800px' }}>
+            {faqs.map((faq, index) => (
+              <Accordion
+                key={index}
+                sx={{
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  color: 'white',
+                  mb: 2,
+                  borderRadius: '10px',
+                  boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
+                }}
+              >
+                <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: '#00e676' }} />}>
+                  <Typography variant="h6">{faq.question}</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography>{faq.answer}</Typography>
+                </AccordionDetails>
+              </Accordion>
+            ))}
           </Box>
-          <Grid container spacing={3}>
-            {filteredTechnologies.length > 0 ? (
-              filteredTechnologies.map((tech, index) => (
-                <Grid item xs={12} sm={6} md={4} key={index}>
-                  <Card 
-                    sx={{ 
-                      backgroundColor: '#1e1e1e', 
-                      color: 'white', 
-                      borderRadius: '15px', 
-                      transition: 'transform 0.3s',
-                      '&:hover': { transform: 'scale(1.05)', cursor: 'pointer' }
-                    }}
-                    onClick={() => alert(`Coming soon: FAQs for ${tech}`)}
-                  >
-                    <CardContent>
-                      <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                        {tech}
-                      </Typography>
-                      <Typography variant="body2" sx={{ mt: 1 }}>
-                        Click to explore interview questions and tips for {tech}.
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))
-            ) : (
-              <Typography sx={{ textAlign: 'center', width: '100%', mt: 4 }}>
-                No technologies found matching your search.
-              </Typography>
-            )}
-          </Grid>
         </Box>
       </Container>
-
-      <Box sx={{ py: 4, backgroundColor: '#1a2a44', color: 'white' }}>
+      <Box sx={{
+        py: 4,
+        backgroundColor: '#1a2a44',
+        color: 'white',
+        textAlign: 'center',
+      }}>
         <Container maxWidth="lg">
           <Grid container spacing={4}>
             <Grid item xs={12} sm={4}>
@@ -97,59 +75,36 @@ function InterviewFAQs() {
                 About ZvertexAI
               </Typography>
               <Typography variant="body2">
-                ZvertexAI empowers careers with AI-driven job matching, innovative projects, and ZGPT, your personal copilot. Join us to shape the future of technology.
+                Empowering careers with AI-driven job matching, innovative projects, and ZGPT copilot.
               </Typography>
             </Grid>
             <Grid item xs={12} sm={4}>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
                 Quick Links
               </Typography>
-              <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/why-zvertexai')}>
-                Why ZvertexAI?
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/interview-faqs')}>
-                Interview FAQs
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/zgpt')}>
-                ZGPT Copilot
-              </Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/contact')}>
-                Contact Us
-              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Button color="inherit" onClick={() => history.push('/faq')}>Interview FAQs</Button>
+                <Button color="inherit" onClick={() => history.push('/why-us')}>Why ZvertexAI?</Button>
+                <Button color="inherit" onClick={() => history.push('/projects')}>Our Projects</Button>
+                <Button color="inherit" onClick={() => history.push('/contact-us')}>Contact Us</Button>
+              </Box>
             </Grid>
             <Grid item xs={12} sm={4}>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-                Contact Us
+                Contact Info
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <LocationOnIcon sx={{ mr: 1 }} />
-                <Typography variant="body2">
-                  5900 Balcones Dr #16790, Austin, TX 78731
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <PhoneIcon sx={{ mr: 1 }} />
-                <Typography variant="body2">
-                  (737) 239-0920
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <EmailIcon sx={{ mr: 1 }} />
-                <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/contact')}>
-                  contact@zvertexai.com
-                </Typography>
-              </Box>
-              <Button 
-                variant="contained" 
-                sx={{ mt: 2, backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }} 
-                onClick={() => history.push('/register')}
-              >
-                Subscribe Now
-              </Button>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Address: 5900 Balcones Dr #16790, Austin, TX 78731
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Phone: (737) 239-0920
+              </Typography>
+              <Typography variant="body2">
+                Email: support@zvertexai.com
+              </Typography>
             </Grid>
           </Grid>
-          <Divider sx={{ my: 3, backgroundColor: 'rgba(255,255,255,0.2)' }} />
-          <Typography variant="body2" align="center">
+          <Typography variant="body2" sx={{ mt: 4 }}>
             © 2025 ZvertexAI. All rights reserved.
           </Typography>
         </Container>

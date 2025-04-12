@@ -1,82 +1,45 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useHistory } from 'react-router-dom';
-import { Box, Typography, TextField, Button, Container, Grid } from '@mui/material';
-import axios from 'axios';
+import { Box, Typography, Container, Grid, Button } from '@mui/material';
 
-function ForgotPassword() {
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+function BigDataProject({ user }) {
   const history = useHistory();
-  const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await axios.post(`${apiUrl}/api/auth/forgot-password`, { email });
-      setMessage(res.data.msg);
-      setError('');
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to send reset email');
-      setMessage('');
-    }
-  };
+  if (!user) {
+    history.push('/register');
+    return null;
+  }
 
   return (
     <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
-      <Container maxWidth="sm">
+      <Container maxWidth="lg">
         <Box sx={{ mt: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <Button
             variant="text"
             sx={{ mb: 2, color: '#00e676', alignSelf: 'flex-start' }}
-            onClick={() => history.push('/')}
+            onClick={() => history.push('/projects')}
           >
-            Back to Home
+            Back to Projects
           </Button>
           <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: '#ff6d00' }}>
-            Forgot Password
+            Big Data Analytics
           </Typography>
-          {message && <Typography color="success.main" sx={{ mb: 2 }}>{message}</Typography>}
-          {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
-          <Box component="form" onSubmit={handleSubmit} sx={{
-            width: '100%',
-            backgroundColor: 'rgba(255,255,255,0.1)',
-            p: 4,
-            borderRadius: '15px',
-            boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
-          }}>
-            <TextField
-              label="Email"
-              fullWidth
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              sx={{
-                mb: 2,
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: '#ff6d00' },
-                  '&:hover fieldset': { borderColor: '#e65100' },
-                  '&.Mui-focused fieldset': { borderColor: '#00e676' },
-                },
-                '& .MuiInputLabel-root': { color: 'white' },
-                input: { color: 'white' },
-              }}
-            />
-            <Button
-              type="submit"
-              variant="contained"
-              fullWidth
-              sx={{
-                mb: 2,
-                backgroundColor: '#ff6d00',
-                '&:hover': { backgroundColor: '#e65100' },
-                borderRadius: '25px',
-                py: 1.5,
-                fontWeight: 'bold',
-              }}
-            >
-              Send Reset Link
-            </Button>
-          </Box>
+          <Typography variant="body1" sx={{ mb: 4, maxWidth: '800px', textAlign: 'center' }}>
+            Our big data projects harness massive datasets to deliver actionable insights. Join us to work with tools like Hadoop, Spark, and Kafka.
+          </Typography>
+          <Button
+            variant="contained"
+            sx={{
+              backgroundColor: '#ff6d00',
+              '&:hover': { backgroundColor: '#e65100' },
+              borderRadius: '25px',
+              py: 1.5,
+              px: 4,
+            }}
+            onClick={() => history.push('/contact-us')}
+          >
+            Join This Project
+          </Button>
         </Box>
       </Container>
       <Box sx={{
@@ -130,4 +93,4 @@ function ForgotPassword() {
   );
 }
 
-export default ForgotPassword;
+export default BigDataProject;

@@ -3,9 +3,11 @@ import { useHistory } from 'react-router-dom';
 import { Box, Typography, TextField, Button, Container, Grid } from '@mui/material';
 import axios from 'axios';
 
-function ForgotPassword() {
+function ContactUs({ user }) {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const history = useHistory();
   const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
@@ -13,18 +15,21 @@ function ForgotPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(`${apiUrl}/api/auth/forgot-password`, { email });
-      setMessage(res.data.msg);
+      await axios.post(`${apiUrl}/api/contact`, { name, email, message });
+      setSuccess('Message sent successfully!');
       setError('');
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to send reset email');
+      setName('');
+      setEmail('');
       setMessage('');
+    } catch (err) {
+      setError(err.response?.data?.msg || 'Failed to send message');
+      setSuccess('');
     }
   };
 
   return (
     <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
-      <Container maxWidth="sm">
+      <Container maxWidth="lg">
         <Box sx={{ mt: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <Button
             variant="text"
@@ -34,19 +39,35 @@ function ForgotPassword() {
             Back to Home
           </Button>
           <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: '#ff6d00' }}>
-            Forgot Password
+            Contact Us
           </Typography>
-          {message && <Typography color="success.main" sx={{ mb: 2 }}>{message}</Typography>}
-          {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
           <Box component="form" onSubmit={handleSubmit} sx={{
             width: '100%',
+            maxWidth: '400px',
             backgroundColor: 'rgba(255,255,255,0.1)',
             p: 4,
             borderRadius: '15px',
             boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
           }}>
             <TextField
+              label="Name"
+              fullWidth
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              sx={{
+                mb: 2,
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': { borderColor: '#ff6d00' },
+                  '&:hover fieldset': { borderColor: '#e65100' },
+                  '&.Mui-focused fieldset': { borderColor: '#00e676' },
+                },
+                '& .MuiInputLabel-root': { color: 'white' },
+                input: { color: 'white' },
+              }}
+            />
+            <TextField
               label="Email"
+              type="email"
               fullWidth
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -61,12 +82,31 @@ function ForgotPassword() {
                 input: { color: 'white' },
               }}
             />
+            <TextField
+              label="Message"
+              multiline
+              rows={4}
+              fullWidth
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              sx={{
+                mb: 2,
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': { borderColor: '#ff6d00' },
+                  '&:hover fieldset': { borderColor: '#e65100' },
+                  '&.Mui-focused fieldset': { borderColor: '#00e676' },
+                },
+                '& .MuiInputLabel-root': { color: 'white' },
+                textarea: { color: 'white' },
+              }}
+            />
+            {success && <Typography sx={{ mb: 2, color: '#00e676' }}>{success}</Typography>}
+            {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
             <Button
               type="submit"
               variant="contained"
               fullWidth
               sx={{
-                mb: 2,
                 backgroundColor: '#ff6d00',
                 '&:hover': { backgroundColor: '#e65100' },
                 borderRadius: '25px',
@@ -74,7 +114,7 @@ function ForgotPassword() {
                 fontWeight: 'bold',
               }}
             >
-              Send Reset Link
+              Send Message
             </Button>
           </Box>
         </Box>
@@ -130,4 +170,4 @@ function ForgotPassword() {
   );
 }
 
-export default ForgotPassword;
+export default ContactUs;

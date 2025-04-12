@@ -1,63 +1,71 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const path = require('path');
+const cron = require('node-cron');
 const authRoutes = require('./routes/auth');
-const jobRoutes = require('./routes/jobs');
+const jobRoutes = require('./routes/job');
+const zgptRoutes = require('./routes/zgpt');
+const User = require('./models/User');
+const axios = require('axios');
 require('dotenv').config();
 
 const app = express();
 
-// Define allowed origins
-const allowedOrigins = [
-  'http://localhost:3000', // Development frontend
-  'https://zvertexai.com', // Production frontend
-];
-
-// Configure CORS
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (e.g., Postman, cURL)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'x-auth-token'],
-    credentials: true,
-  })
-);
-
-// Handle preflight OPTIONS requests globally
-app.options('*', cors());
-
+app.use(cors());
 app.use(express.json());
-app.use('/uploads/resumes', express.static(path.join(__dirname, 'Uploads/resumes')));
-
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
-
-app.post('/api/contact', async (req, res) => {
+app.use('/api/zgpt', zgptRoutes);
+app.use('/api/contact', async (req, res) => {
   const { name, email, message } = req.body;
-  // Placeholder for email sending logic
-  console.log('Contact form submission:', { name, email, message });
-  res.json({ msg: 'Message sent successfully' });
+  try {
+    // Simulate sending contact message (e.g., save to DB or send email)
+    res.json({ msg: 'Message received' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Server error' });
+  }
 });
 
-app.post('/api/zgpt', async (req, res) => {
-  const { query } = req.body;
-  // Placeholder for ZGPT logic
-  res.json({ response: `ZGPT response to: ${query}` });
-});
-
-mongoose
-  .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
   .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.log(err));
+  .catch(err => console.error('MongoDB connection error:', err));
+
+// Auto-apply jobs for users with resumes
+cron.schedule('0 0 * * *', async () => {
+  try {
+    const users = await User.find({ resume: { $ne: null } });
+    for (const user of users) {
+      const technologies = JSON.parse(user.technologies || '[]');
+      for (const tech of technologies) {
+        const res = await axios.post(
+          `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/jobs/fetch`,
+          { technology: tech, location: '' },
+          { headers: { 'x-auth-token': '' } }
+        );
+        const jobs = res.data.jobs.slice(0, 5);
+        for (const job of jobs) {
+          const alreadyApplied = user.appliedJobs.some((j) => j.jobId === job.id);
+          if (!alreadyApplied) {
+            user.appliedJobs.push({
+              jobId: job.id,
+              technology: tech,
+              jobTitle: job.title,
+              company: job.company,
+            });
+          }
+        }
+      }
+      await user.save();
+    }
+    console.log('Auto-apply completed');
+  } catch (err) {
+    console.error('Auto-apply error:', err);
+  }
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

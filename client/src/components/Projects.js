@@ -1,30 +1,21 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useHistory } from 'react-router-dom';
-import { Box, Typography, TextField, Button, Container, Grid } from '@mui/material';
-import axios from 'axios';
+import { Box, Typography, Container, Grid, Card, CardContent, Button } from '@mui/material';
 
-function ForgotPassword() {
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+function Projects({ user }) {
   const history = useHistory();
-  const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await axios.post(`${apiUrl}/api/auth/forgot-password`, { email });
-      setMessage(res.data.msg);
-      setError('');
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to send reset email');
-      setMessage('');
-    }
-  };
+  const projects = [
+    { title: 'SaaS Solutions', path: '/projects/saas', description: 'Scalable software for modern businesses.' },
+    { title: 'Cloud Migration', path: '/projects/cloud', description: 'Seamless transitions to cloud platforms.' },
+    { title: 'AI Automation', path: '/projects/ai', description: 'Intelligent systems for efficiency.' },
+    { title: 'Big Data Analytics', path: '/projects/bigdata', description: 'Actionable insights from massive datasets.' },
+    { title: 'DevOps Integration', path: '/projects/devops', description: 'Streamlined development and operations.' },
+  ];
 
   return (
     <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
-      <Container maxWidth="sm">
+      <Container maxWidth="lg">
         <Box sx={{ mt: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <Button
             variant="text"
@@ -34,49 +25,41 @@ function ForgotPassword() {
             Back to Home
           </Button>
           <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: '#ff6d00' }}>
-            Forgot Password
+            Our Projects
           </Typography>
-          {message && <Typography color="success.main" sx={{ mb: 2 }}>{message}</Typography>}
-          {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
-          <Box component="form" onSubmit={handleSubmit} sx={{
-            width: '100%',
-            backgroundColor: 'rgba(255,255,255,0.1)',
-            p: 4,
-            borderRadius: '15px',
-            boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
-          }}>
-            <TextField
-              label="Email"
-              fullWidth
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              sx={{
-                mb: 2,
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: '#ff6d00' },
-                  '&:hover fieldset': { borderColor: '#e65100' },
-                  '&.Mui-focused fieldset': { borderColor: '#00e676' },
-                },
-                '& .MuiInputLabel-root': { color: 'white' },
-                input: { color: 'white' },
-              }}
-            />
-            <Button
-              type="submit"
-              variant="contained"
-              fullWidth
-              sx={{
-                mb: 2,
-                backgroundColor: '#ff6d00',
-                '&:hover': { backgroundColor: '#e65100' },
-                borderRadius: '25px',
-                py: 1.5,
-                fontWeight: 'bold',
-              }}
-            >
-              Send Reset Link
-            </Button>
-          </Box>
+          <Grid container spacing={4}>
+            {projects.map((project, index) => (
+              <Grid item xs={12} sm={6} md={4} key={index}>
+                <Card
+                  sx={{
+                    backgroundColor: 'rgba(255,255,255,0.1)',
+                    color: 'white',
+                    borderRadius: '15px',
+                    boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+                    height: '100%',
+                    transition: 'transform 0.3s',
+                    '&:hover': { transform: 'scale(1.05)' },
+                  }}
+                >
+                  <CardContent>
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+                      {project.title}
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 2 }}>
+                      {project.description}
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      sx={{ color: '#00e676', borderColor: '#00e676' }}
+                      onClick={() => history.push(user ? project.path : '/register')}
+                    >
+                      Learn More
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
         </Box>
       </Container>
       <Box sx={{
@@ -130,4 +113,4 @@ function ForgotPassword() {
   );
 }
 
-export default ForgotPassword;
+export default Projects;
