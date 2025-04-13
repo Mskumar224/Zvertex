@@ -1,23 +1,102 @@
-import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Switch, Route, Redirect } from 'react-router-dom';
 import Landing from './components/Landing';
 import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
-import Zgpt from './components/Zgpt';
+import ForgotPassword from './components/ForgotPassword';
+import ResetPassword from './components/ResetPassword';
+import WhyZvertexAI from './components/WhyZvertexAI';
+import InterviewFAQs from './components/InterviewFAQs';
+import ZGPT from './components/Zgpt';
+import ProjectSaaS from './components/ProjectSaaS';
+import ProjectCloud from './components/ProjectCloud';
+import ProjectAI from './components/ProjectAI';
+import ProjectBigData from './components/ProjectBigData';
+import ProjectDevOps from './components/ProjectDevOps';
+import AIJobMatching from './components/AIJobMatching';
+import AIProjects from './components/AIProjects';
+import ContactUs from './components/ContactUs';
+import Subscription from './components/Subscription';
+import axios from 'axios';
 
-const App = () => (
-  <Router>
-    <main style={{ minHeight: '100vh' }}>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/zgpt" element={<Zgpt />} />
-      </Routes>
-    </main>
-  </Router>
-);
+function App() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      axios.get(`${process.env.REACT_APP_API_URL}/api/auth/me`, {
+        headers: { 'x-auth-token': token },
+      })
+        .then(res => setUser(res.data))
+        .catch(() => localStorage.removeItem('token'));
+    }
+  }, []);
+
+  return (
+    <Router>
+      <Switch>
+        <Route exact path="/">
+          <Landing user={user} setUser={setUser} />
+        </Route>
+        <Route path="/login">
+          {user ? <Redirect to="/dashboard" /> : <Login setUser={setUser} />}
+        </Route>
+        <Route path="/register">
+          {user ? <Redirect to="/dashboard" /> : <Register setUser={setUser} />}
+        </Route>
+        <Route path="/forgot-password">
+          {user ? <Redirect to="/dashboard" /> : <ForgotPassword />}
+        </Route>
+        <Route path="/reset-password/:token">
+          {user ? <Redirect to="/dashboard" /> : <ResetPassword />}
+        </Route>
+        <Route path="/dashboard">
+          {user ? <Dashboard user={user} setUser={setUser} /> : <Redirect to="/login" />}
+        </Route>
+        <Route path="/why-zvertexai">
+          <WhyZvertexAI user={user} />
+        </Route>
+        <Route path="/interview-faqs">
+          <InterviewFAQs user={user} />
+        </Route>
+        <Route path="/zgpt">
+          <ZGPT user={user} />
+        </Route>
+        <Route path="/project-saas">
+          <ProjectSaaS user={user} />
+        </Route>
+        <Route path="/project-cloud">
+          <ProjectCloud user={user} />
+        </Route>
+        <Route path="/project-ai">
+          <ProjectAI user={user} />
+        </Route>
+        <Route path="/project-big-data">
+          <ProjectBigData user={user} />
+        </Route>
+        <Route path="/project-devops">
+          <ProjectDevOps user={user} />
+        </Route>
+        <Route path="/ai-job-matching">
+          <AIJobMatching user={user} />
+        </Route>
+        <Route path="/ai-projects">
+          <AIProjects user={user} />
+        </Route>
+        <Route path="/contact-us">
+          <ContactUs user={user} />
+        </Route>
+        <Route path="/subscription">
+          {user ? <Subscription user={user} setUser={setUser} /> : <Redirect to="/login" />}
+        </Route>
+        <Route path="*">
+          <Redirect to="/" />
+        </Route>
+      </Switch>
+    </Router>
+  );
+}
 
 export default App;

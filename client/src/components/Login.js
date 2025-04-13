@@ -1,79 +1,87 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Box, Typography, TextField, Button, Container } from '@mui/material';
+import { useHistory } from 'react-router-dom';
+import { Box, Typography, TextField, Button, Container, Grid, CircularProgress } from '@mui/material';
 import axios from 'axios';
 
 function Login({ setUser }) {
-  const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const history = useHistory();
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
     try {
-      const res = await axios.post(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:5002'}/api/auth/login`,
-        { email, password }
-      );
+      const res = await axios.post(`${apiUrl}/api/auth/login`, formData);
       localStorage.setItem('token', res.data.token);
-      const userRes = await axios.get(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:5002'}/api/auth/user`,
-        { headers: { 'x-auth-token': res.data.token } }
-      );
-      setUser(userRes.data);
-      navigate('/dashboard');
+      setUser(res.data);
+      history.push('/dashboard');
     } catch (err) {
-      alert('Error: ' + (err.response?.data?.msg || 'Login failed'));
+      setError(err.response?.data?.msg || 'Login failed');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#1a2a44', color: 'white', pt: 8 }}>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', py: 4 }}>
       <Container maxWidth="sm">
-        <Typography variant="h4" sx={{ mb: 4 }}>
-          Login
-        </Typography>
-        <form onSubmit={handleSubmit}>
-          <TextField
-            label="Email"
-            fullWidth
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            sx={{
-              mb: 2,
-              input: { color: 'white' },
-              label: { color: 'white' },
-              '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } },
-            }}
-          />
-          <TextField
-            label="Password"
-            type="password"
-            fullWidth
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            sx={{
-              mb: 2,
-              input: { color: 'white' },
-              label: { color: 'white' },
-              '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } },
-            }}
-          />
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-            sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
-          >
+        <Box sx={{ backgroundColor: 'rgba(255,255,255,0.1)', p: 4, borderRadius: '15px' }}>
+          <Typography variant="h4" sx={{ color: 'white', mb: 3, textAlign: 'center' }}>
             Login
-          </Button>
-        </form>
-        <Button
-          sx={{ mt: 2, color: '#00e676' }}
-          onClick={() => navigate('/register')}
-        >
-          Don't have an account? Register
-        </Button>
+          </Typography>
+          {error && <Typography color="error" sx={{ mb: 2, textAlign: 'center' }}>{error}</Typography>}
+          <Box component="form" onSubmit={handleSubmit}>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  label="Email"
+                  type="email"
+                  fullWidth
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Password"
+                  type="password"
+                  fullWidth
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  fullWidth
+                  disabled={loading}
+                  sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
+                >
+                  {loading ? <CircularProgress size={24} color="inherit" /> : 'Login'}
+                </Button>
+              </Grid>
+            </Grid>
+          </Box>
+          <Typography sx={{ color: 'white', mt: 2, textAlign: 'center' }}>
+            Don't have an account?{' '}
+            <Button sx={{ color: '#ff6d00' }} onClick={() => history.push('/register')}>
+              Register
+            </Button>
+          </Typography>
+          <Typography sx={{ color: 'white', mt: 1, textAlign: 'center' }}>
+            Forgot password?{' '}
+            <Button sx={{ color: '#ff6d00' }} onClick={() => history.push('/forgot-password')}>
+              Reset
+            </Button>
+          </Typography>
+        </Box>
       </Container>
     </Box>
   );

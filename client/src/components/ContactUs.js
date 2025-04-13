@@ -1,37 +1,30 @@
 import React, { useState } from 'react';
-import { useHistory, useParams } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
 import { Box, Typography, TextField, Button, Container, IconButton } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import axios from 'axios';
 
-function ResetPassword({ user }) {
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+function ContactUs({ user }) {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState(user?.email || '');
   const [message, setMessage] = useState('');
+  const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const history = useHistory();
-  const { token } = useParams();
   const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
-
-  if (user) {
-    history.push('/dashboard');
-    return null;
-  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
     try {
-      const res = await axios.post(`${apiUrl}/api/auth/reset-password/${token}`, { password });
-      setMessage(res.data.msg);
+      await axios.post(`${apiUrl}/api/auth/contact`, { name, email, message });
+      setSuccess('Message sent successfully!');
       setError('');
-      setTimeout(() => history.push('/login'), 3000);
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Reset failed');
+      setName('');
+      setEmail(user?.email || '');
       setMessage('');
+    } catch (err) {
+      setError(err.response?.data?.msg || 'Failed to send message');
+      setSuccess('');
     }
   };
 
@@ -43,19 +36,18 @@ function ResetPassword({ user }) {
             <ArrowBackIcon />
           </IconButton>
           <Typography variant="h4" sx={{ color: 'white', flexGrow: 1, textAlign: 'center' }}>
-            Reset Password
+            Contact Us
           </Typography>
         </Box>
         <Box sx={{ backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '15px', p: 4 }}>
-          {message && <Typography sx={{ color: '#00e676', mb: 2 }}>{message}</Typography>}
+          {success && <Typography sx={{ color: '#00e676', mb: 2 }}>{success}</Typography>}
           {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
           <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
             <TextField
-              label="New Password"
-              type="password"
+              label="Name"
               fullWidth
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               sx={{
                 mb: 2,
                 input: { color: 'white' },
@@ -64,11 +56,25 @@ function ResetPassword({ user }) {
               }}
             />
             <TextField
-              label="Confirm Password"
-              type="password"
+              label="Email"
               fullWidth
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              sx={{
+                mb: 2,
+                input: { color: 'white' },
+                label: { color: 'white' },
+                '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } },
+              }}
+              disabled={!!user}
+            />
+            <TextField
+              label="Message"
+              fullWidth
+              multiline
+              rows={4}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
               sx={{
                 mb: 2,
                 input: { color: 'white' },
@@ -76,11 +82,13 @@ function ResetPassword({ user }) {
                 '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } },
               }}
             />
-            <Button type="submit" variant="contained" fullWidth sx={{ mb: 2, backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}>
-              Reset Password
-            </Button>
-            <Button variant="text" sx={{ color: 'white' }} onClick={() => history.push('/login')}>
-              Back to Login
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              sx={{ mb: 2, backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
+            >
+              Send Message
             </Button>
           </Box>
         </Box>
@@ -132,4 +140,4 @@ function ResetPassword({ user }) {
   );
 }
 
-export default ResetPassword;
+export default ContactUs;

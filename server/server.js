@@ -2,63 +2,60 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
-const helmet = require('helmet');
-const compression = require('compression');
-const logger = require('winston');
+const cron = require('node-cron');
+require('dotenv').config();
+
 const authRoutes = require('./routes/auth');
 const jobRoutes = require('./routes/job');
 const zgptRoutes = require('./routes/zgpt');
+const User = require('./models/User');
 
-// Logger setup
-logger.configure({
-  transports: [
-    new logger.transports.Console(),
-    new logger.transports.File({ filename: 'server.log' }),
-  ],
-  format: logger.format.combine(
-    logger.format.timestamp(),
-    logger.format.json()
-  ),
-});
-
-// Express app
 const app = express();
 
 // Middleware
-app.use(helmet());
-app.use(compression());
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// MongoDB Connection
-mongoose
-  .connect(process.env.MONGODB_URI || 'mongodb://localhost/zvertexai', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => logger.info(`${new Date().toISOString()} - MongoDB Connected`))
-  .catch((err) => {
-    logger.error(`${new Date().toISOString()} - MongoDB Connection Failed: ${err.message}`);
-    process.exit(1);
-  });
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/zgpt', zgptRoutes);
 
-// Serve static files (client build)
-const staticPath = path.join(__dirname, '../../client/build');
-app.use(express.static(staticPath));
+// MongoDB Connection
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => console.error('MongoDB connection error:', err));
 
-// Handle client-side routing
-app.get('*', (req, res) => {
-  res.sendFile(path.join(staticPath, 'index.html'));
+// Cron job to check trial expirations
+cron.schedule('0 0 * * *', async () => {
+  try {
+    const users = await User.find({ subscriptionStatus: 'TRIAL' });
+    for (const user of users) {
+      const trialEnd = new Date(user.trialStart);
+      trialEnd.setDate(trialEnd.getDate() + 4);
+      if (new Date() > trialEnd) {
+        user.subscriptionStatus = 'EXPIRED';
+        await user.save();
+        console.log(`Trial expired for user: ${user.email}`);
+      }
+    }
+  } catch (err) {
+    console.error('Cron job error:', err.message);
+  }
 });
+
+// Serve client build in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../client/build')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+  });
+}
 
 // Start server
 const PORT = process.env.PORT || 5002;
-app.listen(PORT, () => {
-  logger.info(`${new Date().toISOString()} - Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
