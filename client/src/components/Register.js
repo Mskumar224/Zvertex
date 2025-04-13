@@ -1,162 +1,113 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Box, Typography, TextField, Button, Container, MenuItem } from '@mui/material';
 import axios from 'axios';
 
-const Register = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    subscriptionPlan: 'Basic',
-  });
-  const [error, setError] = useState('');
+function Register({ setUser }) {
+  const navigate = useNavigate();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [subscriptionPlan, setSubscriptionPlan] = useState('Basic');
 
-  const { name, email, password, subscriptionPlan } = formData;
-
-  const onChange = (e) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-
-  const onSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name || !email || !password || !subscriptionPlan) {
-      setError('All fields are required');
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Invalid email format');
-      return;
-    }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
     try {
       const res = await axios.post(
-        `${process.env.REACT_APP_API_URL}/api/auth/register`,
+        `${process.env.REACT_APP_API_URL || 'http://localhost:5002'}/api/auth/register`,
         { name, email, password, subscriptionPlan }
       );
       localStorage.setItem('token', res.data.token);
-      window.location.href = '/dashboard';
+      const userRes = await axios.get(
+        `${process.env.REACT_APP_API_URL || 'http://localhost:5002'}/api/auth/user`,
+        { headers: { 'x-auth-token': res.data.token } }
+      );
+      setUser(userRes.data);
+      navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.msg || 'Registration failed');
-      console.error(err);
+      alert('Error: ' + (err.response?.data?.msg || 'Registration failed'));
     }
   };
 
   return (
-    <div style={{ 
-      maxWidth: '400px', 
-      margin: '40px auto', 
-      padding: '20px', 
-      borderRadius: '8px', 
-      boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-      background: '#fff'
-    }}>
-      <h2 style={{ textAlign: 'center', color: '#333' }}>Register</h2>
-      <form onSubmit={onSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', color: '#555' }}>Name</label>
-          <input
-            type="text"
-            name="name"
-            value={name}
-            onChange={onChange}
-            required
-            style={{ 
-              width: '100%', 
-              padding: '10px', 
-              border: '1px solid #ddd', 
-              borderRadius: '4px' 
-            }}
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', color: '#555' }}>Email</label>
-          <input
-            type="email"
-            name="email"
-            value={email}
-            onChange={onChange}
-            required
-            style={{ 
-              width: '100%', 
-              padding: '10px', 
-              border: '1px solid #ddd', 
-              borderRadius: '4px' 
-            }}
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', color: '#555' }}>Password</label>
-          <input
-            type="password"
-            name="password"
-            value={password}
-            onChange={onChange}
-            required
-            style={{ 
-              width: '100%', 
-              padding: '10px', 
-              border: '1px solid #ddd', 
-              borderRadius: '4px' 
-            }}
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', color: '#555' }}>Subscription Plan</label>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <label style={{ marginBottom: '10px' }}>
-              <input
-                type="radio"
-                name="subscriptionPlan"
-                value="Basic"
-                checked={subscriptionPlan === 'Basic'}
-                onChange={onChange}
-                style={{ marginRight: '5px' }}
-              />
-              Basic ($69.99 after trial)
-            </label>
-            <label style={{ marginBottom: '10px' }}>
-              <input
-                type="radio"
-                name="subscriptionPlan"
-                value="Pro"
-                checked={subscriptionPlan === 'Pro'}
-                onChange={onChange}
-                style={{ marginRight: '5px' }}
-              />
-              Pro ($149.99 after trial)
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="subscriptionPlan"
-                value="Enterprise"
-                checked={subscriptionPlan === 'Enterprise'}
-                onChange={onChange}
-                style={{ marginRight: '5px' }}
-              />
-              Enterprise ($249.99 after trial)
-            </label>
-          </div>
-        </div>
-        {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
-        <button 
-          type="submit" 
-          style={{ 
-            width: '100%', 
-            padding: '10px', 
-            background: '#007bff', 
-            color: '#fff', 
-            border: 'none', 
-            borderRadius: '4px', 
-            cursor: 'pointer' 
-          }}
-        >
+    <Box sx={{ minHeight: '100vh', backgroundColor: '#1a2a44', color: 'white', pt: 8 }}>
+      <Container maxWidth="sm">
+        <Typography variant="h4" sx={{ mb: 4 }}>
           Register
-        </button>
-      </form>
-    </div>
+        </Typography>
+        <form onSubmit={handleSubmit}>
+          <TextField
+            label="Name"
+            fullWidth
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            sx={{
+              mb: 2,
+              input: { color: 'white' },
+              label: { color: 'white' },
+              '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } },
+            }}
+          />
+          <TextField
+            label="Email"
+            fullWidth
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            sx={{
+              mb: 2,
+              input: { color: 'white' },
+              label: { color: 'white' },
+              '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } },
+            }}
+          />
+          <TextField
+            label="Password"
+            type="password"
+            fullWidth
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            sx={{
+              mb: 2,
+              input: { color: 'white' },
+              label: { color: 'white' },
+              '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } },
+            }}
+          />
+          <TextField
+            select
+            label="Subscription Plan"
+            fullWidth
+            value={subscriptionPlan}
+            onChange={(e) => setSubscriptionPlan(e.target.value)}
+            sx={{
+              mb: 2,
+              input: { color: 'white' },
+              label: { color: 'white' },
+              '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } },
+            }}
+          >
+            <MenuItem value="Basic">Basic</MenuItem>
+            <MenuItem value="Pro">Pro</MenuItem>
+            <MenuItem value="Enterprise">Enterprise</MenuItem>
+          </TextField>
+          <Button
+            type="submit"
+            variant="contained"
+            fullWidth
+            sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
+          >
+            Register
+          </Button>
+        </form>
+        <Button
+          sx={{ mt: 2, color: '#00e676' }}
+          onClick={() => navigate('/login')}
+        >
+          Already have an account? Login
+        </Button>
+      </Container>
+    </Box>
   );
-};
+}
 
 export default Register;
