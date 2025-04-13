@@ -1,101 +1,116 @@
 import React from 'react';
-import { useHistory } from 'react-router-dom';
-import { Box, Typography, Container, Button, Grid, Card, CardContent, IconButton } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Container,
+  Typography,
+  Button,
+  Grid,
+  Card,
+  CardContent,
+  CardActions,
+} from '@mui/material';
+import CodeIcon from '@mui/icons-material/Code';
+import CloudIcon from '@mui/icons-material/Cloud';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import StorageIcon from '@mui/icons-material/Storage';
+import BuildIcon from '@mui/icons-material/Build';
 
 function Projects({ user }) {
-  const history = useHistory();
+  const navigate = useNavigate();
+
   const projects = [
-    { title: 'SaaS Solutions', path: '/project-saas', desc: 'Build scalable AI-driven tools for businesses.' },
-    { title: 'Cloud Migration', path: '/project-cloud', desc: 'Seamlessly transition enterprises to the cloud.' },
-    { title: 'AI Automation', path: '/project-ai', desc: 'Automate workflows with cutting-edge AI.' },
-    { title: 'Big Data Analytics', path: '/project-bigdata', desc: 'Unlock insights from massive datasets.' },
-    { title: 'DevOps Integration', path: '/project-devops', desc: 'Streamline development and operations.' },
+    {
+      title: 'SaaS Development',
+      description: 'Building scalable software-as-a-service platforms with modern frameworks.',
+      icon: <CodeIcon sx={{ fontSize: 60, color: '#00e676' }} />,
+      path: '/projects/saas',
+    },
+    {
+      title: 'Cloud Computing',
+      description: 'Deploying secure and efficient cloud solutions across AWS, Azure, and GCP.',
+      icon: <CloudIcon sx={{ fontSize: 60, color: '#00e676' }} />,
+      path: '/projects/cloud',
+    },
+    {
+      title: 'AI & Machine Learning',
+      description: 'Developing intelligent systems for predictive analytics and automation.',
+      icon: <AutoAwesomeIcon sx={{ fontSize: 60, color: '#00e676' }} />,
+      path: '/projects/ai',
+    },
+    {
+      title: 'Big Data Analytics',
+      description: 'Processing massive datasets to deliver actionable business insights.',
+      icon: <StorageIcon sx={{ fontSize: 60, color: '#00e676' }} />,
+      path: '/projects/bigdata',
+    },
+    {
+      title: 'DevOps Automation',
+      description: 'Streamlining CI/CD pipelines and infrastructure as code.',
+      icon: <BuildIcon sx={{ fontSize: 60, color: '#00e676' }} />,
+      path: '/projects/devops',
+    },
   ];
 
   return (
     <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
       <Container maxWidth="lg">
-        <IconButton onClick={() => history.goBack()} sx={{ color: '#ff6d00', mt: 2 }}>
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h4" sx={{ mt: 4, mb: 4, textAlign: 'center', fontWeight: 'bold' }}>
-          Join Our Projects
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 3 }}>
+          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+            Our Projects
+          </Typography>
+          <Box>
+            {user ? (
+              <Button
+                variant="outlined"
+                sx={{ borderColor: '#00e676', color: '#00e676', '&:hover': { backgroundColor: 'rgba(0,230,118,0.1)' } }}
+                onClick={() => navigate('/dashboard')}
+              >
+                Dashboard
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                sx={{ backgroundColor: '#00e676', '&:hover': { backgroundColor: '#00c853' } }}
+                onClick={() => navigate('/login')}
+              >
+                Login
+              </Button>
+            )}
+          </Box>
+        </Box>
+
         <Grid container spacing={4}>
           {projects.map((project, index) => (
             <Grid item xs={12} sm={6} md={4} key={index}>
-              <Card
-                sx={{
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                  color: 'white',
-                  borderRadius: '15px',
-                  transition: 'transform 0.3s',
-                  '&:hover': { transform: 'scale(1.05)' },
-                }}
-              >
-                <CardContent>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{project.title}</Typography>
-                  <Typography variant="body2" sx={{ mt: 1, mb: 2 }}>{project.desc}</Typography>
+              <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px', height: '100%' }}>
+                <CardContent sx={{ textAlign: 'center' }}>
+                  {project.icon}
+                  <Typography variant="h6" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
+                    {project.title}
+                  </Typography>
+                  <Typography>
+                    {project.description}
+                  </Typography>
+                </CardContent>
+                <CardActions sx={{ justifyContent: 'center', pb: 2 }}>
                   <Button
                     variant="contained"
                     sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
-                    onClick={() => history.push(user ? project.path : '/register')}
+                    onClick={() => navigate(project.path)}
                   >
                     Learn More
                   </Button>
-                </CardContent>
+                </CardActions>
               </Card>
             </Grid>
           ))}
         </Grid>
-        <Box sx={{ textAlign: 'center', mt: 4 }}>
-          <Button
-            variant="text"
-            sx={{ color: '#ff6d00' }}
-            onClick={() => history.push('/contact')}
-          >
-            Contact Us to Join
-          </Button>
-        </Box>
+
+        <Typography variant="body2" sx={{ mt: 4, textAlign: 'center' }}>
+          © 2025 ZvertexAI. All rights reserved.
+        </Typography>
       </Container>
-      <Box sx={{ py: 3, backgroundColor: '#1a2a44', textAlign: 'center', mt: 4 }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={4}>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Contact Us</Typography>
-              <Typography variant="body2">
-                Address: 5900 Balcones Dr #16790, Austin, TX 78731
-              </Typography>
-              <Typography variant="body2">
-                Phone: (737) 239-0920
-              </Typography>
-              <Typography variant="body2">
-                Email: support@zvertexai.com
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Quick Links</Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/faq')}>
-                Interview FAQs
-              </Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/why-us')}>
-                Why ZvertexAI?
-              </Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/projects')}>
-                Join Our Projects
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Follow Us</Typography>
-              <Typography variant="body2">Twitter | LinkedIn | GitHub</Typography>
-            </Grid>
-          </Grid>
-          <Typography variant="body2" sx={{ mt: 2 }}>
-            © 2025 ZvertexAI. All rights reserved.
-          </Typography>
-        </Container>
-      </Box>
     </Box>
   );
 }

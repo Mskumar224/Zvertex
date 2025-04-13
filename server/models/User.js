@@ -1,84 +1,51 @@
 const mongoose = require('mongoose');
 
-const UserSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+  },
   email: {
     type: String,
     required: true,
     unique: true,
+    trim: true,
+    lowercase: true,
   },
   password: {
     type: String,
     required: true,
   },
-  subscriptionType: {
+  subscription: {
     type: String,
-    enum: ['Student', 'Recruiter', 'Business'],
-    required: true,
+    enum: ['None', 'Basic', 'Pro', 'Enterprise'],
+    default: 'None',
   },
-  trialEndDate: {
+  trialStart: {
     type: Date,
-    required: true,
+  },
+  trialActive: {
+    type: Boolean,
+    default: false,
   },
   resume: {
-    type: String,
-    default: null,
+    filename: String,
+    path: String,
+    mimetype: String,
+    uploadedAt: Date,
   },
-  phone: {
-    type: String,
-    default: '',
+  jobPreferences: {
+    title: String,
+    location: String,
+    skills: [String],
   },
-  technologies: {
-    type: [String],
-    default: [],
-  },
-  companies: {
-    type: [String],
-    default: [],
-  },
-  appliedJobs: {
-    type: [
-      {
-        jobId: String,
-        jobTitle: String,
-        company: String,
-        technology: String,
-        jobLink: String,
-        date: { type: Date, default: Date.now },
-      },
-    ],
-    default: [],
-  },
-  profiles: [
-    {
-      id: Number,
-      resume: { type: String, default: null },
-      email: { type: String, default: '' },
-      phone: { type: String, default: '' },
-      technologies: { type: [String], default: [] },
-      companies: { type: [String], default: [] },
-      appliedJobs: [
-        {
-          jobId: String,
-          jobTitle: String,
-          company: String,
-          technology: String,
-          jobLink: String,
-          date: { type: Date, default: Date.now },
-        },
-      ],
-      profiles: { type: Array, default: [] }, // For Business sub-profiles
-    },
-  ],
-  resetPasswordToken: {
-    type: String,
-  },
-  resetPasswordExpires: {
-    type: Date,
-  },
-  date: {
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
+  createdAt: {
     type: Date,
     default: Date.now,
   },
 });
 
-module.exports = mongoose.model('user', UserSchema);
+module.exports = mongoose.model('User', userSchema);

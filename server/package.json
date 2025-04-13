@@ -1,28 +1,28 @@
 {
   "name": "zvertexai-server",
   "version": "1.0.0",
-  "description": "ZvertexAI backend",
+  "description": "ZvertexAI Backend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "server": "nodemon server.js"
+    "dev": "nodemon server.js"
   },
   "dependencies": {
-    "axios": "^1.8.4",
+    "axios": "^1.7.7",
     "bcryptjs": "^2.4.3",
-    "config": "^3.3.12",
+    "compression": "^1.7.4",
     "cors": "^2.8.5",
-    "dotenv": "^16.5.0",
-    "express": "^4.21.2",
-    "express-fileupload": "^1.5.1",
-    "express-validator": "^7.2.1",
+    "express": "^4.21.0",
+    "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^7.8.6",
+    "mongoose": "^6.13.2",
+    "multer": "^1.4.5-lts.1",
     "node-cron": "^3.0.3",
-    "nodemailer": "^6.10.0",
-    "puppeteer": "^20.9.0"
+    "nodemailer": "^6.9.15",
+    "uuid": "^10.0.0",
+    "winston": "^3.14.2"
   },
   "devDependencies": {
-    "nodemon": "^2.0.22"
+    "nodemon": "^3.1.7"
   }
 }

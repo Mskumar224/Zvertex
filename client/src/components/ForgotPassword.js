@@ -1,97 +1,81 @@
 import React, { useState } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
-  Typography,
   Container,
+  Typography,
   TextField,
   Button,
-  Paper,
-  IconButton,
+  Card,
+  CardContent,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import axios from 'axios';
 
 function ForgotPassword() {
-  const history = useHistory();
   const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
   const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
     try {
+      setLoading(true);
       await axios.post(`${apiUrl}/api/auth/forgot-password`, { email });
-      setSuccess('Password reset link sent to your email.');
+      alert('Password reset link sent to your email');
       setEmail('');
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to send reset link.');
+      alert(err.response?.data?.msg || 'Error sending reset link');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#121212', color: 'white', py: 4 }}>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
       <Container maxWidth="sm">
-        <IconButton
-          onClick={() => history.push('/login')}
-          sx={{ color: 'white', mb: 2 }}
-        >
-          <ArrowBackIcon />
-        </IconButton>
-        <Paper
-          sx={{
-            p: 4,
-            backgroundColor: '#1e1e1e',
-            borderRadius: '15px',
-            textAlign: 'center',
-          }}
-        >
-          <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold' }}>
-            Forgot Password
-          </Typography>
-          {success && (
-            <Typography sx={{ color: '#00e676', mb: 2 }}>{success}</Typography>
-          )}
-          {error && (
-            <Typography sx={{ color: '#ff1744', mb: 2 }}>{error}</Typography>
-          )}
-          <Box component="form" onSubmit={handleSubmit}>
-            <TextField
-              label="Email"
-              fullWidth
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              sx={{ mb: 3 }}
-              required
-            />
-            <Button
-              type="submit"
-              variant="contained"
-              fullWidth
-              sx={{
-                backgroundColor: '#ff6d00',
-                '&:hover': { backgroundColor: '#e65100' },
-                borderRadius: '10px',
-                py: 1.5,
-              }}
-            >
-              Send Reset Link
-            </Button>
-          </Box>
-          <Typography sx={{ mt: 2 }}>
-            Back to{' '}
-            <Button
-              sx={{ color: '#00e676', textTransform: 'none' }}
-              onClick={() => history.push('/login')}
-            >
-              Login
-            </Button>
-          </Typography>
-        </Paper>
+        <Box sx={{ py: 5 }}>
+          <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px' }}>
+            <CardContent>
+              <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold', textAlign: 'center' }}>
+                Forgot Password
+              </Typography>
+              <form onSubmit={handleSubmit}>
+                <TextField
+                  label="Email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  fullWidth
+                  required
+                  sx={{
+                    mb: 3,
+                    input: { color: 'white' },
+                    label: { color: 'white' },
+                    '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } },
+                  }}
+                />
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={loading}
+                  fullWidth
+                  sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' }, mb: 2 }}
+                >
+                  {loading ? 'Sending...' : 'Send Reset Link'}
+                </Button>
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  sx={{ borderColor: '#00e676', color: '#00e676', '&:hover': { backgroundColor: 'rgba(0,230,118,0.1)' } }}
+                  onClick={() => navigate('/login')}
+                >
+                  Back to Login
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </Box>
       </Container>
     </Box>
   );

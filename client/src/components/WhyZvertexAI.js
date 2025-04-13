@@ -1,158 +1,108 @@
 import React from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
-  Typography,
   Container,
+  Typography,
+  Button,
   Grid,
   Card,
   CardContent,
-  Button,
-  IconButton,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import VerifiedIcon from '@mui/icons-material/Verified';
+import SpeedIcon from '@mui/icons-material/Speed';
+import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 
 function WhyZvertexAI({ user }) {
-  const history = useHistory();
-  const features = [
-    {
-      title: 'AI-Powered Job Matching',
-      description:
-        'Our AI analyzes your resume and skills to match you with top jobs at companies like Google, Amazon, and Microsoft. Auto-apply runs every 30 minutes, saving you time.',
-    },
-    {
-      title: 'ZGPT Copilot',
-      description:
-        'Get personalized career advice and answers to tech questions with ZGPT, your 24/7 AI assistant. Available to all users, even during the free trial.',
-    },
-    {
-      title: 'Innovative Projects',
-      description:
-        'Join our SaaS, Cloud, AI, Big Data, and DevOps projects to gain hands-on experience and boost your portfolio.',
-    },
-    {
-      title: 'Flexible Subscriptions',
-      description:
-        'Choose from Student, Recruiter, or Business plans, all with a 7-day free trial. Manage profiles, track applications, and export data with ease.',
-    },
-  ];
+  const navigate = useNavigate();
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#121212', color: 'white', py: 4 }}>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
       <Container maxWidth="lg">
-        <IconButton
-          onClick={() => history.push(user ? '/dashboard' : '/')}
-          sx={{ color: 'white', mb: 2 }}
-        >
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h4" sx={{ mb: 4, textAlign: 'center', fontWeight: 'bold' }}>
-          Why Choose ZvertexAI?
-        </Typography>
-        <Grid container spacing={4}>
-          {features.map((feature, index) => (
-            <Grid item xs={12} sm={6} key={index}>
-              <Card
-                sx={{
-                  backgroundColor: '#1e1e1e',
-                  color: 'white',
-                  borderRadius: '15px',
-                  height: '100%',
-                  transition: 'transform 0.3s',
-                  '&:hover': { transform: 'scale(1.05)' },
-                }}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 3 }}>
+          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+            Why Choose ZvertexAI?
+          </Typography>
+          <Box>
+            {user ? (
+              <Button
+                variant="outlined"
+                sx={{ borderColor: '#00e676', color: '#00e676', '&:hover': { backgroundColor: 'rgba(0,230,118,0.1)' } }}
+                onClick={() => navigate('/dashboard')}
               >
-                <CardContent>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                    {feature.title}
-                  </Typography>
-                  <Typography variant="body2">{feature.description}</Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-        <Box sx={{ textAlign: 'center', mt: 6 }}>
+                Dashboard
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                sx={{ backgroundColor: '#00e676', '&:hover': { backgroundColor: '#00c853' } }}
+                onClick={() => navigate('/login')}
+              >
+                Login
+              </Button>
+            )}
+          </Box>
+        </Box>
+
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <Typography variant="h5" sx={{ mb: 2 }}>
+            Empowering your career with cutting-edge AI and personalized support.
+          </Typography>
           <Button
             variant="contained"
-            onClick={() => history.push(user ? '/dashboard' : '/register')}
-            sx={{
-              backgroundColor: '#ff6d00',
-              '&:hover': { backgroundColor: '#e65100' },
-              borderRadius: '25px',
-              px: 4,
-              py: 1.5,
-            }}
+            sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
+            onClick={() => navigate('/register')}
           >
-            {user ? 'Go to Dashboard' : 'Get Started Now'}
+            Join Now
           </Button>
         </Box>
-      </Container>
-      <Box sx={{ py: 4, backgroundColor: '#1a2a44', color: 'white', mt: 4 }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={4}>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                About ZvertexAI
-              </Typography>
-              <Typography variant="body2">
-                ZvertexAI empowers careers with AI-driven job matching, innovative projects, and ZGPT, your
-                personal copilot. Join us to unlock your potential.
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                Quick Links
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ mb: 1, cursor: 'pointer' }}
-                onClick={() => history.push('/faq')}
-              >
-                Interview FAQs
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ mb: 1, cursor: 'pointer' }}
-                onClick={() => history.push('/why-us')}
-              >
-                Why ZvertexAI?
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ mb: 1, cursor: 'pointer' }}
-                onClick={() => history.push('/zgpt')}
-              >
-                ZGPT Copilot
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ mb: 1, cursor: 'pointer' }}
-                onClick={() => history.push('/contact')}
-              >
-                Contact Us
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                Contact Info
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                Address: 5900 Balcones Dr #16790, Austin, TX 78731
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                Phone: (737) 239-0920
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                Email: support@zvertexai.com
-              </Typography>
-            </Grid>
+
+        <Grid container spacing={4}>
+          <Grid item xs={12} md={4}>
+            <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px' }}>
+              <CardContent sx={{ textAlign: 'center' }}>
+                <VerifiedIcon sx={{ fontSize: 60, color: '#00e676', mb: 2 }} />
+                <Typography variant="h6" sx={{ mb: 1, fontWeight: 'bold' }}>
+                  Proven Results
+                </Typography>
+                <Typography>
+                  Our AI-driven job matching has helped thousands land roles at top companies.
+                </Typography>
+              </CardContent>
+            </Card>
           </Grid>
-          <Typography variant="body2" sx={{ mt: 4, textAlign: 'center' }}>
-            © 2025 ZvertexAI. All rights reserved.
-          </Typography>
-        </Container>
-      </Box>
+          <Grid item xs={12} md={4}>
+            <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px' }}>
+              <CardContent sx={{ textAlign: 'center' }}>
+                <SpeedIcon sx={{ fontSize: 60, color: '#00e676', mb: 2 }} />
+                <Typography variant="h6" sx={{ mb: 1, fontWeight: 'bold' }}>
+                  Fast & Efficient
+                </Typography>
+                <Typography>
+                  Auto-apply to jobs and get real-time updates to save you time.
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px' }}>
+              <CardContent sx={{ textAlign: 'center' }}>
+                <SupportAgentIcon sx={{ fontSize: 60, color: '#00e676', mb: 2 }} />
+                <Typography variant="h6" sx={{ mb: 1, fontWeight: 'bold' }}>
+                  Dedicated Support
+                </Typography>
+                <Typography>
+                  24/7 assistance from our team to guide you every step of the way.
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+
+        <Typography variant="body2" sx={{ mt: 4, textAlign: 'center' }}>
+          © 2025 ZvertexAI. All rights reserved.
+        </Typography>
+      </Container>
     </Box>
   );
 }

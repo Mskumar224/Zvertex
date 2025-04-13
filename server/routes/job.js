@@ -1,79 +1,84 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
-const config = require('config');
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+require('dotenv').config();
 
-// Mock jobs fallback
-const mockJobs = [
-  {
-    jobId: '1',
-    jobTitle: 'Frontend Developer',
-    company: 'Google',
-    technology: 'React',
-    jobLink: 'https://careers.google.com/jobs/123',
-    date: new Date(),
-  },
-  {
-    jobId: '2',
-    jobTitle: 'Backend Engineer',
-    company: 'Amazon',
-    technology: 'Node.js',
-    jobLink: 'https://amazon.jobs/en/jobs/456',
-    date: new Date(),
-  },
-];
-
-// @route   GET api/jobs
-// @desc    Fetch jobs from Adzuna API or return mock jobs
-// @access  Public
-router.get('/', async (req, res) => {
+// Middleware to verify token
+const auth = async (req, res, next) => {
   try {
-    const appId = config.get('adzunaAppId') || '820cd31b';
-    const appKey = config.get('adzunaAppKey') || 'a447ec201ccb313ff7f216ced0a3e671';
-    const what = encodeURIComponent('software developer');
-    const companies = ['Google', 'Meta', 'Cisco', 'Amazon', 'Microsoft', 'Apple'];
-    const resultsPerPage = 10;
-
-    // Adzuna API request
-    const response = await axios.get(
-      `https://api.adzuna.com/v1/api/jobs/us/search/1`,
-      {
-        params: {
-          app_id: appId,
-          app_key: appKey,
-          what: what,
-          results_per_page: resultsPerPage,
-          // Adzuna doesn't support company filtering directly; handle in post-processing
-        },
-      }
-    );
-
-    let jobs = response.data.results || [];
-    
-    // Filter jobs by company (since API doesn't support company param)
-    jobs = jobs.filter(job => companies.includes(job.company?.display_name));
-    
-    // Map to required format
-    const formattedJobs = jobs.map(job => ({
-      jobId: job.id,
-      jobTitle: job.title,
-      company: job.company?.display_name || 'Unknown',
-      technology: job.category?.label || 'Unknown',
-      jobLink: job.redirect_url || '#',
-      date: new Date(job.created),
-    }));
-
-    // If no jobs, return mock jobs
-    if (formattedJobs.length === 0) {
-      console.warn('No jobs from Adzuna API; returning mock jobs');
-      return res.json(mockJobs);
+    const token = req.header('x-auth-token');
+    if (!token) {
+      return res.status(401).json({ msg: 'No token, authorization denied' });
     }
-
-    res.json(formattedJobs);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.user.id);
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+    if (user.subscription === 'None' && !user.trialActive) {
+      return res.status(403).json({ msg: 'Subscription required' });
+    }
+    req.user = user;
+    next();
   } catch (err) {
-    console.error('Job fetch error:', err.response?.data || err.message);
-    // Fallback to mock jobs on error
-    res.json(mockJobs);
+    console.error(err.message);
+    res.status(401).json({ msg: 'Token is not valid' });
+  }
+};
+
+// Search jobs
+router.get('/search', auth, async (req, res) => {
+  const { query, location } = req.query;
+  try {
+    const response = await axios.get('https://api.adzuna.com/v1/api/jobs/us/search/1', {
+      params: {
+        app_id: process.env.ADZUNA_APP_ID,
+        app_key: process.env.ADZUNA_APP_KEY,
+        what: query || '',
+        where: location || '',
+        max_days_old: 7,
+      },
+    });
+    res.json(response.data.results);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: 'Error fetching jobs' });
+  }
+});
+
+// Apply to job
+router.post('/apply', auth, async (req, res) => {
+  const { jobId, jobTitle, company, jobUrl } = req.body;
+  try {
+    // Simulate job application (replace with actual job board API)
+    console.log(`User ${req.user.email} applied to ${jobTitle}`);
+    // Send confirmation email
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER || 'zvertexai@honotech.com',
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+    await transporter.sendMail({
+      from: '"ZvertexAI" <zvertexai@honotech.com>',
+      to: req.user.email,
+      subject: `ZvertexAI: Application for ${jobTitle}`,
+      html: `
+        <p>Dear ${req.user.name},</p>
+        <p>Your application for <strong>${jobTitle}</strong> at <strong>${company}</strong> has been submitted.</p>
+        <p><a href="${jobUrl}">View Job</a></p>
+        <p>Best wishes,</p>
+        <p>ZvertexAI Team</p>
+        <p><small>Contact us at zvertexai@honotech.com for support.</small></p>
+      `,
+    });
+    res.json({ msg: 'Application submitted' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: 'Error applying to job' });
   }
 });
 

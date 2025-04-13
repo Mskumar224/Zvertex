@@ -1,200 +1,162 @@
 import React, { useState } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
-  Typography,
   Container,
+  Typography,
   TextField,
   Button,
   Grid,
-  IconButton,
-  Paper,
+  Card,
+  CardContent,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import axios from 'axios';
 
 function Contact({ user }) {
-  const history = useHistory();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [success, setSuccess] = useState('');
-  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({ name: user?.name || '', email: user?.email || '', message: '' });
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
   const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
     try {
-      await axios.post(`${apiUrl}/api/auth/contact`, { name, email, message });
-      setSuccess('Message sent successfully! We’ll get back to you soon.');
-      setName('');
-      setEmail('');
-      setMessage('');
+      setLoading(true);
+      await axios.post(`${apiUrl}/api/contact`, formData);
+      alert('Message sent successfully');
+      setFormData({ ...formData, message: '' });
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to send message.');
+      alert(err.response?.data?.msg || 'Error sending message');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#121212', color: 'white', py: 4 }}>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
       <Container maxWidth="lg">
-        <IconButton
-          onClick={() => history.push(user ? '/dashboard' : '/')}
-          sx={{ color: 'white', mb: 2 }}
-        >
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h4" sx={{ mb: 4, textAlign: 'center', fontWeight: 'bold' }}>
-          Contact Us
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 3 }}>
+          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+            Contact Us
+          </Typography>
+          <Box>
+            {user ? (
+              <Button
+                variant="outlined"
+                sx={{ borderColor: '#00e676', color: '#00e676', '&:hover': { backgroundColor: 'rgba(0,230,118,0.1)' } }}
+                onClick={() => navigate('/dashboard')}
+              >
+                Dashboard
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                sx={{ backgroundColor: '#00e676', '&:hover': { backgroundColor: '#00c853' } }}
+                onClick={() => navigate('/login')}
+              >
+                Login
+              </Button>
+            )}
+          </Box>
+        </Box>
+
         <Grid container spacing={4}>
           <Grid item xs={12} md={6}>
-            <Paper
-              sx={{
-                p: 4,
-                backgroundColor: '#1e1e1e',
-                borderRadius: '15px',
-              }}
-            >
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                Send Us a Message
-              </Typography>
-              {success && (
-                <Typography sx={{ color: '#00e676', mb: 2 }}>{success}</Typography>
-              )}
-              {error && (
-                <Typography sx={{ color: '#ff1744', mb: 2 }}>{error}</Typography>
-              )}
-              <Box component="form" onSubmit={handleSubmit}>
-                <TextField
-                  label="Name"
-                  fullWidth
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  sx={{ mb: 2 }}
-                  required
-                />
-                <TextField
-                  label="Email"
-                  fullWidth
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  sx={{ mb: 2 }}
-                  required
-                />
-                <TextField
-                  label="Message"
-                  fullWidth
-                  multiline
-                  rows={4}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  sx={{ mb: 2 }}
-                  required
-                />
-                <Button
-                  type="submit"
-                  variant="contained"
-                  fullWidth
-                  sx={{
-                    backgroundColor: '#ff6d00',
-                    '&:hover': { backgroundColor: '#e65100' },
-                    borderRadius: '10px',
-                    py: 1.5,
-                  }}
-                >
-                  Send Message
-                </Button>
-              </Box>
-            </Paper>
+            <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px' }}>
+              <CardContent>
+                <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold' }}>
+                  Get in Touch
+                </Typography>
+                <form onSubmit={handleSubmit}>
+                  <TextField
+                    label="Name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    fullWidth
+                    required
+                    sx={{
+                      mb: 2,
+                      input: { color: 'white' },
+                      label: { color: 'white' },
+                      '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } },
+                    }}
+                  />
+                  <TextField
+                    label="Email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    fullWidth
+                    required
+                    sx={{
+                      mb: 2,
+                      input: { color: 'white' },
+                      label: { color: 'white' },
+                      '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } },
+                    }}
+                  />
+                  <TextField
+                    label="Message"
+                    name="message"
+                    value={formData.message}
+                    onChange={handleChange}
+                    fullWidth
+                    required
+                    multiline
+                    rows={4}
+                    sx={{
+                      mb: 2,
+                      input: { color: 'white' },
+                      label: { color: 'white' },
+                      '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } },
+                    }}
+                  />
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={loading}
+                    sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
+                  >
+                    {loading ? 'Sending...' : 'Send Message'}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
           </Grid>
+
           <Grid item xs={12} md={6}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Contact Information
-            </Typography>
-            <Typography variant="body1" sx={{ mb: 1 }}>
-              <strong>Address:</strong> 5900 Balcones Dr #16790, Austin, TX 78731
-            </Typography>
-            <Typography variant="body1" sx={{ mb: 1 }}>
-              <strong>Phone:</strong> (737) 239-0920
-            </Typography>
-            <Typography variant="body1" sx={{ mb: 1 }}>
-              <strong>Email:</strong> support@zvertexai.com
-            </Typography>
-            <Typography variant="body1" sx={{ mt: 2 }}>
-              We’re here to help! Reach out with any questions about our services, subscriptions, or projects.
-            </Typography>
+            <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px' }}>
+              <CardContent>
+                <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold' }}>
+                  Contact Information
+                </Typography>
+                <Typography sx={{ mb: 1 }}>
+                  Email: zvertexai@honotech.com
+                </Typography>
+                <Typography sx={{ mb: 1 }}>
+                  Phone: +1 (555) 123-4567
+                </Typography>
+                <Typography sx={{ mb: 1 }}>
+                  Address: 123 Tech Lane, Silicon Valley, CA 94043
+                </Typography>
+                <Typography sx={{ mt: 2 }}>
+                  Our team is available 24/7 to assist with your queries. Reach out for support, partnerships, or feedback.
+                </Typography>
+              </CardContent>
+            </Card>
           </Grid>
         </Grid>
+
+        <Typography variant="body2" sx={{ mt: 4, textAlign: 'center' }}>
+          © 2025 ZvertexAI. All rights reserved.
+        </Typography>
       </Container>
-      <Box sx={{ py: 4, backgroundColor: '#1a2a44', color: 'white', mt: 4 }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={4}>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                About ZvertexAI
-              </Typography>
-              <Typography variant="body2">
-                ZvertexAI empowers careers with AI-driven job matching, innovative projects, and ZGPT, your
-                personal copilot. Join us to unlock your potential.
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                Quick Links
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ mb: 1, cursor: 'pointer' }}
-                onClick={() => history.push('/faq')}
-              >
-                Interview FAQs
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ mb: 1, cursor: 'pointer' }}
-                onClick={() => history.push('/why-us')}
-              >
-                Why ZvertexAI?
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ mb: 1, cursor: 'pointer' }}
-                onClick={() => history.push('/zgpt')}
-              >
-                ZGPT Copilot
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ mb: 1, cursor: 'pointer' }}
-                onClick={() => history.push('/contact')}
-              >
-                Contact Us
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                Contact Info
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                Address: 5900 Balcones Dr #16790, Austin, TX 78731
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                Phone: (737) 239-0920
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                Email: support@zvertexai.com
-              </Typography>
-            </Grid>
-          </Grid>
-          <Typography variant="body2" sx={{ mt: 4, textAlign: 'center' }}>
-            © 2025 ZvertexAI. All rights reserved.
-          </Typography>
-        </Container>
-      </Box>
     </Box>
   );
 }
