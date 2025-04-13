@@ -8,7 +8,7 @@ import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
 import WhyZvertexAI from './components/WhyZvertexAI';
 import InterviewFAQs from './components/InterviewFAQs';
-import ZGPT from './components/Zgpt';
+import ZGPT from './components/ZGPT';
 import ProjectSaaS from './components/ProjectSaaS';
 import ProjectCloud from './components/ProjectCloud';
 import ProjectAI from './components/ProjectAI';
@@ -22,17 +22,18 @@ import axios from 'axios';
 
 function App() {
   const [user, setUser] = useState(null);
+  const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      axios.get(`${process.env.REACT_APP_API_URL}/api/auth/me`, {
+      axios.get(`${apiUrl}/api/auth/me`, {
         headers: { 'x-auth-token': token },
       })
         .then(res => setUser(res.data))
         .catch(() => localStorage.removeItem('token'));
     }
-  }, []);
+  }, [apiUrl]);
 
   return (
     <Router>
