@@ -43,9 +43,16 @@ mongoose
   .connect(process.env.MONGODB_URI || 'mongodb://localhost/zvertexai', {
     useNewUrlParser: true,
     useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 5000, // Timeout after 5s
+    connectTimeoutMS: 10000, // Connection timeout
   })
   .then(() => logger.info(`${new Date().toISOString()} - MongoDB Connected`))
-  .catch((err) => logger.error(`${new Date().toISOString()} - MongoDB Error: ${err.message}`));
+  .catch((err) => {
+    logger.error(`${new Date().toISOString()} - MongoDB Connection Failed: ${err.message}`, {
+      stack: err.stack,
+    });
+    process.exit(1); // Exit if MongoDB fails to connect
+  });
 
 // Multer setup for resume uploads
 const storage = multer.diskStorage({
@@ -148,7 +155,7 @@ app.post('/api/auth/login', async (req, res) => {
     if (!user) return res.status(400).json({ msg: 'Invalid credentials' });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!user.isMatch) return res.status(400).json({ msg: 'Invalid credentials' });
+    if (!isMatch) return res.status(400).json({ msg: 'Invalid credentials' });
 
     const token = jwt.sign({ user: { id: user.id } }, process.env.JWT_SECRET || 'your_jwt_secret', {
       expiresIn: '1h',
