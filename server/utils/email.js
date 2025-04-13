@@ -1,12 +1,27 @@
 const nodemailer = require('nodemailer');
-require('dotenv').config();
+const config = require('config');
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const sendEmail = async (to, subject, text) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: config.get('emailUser'),
+        pass: config.get('emailPass'),
+      },
+    });
 
-module.exports = transporter;
+    await transporter.sendMail({
+      from: '"ZvertexAI" <support@zvertexai.com>',
+      to,
+      subject,
+      text,
+    });
+    console.log(`Email sent to ${to}`);
+  } catch (err) {
+    console.error('Email error:', err);
+    throw err;
+  }
+};
+
+module.exports = { sendEmail };

@@ -1,54 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { Box, Typography, TextField, Button, Container, Grid } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Container,
+  TextField,
+  Button,
+  Paper,
+  IconButton,
+} from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import axios from 'axios';
 
-function Login({ setUser, user }) {
+function Login({ setUser }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const history = useHistory();
   const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
-  useEffect(() => {
-    let mounted = true;
-
-    if (user) {
-      history.push('/dashboard');
-    } else {
-      const token = localStorage.getItem('token');
-      if (token) {
-        axios
-          .get(`${apiUrl}/api/auth/me`, {
-            headers: { 'x-auth-token': token },
-          })
-          .then((res) => {
-            if (mounted) {
-              setUser(res.data);
-              history.push('/dashboard');
-            }
-          })
-          .catch(() => {
-            if (mounted) {
-              localStorage.removeItem('token');
-            }
-          });
-      }
-    }
-
-    return () => {
-      mounted = false;
-    };
-  }, [user, history, setUser, apiUrl]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     try {
       const res = await axios.post(`${apiUrl}/api/auth/login`, { email, password });
       localStorage.setItem('token', res.data.token);
-      setUser(res.data.user);
-      setEmail('');
-      setPassword('');
+      const userRes = await axios.get(`${apiUrl}/api/auth`, {
+        headers: { 'x-auth-token': res.data.token },
+      });
+      setUser(userRes.data);
       history.push('/dashboard');
     } catch (err) {
       setError(err.response?.data?.msg || 'Login failed');
@@ -56,118 +36,81 @@ function Login({ setUser, user }) {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: '#121212', color: 'white', py: 4 }}>
       <Container maxWidth="sm">
-        <Box sx={{ mt: 4, mb: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold' }}>
+        <IconButton
+          onClick={() => history.push('/')}
+          sx={{ color: 'white', mb: 2 }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
+        <Paper
+          sx={{
+            p: 4,
+            backgroundColor: '#1e1e1e',
+            borderRadius: '15px',
+            textAlign: 'center',
+          }}
+        >
+          <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold' }}>
             Login
           </Typography>
-          <Box sx={{ backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '15px', p: 3, width: '100%' }}>
-            {error && <Typography color="error">{error}</Typography>}
-            <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
-              <TextField
-                label="Email"
-                fullWidth
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                sx={{
-                  mb: 2,
-                  input: { color: 'white' },
-                  label: { color: 'white' },
-                  '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } },
-                }}
-              />
-              <TextField
-                label="Password"
-                type="password"
-                fullWidth
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                sx={{
-                  mb: 2,
-                  input: { color: 'white' },
-                  label: { color: 'white' },
-                  '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } },
-                }}
-              />
-              <Button
-                type="submit"
-                variant="contained"
-                fullWidth
-                sx={{
-                  backgroundColor: '#ff6d00',
-                  '&:hover': { backgroundColor: '#e65100' },
-                  color: 'white',
-                  borderRadius: '25px',
-                  py: 1.5,
-                }}
-              >
-                Login
-              </Button>
-            </Box>
+          {error && (
+            <Typography sx={{ color: '#ff1744', mb: 2 }}>{error}</Typography>
+          )}
+          <Box component="form" onSubmit={handleSubmit}>
+            <TextField
+              label="Email"
+              fullWidth
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              sx={{ mb: 3 }}
+              required
+            />
+            <TextField
+              label="Password"
+              fullWidth
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              sx={{ mb: 3 }}
+              required
+            />
             <Button
-              variant="text"
+              type="submit"
+              variant="contained"
+              fullWidth
+              sx={{
+                backgroundColor: '#ff6d00',
+                '&:hover': { backgroundColor: '#e65100' },
+                borderRadius: '10px',
+                py: 1.5,
+              }}
+            >
+              Login
+            </Button>
+          </Box>
+          <Typography sx={{ mt: 2 }}>
+            Forgot{' '}
+            <Button
+              sx={{ color: '#00e676', textTransform: 'none' }}
               onClick={() => history.push('/forgot-password')}
-              sx={{ mt: 2, color: 'white' }}
             >
-              Forgot Password?
+              Password?
             </Button>
+          </Typography>
+          <Typography>
+            Need an account?{' '}
             <Button
-              variant="text"
+              sx={{ color: '#00e676', textTransform: 'none' }}
               onClick={() => history.push('/register')}
-              sx={{ mt: 1, color: 'white' }}
             >
-              Don't have an account? Register
+              Register
             </Button>
-          </Box>
-        </Box>
+          </Typography>
+        </Paper>
       </Container>
-      <Box sx={{ py: 4, backgroundColor: '#1a2a44', color: 'white' }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={4}>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>About ZvertexAI</Typography>
-              <Typography variant="body2">
-                ZvertexAI empowers your career with AI-driven job matching, innovative projects, and ZGPT, your personal copilot.
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>Quick Links</Typography>
-              <Box>
-                <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/faq')}>
-                  Interview FAQs
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/why-us')}>
-                  Why ZvertexAI?
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/zgpt')}>
-                  ZGPT Copilot
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/contact')}>
-                 generally, how can I troubleshoot these errors? Contact Us
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>Contact Us</Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                Address: 5900 Balcones Dr #16790, Austin, TX 78731
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                Phone: (737) 239-0920
-              </Typography>
-              <Typography variant="body2">
-                Email: support@zvertexai.com
-              </Typography>
-            </Grid>
-          </Grid>
-          <Box sx={{ mt: 4, textAlign: 'center' }}>
-            <Typography variant="body2">
-              © 2025 ZvertexAI. All rights reserved.
-            </Typography>
-          </Box>
-        </Container>
-      </Box>
     </Box>
   );
 }

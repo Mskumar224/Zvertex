@@ -1,90 +1,113 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Switch, Route, Redirect } from 'react-router-dom';
-import { Box, AppBar, Toolbar, Typography, Button } from '@mui/material';
+import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import Landing from './components/Landing';
-import ZGPT from './components/Zgpt';
-import Login from './components/Login';
 import Register from './components/Register';
-import Dashboard from './components/Dashboard';
-import Contact from './components/Contact';
-import AIJobMatching from './components/AIJobMatching';
-import AIProjects from './components/AIProjects';
-import SaaS from './components/SaaS';
-import Cloud from './components/Cloud';
-import AIAutomation from './components/AIAutomation';
-import BigData from './components/BigData';
-import DevOps from './components/DevOps';
-import InterviewFAQs from './components/InterviewFAQs';
-import WhyZvertexAI from './components/WhyZvertexAI';
+import Login from './components/Login';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
+import StudentDashboard from './components/StudentDashboard';
+import RecruiterDashboard from './components/RecruiterDashboard';
+import BusinessDashboard from './components/BusinessDashboard';
+import Sidebar from './components/Sidebar';
+import AIProjects from './components/AIProjects';
+import AIJobMatching from './components/AIJobMatching';
+import Zgpt from './components/Zgpt';
+import FAQ from './components/FAQ';
+import WhyUs from './components/WhyUs';
+import Contact from './components/Contact';
+import ProjectSaas from './components/ProjectSaas';
+import ProjectCloud from './components/ProjectCloud';
+import ProjectAI from './components/ProjectAI';
+import ProjectBigData from './components/ProjectBigData';
+import ProjectDevOps from './components/ProjectDevOps';
 import axios from 'axios';
 
 function App() {
   const [user, setUser] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      axios.get(`${process.env.REACT_APP_API_URL}/api/auth/me`, {
-        headers: { 'x-auth-token': token }
-      })
-        .then(res => setUser(res.data))
+      axios
+        .get(`${apiUrl}/api/auth`, {
+          headers: { 'x-auth-token': token },
+        })
+        .then((res) => setUser(res.data))
         .catch(() => localStorage.removeItem('token'));
     }
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
-  };
-
   return (
     <Router>
-      <Box sx={{ flexGrow: 1 }}>
-        <AppBar position="static" sx={{ backgroundColor: '#1a2a44' }}>
-          <Toolbar>
-            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-              ZvertexAI
-            </Typography>
-            <Button color="inherit" sx={{ color: 'white' }} onClick={() => window.location.href = '/'}>Home</Button>
-            <Button color="inherit" sx={{ color: 'white' }} onClick={() => window.location.href = '/zgpt'}>ZGPT</Button>
-            <Button color="inherit" sx={{ color: 'white' }} onClick={() => window.location.href = '/projects'}>Projects</Button>
-            <Button color="inherit" sx={{ color: 'white' }} onClick={() => window.location.href = '/faq'}>FAQs</Button>
-            <Button color="inherit" sx={{ color: 'white' }} onClick={() => window.location.href = '/contact'}>Contact</Button>
-            {user ? (
-              <>
-                <Button color="inherit" sx={{ color: 'white' }} onClick={() => window.location.href = '/dashboard'}>Dashboard</Button>
-                <Button color="inherit" sx={{ color: 'white' }} onClick={handleLogout}>Logout</Button>
-              </>
-            ) : (
-              <>
-                <Button color="inherit" sx={{ color: 'white' }} onClick={() => window.location.href = '/login'}>Login</Button>
-                <Button color="inherit" sx={{ color: 'white' }} onClick={() => window.location.href = '/register'}>Register</Button>
-              </>
-            )}
-          </Toolbar>
-        </AppBar>
-        <Switch>
-          <Route exact path="/" render={() => <Landing user={user} />} />
-          <Route path="/zgpt" render={() => <ZGPT user={user} />} />
-          <Route path="/login" render={() => <Login setUser={setUser} />} />
-          <Route path="/register" render={() => <Register setUser={setUser} />} />
-          <Route path="/dashboard" render={() => user ? <Dashboard user={user} /> : <Redirect to="/login" />} />
-          <Route path="/contact" render={() => <Contact user={user} />} />
-          <Route path="/job-matching" render={() => <AIJobMatching user={user} />} />
-          <Route path="/projects" render={() => <AIProjects user={user} />} />
-          <Route path="/saas" render={() => <SaaS user={user} />} />
-          <Route path="/cloud" render={() => <Cloud user={user} />} />
-          <Route path="/ai-automation" render={() => <AIAutomation user={user} />} />
-          <Route path="/big-data" render={() => <BigData user={user} />} />
-          <Route path="/devops" render={() => <DevOps user={user} />} />
-          <Route path="/faq" render={() => <InterviewFAQs user={user} />} />
-          <Route path="/why-us" render={() => <WhyZvertexAI user={user} />} />
-          <Route path="/forgot-password" render={() => <ForgotPassword user={user} />} />
-          <Route path="/reset-password/:token" render={() => <ResetPassword user={user} />} />
-        </Switch>
-      </Box>
+      <Sidebar
+        user={user}
+        setUser={setUser}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+      <Switch>
+        <Route exact path="/">
+          <Landing user={user} setSidebarOpen={setSidebarOpen} />
+        </Route>
+        <Route path="/register">
+          <Register />
+        </Route>
+        <Route path="/login">
+          <Login setUser={setUser} />
+        </Route>
+        <Route path="/forgot-password">
+          <ForgotPassword />
+        </Route>
+        <Route path="/reset-password/:token">
+          <ResetPassword />
+        </Route>
+        <Route path="/dashboard">
+          {user?.subscriptionType === 'Student' && (
+            <StudentDashboard user={user} setSidebarOpen={setSidebarOpen} />
+          )}
+          {user?.subscriptionType === 'Recruiter' && (
+            <RecruiterDashboard user={user} setSidebarOpen={setSidebarOpen} />
+          )}
+          {user?.subscriptionType === 'Business' && (
+            <BusinessDashboard user={user} setSidebarOpen={setSidebarOpen} />
+          )}
+        </Route>
+        <Route path="/ai-job-matching">
+          <AIJobMatching user={user} setSidebarOpen={setSidebarOpen} />
+        </Route>
+        <Route path="/projects">
+          <AIProjects user={user} />
+        </Route>
+        <Route path="/projects/saas">
+          <ProjectSaas user={user} setSidebarOpen={setSidebarOpen} />
+        </Route>
+        <Route path="/projects/cloud">
+          <ProjectCloud user={user} setSidebarOpen={setSidebarOpen} />
+        </Route>
+        <Route path="/projects/ai">
+          <ProjectAI user={user} setSidebarOpen={setSidebarOpen} />
+        </Route>
+        <Route path="/projects/bigdata">
+          <ProjectBigData user={user} setSidebarOpen={setSidebarOpen} />
+        </Route>
+        <Route path="/projects/devops">
+          <ProjectDevOps user={user} setSidebarOpen={setSidebarOpen} />
+        </Route>
+        <Route path="/zgpt">
+          <Zgpt user={user} setSidebarOpen={setSidebarOpen} />
+        </Route>
+        <Route path="/faq">
+          <FAQ user={user} setSidebarOpen={setSidebarOpen} />
+        </Route>
+        <Route path="/why-us">
+          <WhyUs user={user} setSidebarOpen={setSidebarOpen} />
+        </Route>
+        <Route path="/contact">
+          <Contact user={user} setSidebarOpen={setSidebarOpen} />
+        </Route>
+      </Switch>
     </Router>
   );
 }

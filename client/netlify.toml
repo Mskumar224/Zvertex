@@ -2,7 +2,11 @@
   base = "client"
   command = "npm run build"
   publish = "build"
-  environment = { NODE_VERSION = "22.14.0", REACT_APP_API_URL = "https://zvertexai-orzv.onrender.com" }
+  environment = { 
+    NODE_VERSION = "22.14.0", 
+    REACT_APP_API_URL = "https://zvertexai-orzv.onrender.com",
+    REACT_APP_HF_TOKEN = "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"
+  }
 
 [dev]
   command = "npm start"

@@ -4,36 +4,42 @@ import {
   Box,
   Typography,
   Container,
-  Grid,
-  Card,
-  CardContent,
-  Button,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
   IconButton,
+  Grid,
 } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
-function WhyZvertexAI({ user }) {
+function FAQ({ user }) {
   const history = useHistory();
-  const features = [
+  const faqs = [
     {
-      title: 'AI-Powered Job Matching',
-      description:
-        'Our AI analyzes your resume and skills to match you with top jobs at companies like Google, Amazon, and Microsoft. Auto-apply runs every 30 minutes, saving you time.',
+      question: 'What technologies does ZvertexAI support for job matching?',
+      answer:
+        'We support over 60 technologies, including JavaScript, Python, Java, React, Node.js, Django, AWS, Docker, and more. Upload your resume to auto-detect your skills, or select them manually in your dashboard.',
     },
     {
-      title: 'ZGPT Copilot',
-      description:
-        'Get personalized career advice and answers to tech questions with ZGPT, your 24/7 AI assistant. Available to all users, even during the free trial.',
+      question: 'How does the auto-apply feature work?',
+      answer:
+        'Once you upload your resume and select technologies and companies, our AI applies to matching jobs every 30 minutes. You’ll receive email and SMS confirmations with job IDs and links.',
     },
     {
-      title: 'Innovative Projects',
-      description:
-        'Join our SaaS, Cloud, AI, Big Data, and DevOps projects to gain hands-on experience and boost your portfolio.',
+      question: 'What is the 7-day free trial?',
+      answer:
+        'All plans (Student, Recruiter, Business) include a 7-day free trial with full access to auto-apply, ZGPT, and dashboards. No payment is required during the trial.',
     },
     {
-      title: 'Flexible Subscriptions',
-      description:
-        'Choose from Student, Recruiter, or Business plans, all with a 7-day free trial. Manage profiles, track applications, and export data with ease.',
+      question: 'Can I export my applied jobs?',
+      answer:
+        'Yes, all dashboards allow you to export applied jobs to Excel, including job IDs, titles, companies, technologies, and dates.',
+    },
+    {
+      question: 'How does resume parsing work?',
+      answer:
+        'Our AI parses PDF, DOC, or DOCX resumes to extract technologies and skills, which are used for precise job matching and auto-applications.',
     },
   ];
 
@@ -47,45 +53,27 @@ function WhyZvertexAI({ user }) {
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h4" sx={{ mb: 4, textAlign: 'center', fontWeight: 'bold' }}>
-          Why Choose ZvertexAI?
+          Frequently Asked Questions
         </Typography>
-        <Grid container spacing={4}>
-          {features.map((feature, index) => (
-            <Grid item xs={12} sm={6} key={index}>
-              <Card
-                sx={{
-                  backgroundColor: '#1e1e1e',
-                  color: 'white',
-                  borderRadius: '15px',
-                  height: '100%',
-                  transition: 'transform 0.3s',
-                  '&:hover': { transform: 'scale(1.05)' },
-                }}
-              >
-                <CardContent>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                    {feature.title}
-                  </Typography>
-                  <Typography variant="body2">{feature.description}</Typography>
-                </CardContent>
-              </Card>
-            </Grid>
+        <Box sx={{ maxWidth: '800px', mx: 'auto' }}>
+          {faqs.map((faq, index) => (
+            <Accordion
+              key={index}
+              sx={{
+                backgroundColor: '#1e1e1e',
+                color: 'white',
+                mb: 2,
+                borderRadius: '10px',
+              }}
+            >
+              <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: '#ff6d00' }} />}>
+                <Typography variant="h6">{faq.question}</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Typography variant="body1">{faq.answer}</Typography>
+              </AccordionDetails>
+            </Accordion>
           ))}
-        </Grid>
-        <Box sx={{ textAlign: 'center', mt: 6 }}>
-          <Button
-            variant="contained"
-            onClick={() => history.push(user ? '/dashboard' : '/register')}
-            sx={{
-              backgroundColor: '#ff6d00',
-              '&:hover': { backgroundColor: '#e65100' },
-              borderRadius: '25px',
-              px: 4,
-              py: 1.5,
-            }}
-          >
-            {user ? 'Go to Dashboard' : 'Get Started Now'}
-          </Button>
         </Box>
       </Container>
       <Box sx={{ py: 4, backgroundColor: '#1a2a44', color: 'white', mt: 4 }}>
@@ -157,4 +145,4 @@ function WhyZvertexAI({ user }) {
   );
 }
 
-export default WhyZvertexAI;
+export default FAQ;

@@ -1,123 +1,152 @@
 import React from 'react';
 import { useHistory } from 'react-router-dom';
-import { Box, Typography, Button, Container, IconButton, Grid } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Container,
+  Grid,
+  Button,
+  IconButton,
+  Card,
+  CardContent,
+} from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 function AIJobMatching({ user }) {
   const history = useHistory();
 
-  if (!user) {
-    history.push('/register');
-    return null;
-  }
-
   return (
-    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: '#121212', color: 'white', py: 4 }}>
       <Container maxWidth="lg">
-        <Box sx={{ mt: 4, mb: 8 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <IconButton onClick={() => history.goBack()} sx={{ color: '#ff6d00' }}>
-              <ArrowBackIcon />
-            </IconButton>
-            <Typography variant="h4" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
-              AI Job Matching
+        <IconButton
+          onClick={() => history.push(user ? '/dashboard' : '/')}
+          sx={{ color: 'white', mb: 2 }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
+        <Typography variant="h4" sx={{ mb: 4, textAlign: 'center', fontWeight: 'bold' }}>
+          AI Job Matching
+        </Typography>
+        <Grid container spacing={4}>
+          <Grid item xs={12}>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              Find Your Dream Job with AI
             </Typography>
-          </Box>
-          <Typography variant="h5" sx={{ mb: 4 }}>
-            Unlock Your Career Potential with ZvertexAI
-          </Typography>
-          <Grid container spacing={4}>
-            <Grid item xs={12} sm={6}>
-              <Box sx={{ backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '15px', p: 3, height: '100%' }}>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                  Use Case for Clients
-                </Typography>
-                <Typography variant="body1" sx={{ mb: 2 }}>
-                  Our AI Job Matching service streamlines hiring by analyzing resumes and matching candidates to your job requirements with precision. 
-                  Save time and find top talent effortlessly.
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Why Join Us?</strong> Reduce recruitment costs, access a curated talent pool, and leverage AI for unbiased hiring decisions.
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Box sx={{ backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '15px', p: 3, height: '100%' }}>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                  Use Case for Users
-                </Typography>
-                <Typography variant="body1" sx={{ mb: 2 }}>
-                  Upload your resume and let our AI match you with jobs tailored to your skills and preferences. 
-                  Automate applications and receive personalized job recommendations.
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Why Join Us?</strong> Land your dream job faster with AI-driven insights, unlimited applications, and real-time job alerts.
-                </Typography>
-              </Box>
-            </Grid>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              Our AI-powered job matching system analyzes your resume and skills to find the best opportunities
+              at top companies. With auto-apply running every 30 minutes, you’ll never miss a chance.
+            </Typography>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              <strong>Features:</strong><br />
+              - Resume parsing for PDF, DOC, DOCX<br />
+              - Matches with 60+ technologies<br />
+              - Auto-applies to curated companies<br />
+              - Email/SMS confirmations with job links
+            </Typography>
           </Grid>
-          <Box sx={{ textAlign: 'center', mt: 4 }}>
-            <Button 
-              variant="contained" 
-              sx={{ 
-                backgroundColor: '#ff6d00', 
-                '&:hover': { backgroundColor: '#e65100' },
-                borderRadius: '25px',
-                px: 4,
-                py: 1.5
-              }}
-              onClick={() => history.push('/contact')}
-            >
-              Contact Us to Join
-            </Button>
-          </Box>
-        </Box>
+          <Grid item xs={12} sm={6}>
+            <Card sx={{ backgroundColor: '#1e1e1e', color: 'white', borderRadius: '15px' }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Why AI Matching?
+                </Typography>
+                <Typography variant="body2">
+                  - Precise skill-based matching<br />
+                  - Saves hours of manual applications<br />
+                  - Targets reliable, high-quality jobs
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Card sx={{ backgroundColor: '#1e1e1e', color: 'white', borderRadius: '15px' }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Get Started
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 2 }}>
+                  Sign up for any plan to start matching and applying to jobs instantly!
+                </Typography>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  onClick={() => history.push(user ? '/dashboard' : '/register')}
+                  sx={{
+                    backgroundColor: '#ff6d00',
+                    '&:hover': { backgroundColor: '#e65100' },
+                    borderRadius: '10px',
+                  }}
+                >
+                  {user ? 'Go to Dashboard' : 'Join Now'}
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
       </Container>
-      <Box sx={{ py: 4, backgroundColor: '#1a2a44', color: 'white' }}>
+      <Box sx={{ py: 4, backgroundColor: '#1a2a44', color: 'white', mt: 4 }}>
         <Container maxWidth="lg">
           <Grid container spacing={4}>
             <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>About ZvertexAI</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+                About ZvertexAI
+              </Typography>
               <Typography variant="body2">
-                ZvertexAI empowers your career with AI-driven job matching, innovative projects, and ZGPT, your personal copilot. Join us to shape the future!
+                ZvertexAI empowers careers with AI-driven job matching, innovative projects, and ZGPT, your
+                personal copilot. Join us to unlock your potential.
               </Typography>
             </Grid>
             <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>Quick Links</Typography>
-              <Box>
-                <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/faq')}>
-                  Interview FAQs
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/why-us')}>
-                  Why ZvertexAI?
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/zgpt')}>
-                  ZGPT Copilot
-                </Typography>
-拆掉：
-                <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/contact')}>
-                  Contact Us
-                </Typography>
-              </Box>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+                Quick Links
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ mb: 1, cursor: 'pointer' }}
+                onClick={() => history.push('/faq')}
+              >
+                Interview FAQs
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ mb: 1, cursor: 'pointer' }}
+                onClick={() => history.push('/why-us')}
+              >
+                Why ZvertexAI?
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ mb: 1, cursor: 'pointer' }}
+                onClick={() => history.push('/zgpt')}
+              >
+                ZGPT Copilot
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ mb: 1, cursor: 'pointer' }}
+                onClick={() => history.push('/contact')}
+              >
+                Contact Us
+              </Typography>
             </Grid>
             <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>Contact Us</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+                Contact Info
+              </Typography>
               <Typography variant="body2" sx={{ mb: 1 }}>
                 Address: 5900 Balcones Dr #16790, Austin, TX 78731
               </Typography>
               <Typography variant="body2" sx={{ mb: 1 }}>
                 Phone: (737) 239-0920
               </Typography>
-              <Typography variant="body2">
+              <Typography variant="body2" sx={{ mb: 1 }}>
                 Email: support@zvertexai.com
               </Typography>
             </Grid>
           </Grid>
-          <Box sx={{ mt: 4, textAlign: 'center' }}>
-            <Typography variant="body2">
-              © 2025 ZvertexAI. All rights reserved.
-            </Typography>
-          </Box>
+          <Typography variant="body2" sx={{ mt: 4, textAlign: 'center' }}>
+            © 2025 ZvertexAI. All rights reserved.
+          </Typography>
         </Container>
       </Box>
     </Box>

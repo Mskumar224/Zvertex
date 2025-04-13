@@ -1,32 +1,21 @@
 const express = require('express');
 const router = express.Router();
+const auth = require('../middleware/auth');
 const axios = require('axios');
-const authMiddleware = require('../middleware/auth');
 
-router.post('/query', authMiddleware, async (req, res) => {
+// @route   POST api/zgpt
+// @desc    Handle ZGPT queries
+// @access  Private
+router.post('/', auth, async (req, res) => {
   const { query } = req.body;
 
-  if (!query || typeof query !== 'string') {
-    return res.status(400).json({ msg: 'Invalid query' });
-  }
-
   try {
-    const response = await axios.post(
-      'https://api-inference.huggingface.co/models/gpt2',
-      { inputs: query },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.HF_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    const result = response.data[0]?.generated_text || 'No response generated.';
-    res.json({ text: result });
+    // Placeholder for AI model integration (e.g., OpenAI or custom model)
+    const response = `ZGPT response to: ${query}`;
+    res.json({ response });
   } catch (err) {
-    console.error('Hugging Face API Error:', err.response?.data || err.message);
-    res.status(500).json({ msg: 'Error fetching response from ZGPT', error: err.message });
+    console.error(err.message);
+    res.status(500).send('Server error');
   }
 });
 

@@ -1,105 +1,149 @@
 import React from 'react';
 import { useHistory } from 'react-router-dom';
-import { Box, Typography, Container, Button, Grid, Card, CardContent, IconButton } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Container,
+  Grid,
+  Button,
+  IconButton,
+  Card,
+  CardContent,
+} from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 function ProjectAI({ user }) {
   const history = useHistory();
 
   return (
-    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: '#121212', color: 'white', py: 4 }}>
       <Container maxWidth="lg">
-        <IconButton onClick={() => history.goBack()} sx={{ color: '#ff6d00', mt: 2 }}>
+        <IconButton
+          onClick={() => history.push(user ? '/dashboard' : '/')}
+          sx={{ color: 'white', mb: 2 }}
+        >
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant="h4" sx={{ mt: 4, mb: 4, textAlign: 'center', fontWeight: 'bold' }}>
-          AI Automation
-        </Typography>
-        <Typography variant="h6" sx={{ mb: 4, textAlign: 'center', opacity: 0.9 }}>
-          Automate workflows with cutting-edge AI technologies.
+        <Typography variant="h4" sx={{ mb: 4, textAlign: 'center', fontWeight: 'bold' }}>
+          AI Automation Project
         </Typography>
         <Grid container spacing={4}>
           <Grid item xs={12}>
-            <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px' }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              Develop Intelligent AI Solutions
+            </Typography>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              Join our AI project to build automation tools using TensorFlow, PyTorch, and Python. Create
+              intelligent systems for job matching, chatbots, and more.
+            </Typography>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              <strong>Technologies:</strong> TensorFlow, PyTorch, Python, Scikit-learn, Pandas, NLP
+            </Typography>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              <strong>Skills Gained:</strong> Machine learning, deep learning, data processing, model deployment
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Card sx={{ backgroundColor: '#1e1e1e', color: 'white', borderRadius: '15px' }}>
               <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>Use Case</Typography>
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  Our AI automation project streamlines customer support with chatbots that handle 80% of queries, freeing up human agents for complex tasks.
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Why Join?
+                </Typography>
+                <Typography variant="body2">
+                  - Work on cutting-edge AI models<br />
+                  - Gain expertise in ML frameworks<br />
+                  - Stand out in the AI job market
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} sm={6}>
-            <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px', height: '100%' }}>
+            <Card sx={{ backgroundColor: '#1e1e1e', color: 'white', borderRadius: '15px' }}>
               <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>For Clients</Typography>
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  Boost efficiency with AI-powered automation for repetitive tasks, tailored to your industry.
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Get Started
                 </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px', height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>For Users</Typography>
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  Develop expertise in machine learning, NLP, and AI frameworks like TensorFlow and PyTorch.
+                <Typography variant="body2" sx={{ mb: 2 }}>
+                  Subscribe to any plan to join our projects and start building today!
                 </Typography>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  onClick={() => history.push(user ? '/dashboard' : '/register')}
+                  sx={{
+                    backgroundColor: '#ff6d00',
+                    '&:hover': { backgroundColor: '#e65100' },
+                    borderRadius: '10px',
+                  }}
+                >
+                  {user ? 'Go to Dashboard' : 'Join Now'}
+                </Button>
               </CardContent>
             </Card>
           </Grid>
         </Grid>
-        <Box sx={{ textAlign: 'center', mt: 4 }}>
-          <Button
-            variant="contained"
-            sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' }, borderRadius: '25px', px: 4, py: 1.5, mr: 2 }}
-            onClick={() => history.push(user ? '/dashboard' : '/register')}
-          >
-            {user ? 'Join Project' : 'Subscribe Now'}
-          </Button>
-          <Button
-            variant="text"
-            sx={{ color: '#ff6d00' }}
-            onClick={() => history.push('/contact')}
-          >
-            Contact Us to Join
-          </Button>
-        </Box>
       </Container>
-      <Box sx={{ py: 3, backgroundColor: '#1a2a44', textAlign: 'center', mt: 4 }}>
+      <Box sx={{ py: 4, backgroundColor: '#1a2a44', color: 'white', mt: 4 }}>
         <Container maxWidth="lg">
           <Grid container spacing={4}>
             <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Contact Us</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+                About ZvertexAI
+              </Typography>
               <Typography variant="body2">
+                ZvertexAI empowers careers with AI-driven job matching, innovative projects, and ZGPT, your
+                personal copilot. Join us to unlock your potential.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+                Quick Links
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ mb: 1, cursor: 'pointer' }}
+                onClick={() => history.push('/faq')}
+              >
+                Interview FAQs
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ mb: 1, cursor: 'pointer' }}
+                onClick={() => history.push('/why-us')}
+              >
+                Why ZvertexAI?
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ mb: 1, cursor: 'pointer' }}
+                onClick={() => history.push('/zgpt')}
+              >
+                ZGPT Copilot
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ mb: 1, cursor: 'pointer' }}
+                onClick={() => history.push('/contact')}
+              >
+                Contact Us
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+                Contact Info
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
                 Address: 5900 Balcones Dr #16790, Austin, TX 78731
               </Typography>
-              <Typography variant="body2">
+              <Typography variant="body2" sx={{ mb: 1 }}>
                 Phone: (737) 239-0920
               </Typography>
-              <Typography variant="body2">
+              <Typography variant="body2" sx={{ mb: 1 }}>
                 Email: support@zvertexai.com
               </Typography>
             </Grid>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Quick Links</Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/faq')}>
-                Interview FAQs
-              </Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/why-us')}>
-                Why ZvertexAI?
-              </Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => history.push('/projects')}>
-                Join Our Projects
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Follow Us</Typography>
-              <Typography variant="body2">Twitter | LinkedIn | GitHub</Typography>
-            </Grid>
           </Grid>
-          <Typography variant="body2" sx={{ mt: 2 }}>
+          <Typography variant="body2" sx={{ mt: 4, textAlign: 'center' }}>
             © 2025 ZvertexAI. All rights reserved.
           </Typography>
         </Container>

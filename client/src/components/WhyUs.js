@@ -11,7 +11,7 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import MenuIcon from '@mui/icons-material/Menu';
 
-function ProjectDevOps({ user, setSidebarOpen }) {
+function WhyUs({ user, setSidebarOpen }) {
   const history = useHistory();
 
   return (
@@ -19,7 +19,7 @@ function ProjectDevOps({ user, setSidebarOpen }) {
       <Container maxWidth="lg">
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
           <IconButton
-            onClick={() => history.push('/projects')}
+            onClick={() => history.push('/')}
             sx={{ color: 'white', mr: 2 }}
           >
             <ArrowBackIcon />
@@ -34,21 +34,34 @@ function ProjectDevOps({ user, setSidebarOpen }) {
           )}
         </Box>
         <Typography variant="h4" sx={{ mb: 4, textAlign: 'center', fontWeight: 'bold' }}>
-          DevOps Integration Project
+          Why Choose ZvertexAI?
         </Typography>
         <Grid container spacing={4}>
-          <Grid item xs={12}>
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              Streamline development with CI/CD pipelines, containerization, and monitoring tools.
+          <Grid item xs={12} sm={4}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+              AI-Powered Job Matching
             </Typography>
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              <strong>Technologies:</strong> Jenkins, Git, Linux, Docker, Kubernetes, Prometheus
-            </Typography>
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              <strong>Skills Gained:</strong> CI/CD pipelines, infrastructure automation, monitoring
+            <Typography variant="body1">
+              Our advanced AI matches your skills to the best job opportunities across 60+ technologies.
             </Typography>
           </Grid>
-          <Grid item xs={12} sx={{ textAlign: 'center' }}>
+          <Grid item xs={12} sm={4}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+              Automation
+            </Typography>
+            <Typography variant="body1">
+              Auto-apply to jobs every 30 minutes, saving you time and effort.
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+              Hands-On Projects
+            </Typography>
+            <Typography variant="body1">
+              Build real-world experience with SaaS, Cloud, AI, Big Data, and DevOps projects.
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sx={{ textAlign: 'center', mt: 4 }}>
             <Button
               variant="contained"
               onClick={() => history.push(user ? '/dashboard' : '/register')}
@@ -60,7 +73,7 @@ function ProjectDevOps({ user, setSidebarOpen }) {
                 py: 1.5,
               }}
             >
-              {user ? 'Go to Dashboard' : 'Join Now'}
+              {user ? 'Go to Dashboard' : 'Get Started'}
             </Button>
           </Grid>
         </Grid>
@@ -69,4 +82,4 @@ function ProjectDevOps({ user, setSidebarOpen }) {
   );
 }
 
-export default ProjectDevOps;
+export default WhyUs;
