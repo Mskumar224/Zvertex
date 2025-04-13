@@ -2,7 +2,5 @@
     "mongoURI": "mongodb+srv://zvertex247:F8i6QLh25lDlR4vf@cluster0.p7xqu.mongodb.net/",
     "jwtSecret": "default_jwt_secret",
     "emailUser": "zvertexai@honotech.com",
-    "emailPass": "qnfz cudq ytwe vjwp",
-    "adzunaAppId": "820cd31b",
-  "adzunaAppKey": "426338d17ec92932e1b821502c98ea5e"
+    "emailPass": "qnfz cudq ytwe vjwp"
   }
