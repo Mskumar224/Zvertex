@@ -28,7 +28,6 @@ function Register() {
     e.preventDefault();
     setError('');
 
-    // Client-side validation
     if (!email || !/\S+@\S+\.\S+/.test(email)) {
       setError('Please enter a valid email');
       return;
@@ -123,6 +122,19 @@ function Register() {
                   '& .MuiOutlinedInput-notchedOutline': { borderColor: '#b0bec5' },
                   '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#ff6d00' },
                   '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#ff6d00' },
+                  '& .MuiSelect-select': { backgroundColor: '#263238' },
+                }}
+                MenuProps={{
+                  PaperProps: {
+                    sx: {
+                      backgroundColor: '#1e1e1e',
+                      color: 'white',
+                      '& .MuiMenuItem-root': {
+                        '&:hover': { backgroundColor: '#ff6d00' },
+                        '&.Mui-selected': { backgroundColor: '#e65100' },
+                      },
+                    },
+                  },
                 }}
                 required
               >

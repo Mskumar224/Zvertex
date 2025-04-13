@@ -27,10 +27,9 @@ app.use('/api/jobs', jobRoutes);
 app.use('/api/zgpt', zgptRoutes);
 
 // Serve static files only if client/build exists
-const buildPath = path.join(__dirname, '../client/build');
+const buildPath = path.join(__dirname, 'client/build');
 if (fs.existsSync(buildPath)) {
   app.use(express.static(buildPath));
-  // Serve frontend for non-API routes
   app.get(/^(?!\/api).*/, (req, res) => {
     res.sendFile(path.join(buildPath, 'index.html'), (err) => {
       if (err) {
