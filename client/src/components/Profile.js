@@ -2,37 +2,36 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const Contact = () => {
+const Profile = () => {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    message: '',
+    location: '',
+    technologies: '',
   });
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const navigate = useNavigate();
 
-  const { name, email, message } = formData;
+  const { location, technologies } = formData;
 
   const onChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    if (!name || !email || !message) {
-      setError('All fields are required');
+    if (!location || !technologies) {
+      setError('Location and technologies are required');
       return;
     }
     try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/api/contact`, {
-        name,
-        email,
-        message,
-      });
-      setSuccess('Message sent successfully');
-      setFormData({ name: '', email: '', message: '' });
+      const token = localStorage.getItem('token');
+      await axios.put(
+        `${process.env.REACT_APP_API_URL}/api/auth/profile`,
+        { location, technologies: technologies.split(',').map((t) => t.trim()) },
+        { headers: { 'x-auth-token': token } }
+      );
+      alert('Profile updated');
+      navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to send message');
+      setError(err.response?.data?.msg || 'Update failed');
       console.error(err);
     }
   };
@@ -60,16 +59,16 @@ const Contact = () => {
       >
         Back
       </button>
-      <h2 style={{ textAlign: 'center', color: '#333' }}>Contact Us</h2>
+      <h2 style={{ textAlign: 'center', color: '#333' }}>Update Profile</h2>
       <form onSubmit={onSubmit}>
         <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', color: '#555' }}>Name</label>
+          <label style={{ display: 'block', marginBottom: '5px', color: '#555' }}>Location</label>
           <input
             type="text"
-            name="name"
-            value={name}
+            name="location"
+            value={location}
             onChange={onChange}
-            required
+            placeholder="e.g., New York, NY"
             style={{ 
               width: '100%', 
               padding: '10px', 
@@ -79,39 +78,22 @@ const Contact = () => {
           />
         </div>
         <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', color: '#555' }}>Email</label>
+          <label style={{ display: 'block', marginBottom: '5px', color: '#555' }}>Technologies (comma-separated)</label>
           <input
-            type="email"
-            name="email"
-            value={email}
+            type="text"
+            name="technologies"
+            value={technologies}
             onChange={onChange}
-            required
+            placeholder="e.g., JavaScript, Python"
             style={{ 
               width: '100%', 
               padding: '10px', 
               border: '1px solid #ddd', 
               borderRadius: '4px' 
-            }}
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', color: '#555' }}>Message</label>
-          <textarea
-            name="message"
-            value={message}
-            onChange={onChange}
-            required
-            style={{ 
-              width: '100%', 
-              padding: '10px', 
-              border: '1px solid #ddd', 
-              borderRadius: '4px', 
-              height: '100px' 
             }}
           />
         </div>
         {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
-        {success && <p style={{ color: 'green', textAlign: 'center' }}>{success}</p>}
         <button 
           type="submit" 
           style={{ 
@@ -124,11 +106,11 @@ const Contact = () => {
             cursor: 'pointer' 
           }}
         >
-          Send
+          Save
         </button>
       </form>
     </div>
   );
 };
 
-export default Contact;
+export default Profile;
