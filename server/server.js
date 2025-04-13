@@ -22,13 +22,25 @@ app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/zgpt', zgptRoutes);
 
+// Health check endpoint for Render
+app.get('/health', (req, res) => res.status(200).json({ status: 'OK' }));
+
 // MongoDB Connection
-mongoose.connect(process.env.MONGO_URI, {
+const mongoUri = process.env.MONGO_URI;
+if (!mongoUri) {
+  console.error('MONGO_URI is not defined in environment variables');
+  process.exit(1);
+}
+
+mongoose.connect(mongoUri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
   .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+  .catch(err => {
+    console.error('MongoDB connection error:', err.message);
+    process.exit(1);
+  });
 
 // Cron job to check trial expirations
 cron.schedule('0 0 * * *', async () => {
@@ -50,9 +62,15 @@ cron.schedule('0 0 * * *', async () => {
 
 // Serve client build in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/build')));
+  const clientBuildPath = path.join(__dirname, '../client/build');
+  app.use(express.static(clientBuildPath));
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+    res.sendFile(path.join(clientBuildPath, 'index.html'), (err) => {
+      if (err) {
+        console.error('Error serving index.html:', err.message);
+        res.status(500).send('Server error');
+      }
+    });
   });
 }
 
