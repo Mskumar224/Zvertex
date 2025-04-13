@@ -8,7 +8,7 @@ import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
 import WhyZvertexAI from './components/WhyZvertexAI';
 import InterviewFAQs from './components/InterviewFAQs';
-import ZGPT from './components/ZGPT';
+import ZGPT from './components/Zgpt';
 import ProjectSaaS from './components/ProjectSaaS';
 import ProjectCloud from './components/ProjectCloud';
 import ProjectAI from './components/ProjectAI';
