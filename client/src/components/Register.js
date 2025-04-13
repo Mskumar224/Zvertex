@@ -1,27 +1,40 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { Box, Typography, TextField, Button, Container, Grid, FormControl, InputLabel, Select, MenuItem, CircularProgress } from '@mui/material';
+import { Box, Typography, TextField, Button, Container, Grid, CircularProgress } from '@mui/material';
 import axios from 'axios';
 
 function Register({ setUser }) {
   const history = useHistory();
-  const [formData, setFormData] = useState({ email: '', password: '', subscriptionType: 'STUDENT' });
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    jobTitle: '',
+    skills: '',
+    location: '',
+  });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.email || !formData.password || !formData.subscriptionType) {
-      setError('All fields are required');
-      return;
-    }
     setLoading(true);
     setError('');
     try {
-      const res = await axios.post(`${apiUrl}/api/auth/register`, formData);
+      const profile = {
+        jobTitle: formData.jobTitle,
+        skills: formData.skills.split(',').map(skill => skill.trim()),
+        location: formData.location,
+      };
+      const res = await axios.post(`${apiUrl}/api/auth/register`, {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        profile,
+      });
       localStorage.setItem('token', res.data.token);
-      setUser(res.data);
+      setUser(res.data.user);
       history.push('/dashboard');
     } catch (err) {
       setError(err.response?.data?.msg || 'Registration failed');
@@ -40,6 +53,15 @@ function Register({ setUser }) {
           {error && <Typography color="error" sx={{ mb: 2, textAlign: 'center' }}>{error}</Typography>}
           <Box component="form" onSubmit={handleSubmit}>
             <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  label="Name"
+                  fullWidth
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
+                />
+              </Grid>
               <Grid item xs={12}>
                 <TextField
                   label="Email"
@@ -61,18 +83,31 @@ function Register({ setUser }) {
                 />
               </Grid>
               <Grid item xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel sx={{ color: 'white' }}>Subscription Type</InputLabel>
-                  <Select
-                    value={formData.subscriptionType}
-                    onChange={(e) => setFormData({ ...formData, subscriptionType: e.target.value })}
-                    sx={{ color: 'white', '& .MuiOutlinedInput-notchedOutline': { borderColor: 'white' } }}
-                  >
-                    <MenuItem value="STUDENT">Student ($69.99, 4-day free trial)</MenuItem>
-                    <MenuItem value="RECRUITER">Recruiter ($149.99, 4-day free trial)</MenuItem>
-                    <MenuItem value="BUSINESS">Business ($249.99, 4-day free trial)</MenuItem>
-                  </Select>
-                </FormControl>
+                <TextField
+                  label="Job Title"
+                  fullWidth
+                  value={formData.jobTitle}
+                  onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
+                  sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Skills (comma-separated)"
+                  fullWidth
+                  value={formData.skills}
+                  onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
+                  sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Location (Zip, City, State)"
+                  fullWidth
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
+                />
               </Grid>
               <Grid item xs={12}>
                 <Button

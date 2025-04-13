@@ -1,112 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
-import { Box, Typography, Button, Container, TextField, Grid, Card, CardContent, IconButton, CircularProgress, Chip } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import Sidebar from './Sidebar';
+import { Box, Typography, Container, Button, Grid, TextField, CircularProgress, Alert } from '@mui/material';
+import BackButton from './BackButton';
 import axios from 'axios';
-import { parseResume } from '../utils/resumeParser';
 
 function Dashboard({ user, setUser }) {
   const history = useHistory();
-  const [profiles, setProfiles] = useState(user.profiles || []);
-  const [newProfile, setNewProfile] = useState({
-    name: '',
-    phone: '',
-    technologies: '',
-    companies: '',
-    resume: null,
-  });
   const [jobs, setJobs] = useState([]);
-  const [applications, setApplications] = useState([]);
+  const [profile, setProfile] = useState(user.profile || { jobTitle: '', skills: [], location: '' });
+  const [searchData, setSearchData] = useState({ jobTitle: '', skills: '', location: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [subscriptionStatus, setSubscriptionStatus] = useState(user.subscriptionStatus || 'TRIAL');
+  const [success, setSuccess] = useState('');
   const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
   useEffect(() => {
-    fetchApplications();
-    checkSubscriptionStatus();
-  }, []);
-
-  const fetchApplications = async () => {
-    try {
-      const res = await axios.get(`${apiUrl}/api/jobs/history`, {
-        headers: { 'x-auth-token': localStorage.getItem('token') },
-      });
-      setApplications(res.data.applications);
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to fetch applications');
+    if (user.subscriptionStatus !== 'ACTIVE') {
+      setError('Please subscribe to view jobs');
+      setTimeout(() => history.push('/subscription'), 2000);
+    } else {
+      fetchJobs();
     }
-  };
+  }, [user.subscriptionStatus, apiUrl, history]);
 
-  const checkSubscriptionStatus = async () => {
+  const fetchJobs = async (searchParams = {}) => {
     try {
-      const res = await axios.get(`${apiUrl}/api/auth/subscription`, {
+      setLoading(true);
+      const res = await axios.get(`${apiUrl}/api/jobs`, {
         headers: { 'x-auth-token': localStorage.getItem('token') },
+        params: searchParams,
       });
-      setSubscriptionStatus(res.data.subscriptionStatus);
-      setUser({ ...user, subscriptionStatus: res.data.subscriptionStatus });
-    } catch (err) {
-      setError('Failed to verify subscription');
-    }
-  };
-
-  const handleProfileSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      let resumeData = {};
-      if (newProfile.resume) {
-        resumeData = await parseResume(newProfile.resume);
-      }
-
-      const profileData = {
-        name: newProfile.name || resumeData.name || 'Default Profile',
-        phone: newProfile.phone || resumeData.phone || '',
-        technologies: newProfile.technologies ? newProfile.technologies.split(',').map(t => t.trim()) : resumeData.technologies || [],
-        companies: newProfile.companies ? newProfile.companies.split(',').map(c => c.trim()) : [],
-        resume: newProfile.resume ? newProfile.resume.name : '',
-      };
-
-      const res = await axios.post(`${apiUrl}/api/auth/profile`, profileData, {
-        headers: { 'x-auth-token': localStorage.getItem('token') },
-      });
-
-      setProfiles(res.data.profiles);
-      setUser({ ...user, profiles: res.data.profiles });
-      setNewProfile({ name: '', phone: '', technologies: '', companies: '', resume: null });
-      setError('');
-
-      // Automatically fetch jobs for the new profile
-      await handleJobSearch(res.data.profiles[res.data.profiles.length - 1]._id);
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to create profile');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleJobSearch = async (profileId) => {
-    setLoading(true);
-    try {
-      const profile = profiles.find(p => p._id === profileId);
-      if (!profile) return;
-
-      const res = await axios.post(
-        `${apiUrl}/api/jobs/fetch`,
-        { technology: profile.technologies[0], companies: profile.companies },
-        { headers: { 'x-auth-token': localStorage.getItem('token') } }
-      );
-
-      setJobs(res.data.jobs);
-      setError('');
-
-      // Auto-apply to jobs if subscription allows
-      if (['ACTIVE', 'TRIAL'].includes(subscriptionStatus)) {
-        for (const job of res.data.jobs) {
-          await handleApply(job, profileId);
-        }
-      }
+      setJobs(res.data);
     } catch (err) {
       setError(err.response?.data?.msg || 'Failed to fetch jobs');
     } finally {
@@ -114,285 +38,192 @@ function Dashboard({ user, setUser }) {
     }
   };
 
-  const handleApply = async (job, profileId) => {
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
     try {
-      await axios.post(
-        `${apiUrl}/api/jobs/apply`,
-        { jobId: job.id, jobTitle: job.title, company: job.company, jobLink: job.link, technology: job.technologies[0], profileId },
+      const res = await axios.put(
+        `${apiUrl}/api/auth/profile`,
+        { profile },
         { headers: { 'x-auth-token': localStorage.getItem('token') } }
       );
-      fetchApplications();
-      setJobs(jobs.filter(j => j.id !== job.id));
+      setUser({ ...user, profile: res.data.profile });
+      setSuccess('Profile updated successfully');
+      fetchJobs();
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to apply');
+      setError(err.response?.data?.msg || 'Failed to update profile');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const renderDashboardContent = () => {
-    switch (user.subscriptionType) {
-      case 'STUDENT':
-        return (
-          <>
-            <Typography variant="h5" sx={{ color: 'white', mb: 2 }}>
-              Job Opportunities
-            </Typography>
-            <Typography variant="body1" sx={{ color: 'white', mb: 4 }}>
-              Find jobs tailored to your skills. Upload your resume, select technologies, and let us auto-apply for you.
-            </Typography>
-          </>
-        );
-      case 'RECRUITER':
-        return (
-          <>
-            <Typography variant="h5" sx={{ color: 'white', mb: 2 }}>
-              Candidate Matching
-            </Typography>
-            <Typography variant="body1" sx={{ color: 'white', mb: 4 }}>
-              Access profiles of top candidates matched to your job postings. Review applications and connect directly.
-            </Typography>
-          </>
-        );
-      case 'BUSINESS':
-        return (
-          <>
-            <Typography variant="h5" sx={{ color: 'white', mb: 2 }}>
-              Recruitment Analytics
-            </Typography>
-            <Typography variant="body1" sx={{ color: 'white', mb: 4 }}>
-              Gain insights into hiring trends, application success rates, and optimize your recruitment strategy.
-            </Typography>
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="h6" sx={{ color: 'white' }}>Analytics Overview</Typography>
-              <Typography variant="body2" sx={{ color: 'white' }}>
-                Applications Submitted: {applications.length}<br />
-                Success Rate: {applications.length > 0 ? `${((applications.filter(a => a.status === 'INTERVIEW').length / applications.length) * 100).toFixed(2)}%` : '0%'}
-              </Typography>
-            </Box>
-          </>
-        );
-      default:
-        return null;
+  const handleSearch = (e) => {
+    e.preventDefault();
+    setError('');
+    const { jobTitle, skills, location } = searchData;
+    if (!jobTitle || !skills || !location) {
+      setError('All search fields are required');
+      return;
+    }
+    fetchJobs({ jobTitle, skills: skills.split(',').map(s => s.trim()), location });
+  };
+
+  const handleAutoApply = async (jobId) => {
+    try {
+      setLoading(true);
+      await axios.post(
+        `${apiUrl}/api/jobs/apply`,
+        { jobId },
+        { headers: { 'x-auth-token': localStorage.getItem('token') } }
+      );
+      setSuccess('Application submitted!');
+    } catch (err) {
+      setError(err.response?.data?.msg || 'Failed to apply');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)' }}>
-      <Sidebar user={user} setUser={setUser} />
-      <Box sx={{ flexGrow: 1, p: 4, ml: '250px' }}>
-        <Container maxWidth="lg">
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-            <IconButton onClick={() => history.goBack()} sx={{ color: 'white' }}>
-              <ArrowBackIcon />
-            </IconButton>
-            <Typography variant="h4" sx={{ color: 'white', flexGrow: 1, textAlign: 'center' }}>
-              {user.subscriptionType} Dashboard
-            </Typography>
-            <Chip label={subscriptionStatus === 'TRIAL' ? '4-Day Trial' : 'Active'} color={subscriptionStatus === 'TRIAL' ? 'warning' : 'success'} />
-          </Box>
-          {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
-          {renderDashboardContent()}
-          {subscriptionStatus === 'TRIAL' && (
-            <Box sx={{ mb: 4, p: 2, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '10px' }}>
-              <Typography variant="h6" sx={{ color: 'white' }}>
-                Your 4-day free trial is active!
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'white', mb: 2 }}>
-                Enjoy full access to {user.subscriptionType} features. Subscribe to continue after the trial.
-              </Typography>
-              <Button
-                variant="contained"
-                sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
-                onClick={() => history.push('/subscription')}
-              >
-                Subscribe Now
-              </Button>
-            </Box>
-          )}
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="h5" sx={{ color: 'white', mb: 2 }}>
-              Create Profile
-            </Typography>
-            <Box component="form" onSubmit={handleProfileSubmit}>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Profile Name"
-                    fullWidth
-                    value={newProfile.name}
-                    onChange={(e) => setNewProfile({ ...newProfile, name: e.target.value })}
-                    sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Phone"
-                    fullWidth
-                    value={newProfile.phone}
-                    onChange={(e) => setNewProfile({ ...newProfile, phone: e.target.value })}
-                    sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    label="Technologies (comma-separated)"
-                    fullWidth
-                    value={newProfile.technologies}
-                    onChange={(e) => setNewProfile({ ...newProfile, technologies: e.target.value })}
-                    sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    label="Preferred Companies (comma-separated)"
-                    fullWidth
-                    value={newProfile.companies}
-                    onChange={(e) => setNewProfile({ ...newProfile, companies: e.target.value })}
-                    sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <Button
-                    variant="contained"
-                    component="label"
-                    sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
-                  >
-                    Upload Resume
-                    <input
-                      type="file"
-                      hidden
-                      onChange={(e) => setNewProfile({ ...newProfile, resume: e.target.files[0] })}
-                    />
-                  </Button>
-                </Grid>
-                <Grid item xs={12}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    disabled={loading}
-                    sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
-                  >
-                    {loading ? <CircularProgress size={24} color="inherit" /> : 'Create Profile & Apply'}
-                  </Button>
-                </Grid>
-              </Grid>
-            </Box>
-          </Box>
-          <Typography variant="h5" sx={{ color: 'white', mb: 2 }}>
-            Your Profiles
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', py: 4 }}>
+      <Container maxWidth="lg">
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+          <BackButton />
+          <Typography variant="h4" sx={{ color: 'white', flexGrow: 1, textAlign: 'center' }}>
+            Dashboard
           </Typography>
-          <Grid container spacing={2}>
-            {profiles.map((profile) => (
-              <Grid item xs={12} sm={6} key={profile._id}>
-                <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px' }}>
-                  <CardContent>
-                    <Typography variant="h6">{profile.name}</Typography>
-                    <Typography variant="body2">Phone: {profile.phone}</Typography>
-                    <Typography variant="body2">Technologies: {profile.technologies.join(', ')}</Typography>
-                    <Typography variant="body2">Companies: {profile.companies.join(', ')}</Typography>
-                    <Button
-                      variant="contained"
-                      sx={{ mt: 2, backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
-                      onClick={() => handleJobSearch(profile._id)}
-                    >
-                      Search & Apply Jobs
-                    </Button>
-                  </CardContent>
-                </Card>
+        </Box>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+        <Box sx={{ backgroundColor: 'rgba(255,255,255,0.1)', p: 4, borderRadius: '15px', mb: 4 }}>
+          <Typography variant="h5" sx={{ color: 'white', mb: 2 }}>
+            Edit Profile
+          </Typography>
+          <Box component="form" onSubmit={handleProfileUpdate}>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  label="Job Title"
+                  fullWidth
+                  value={profile.jobTitle}
+                  onChange={(e) => setProfile({ ...profile, jobTitle: e.target.value })}
+                  sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
+                />
               </Grid>
-            ))}
-          </Grid>
-          {jobs.length > 0 && (
-            <>
-              <Typography variant="h5" sx={{ color: 'white', mt: 4, mb: 2 }}>
-                Available Jobs
+              <Grid item xs={12}>
+                <TextField
+                  label="Skills (comma-separated)"
+                  fullWidth
+                  value={profile.skills.join(', ')}
+                  onChange={(e) => setProfile({ ...profile, skills: e.target.value.split(',').map(skill => skill.trim()) })}
+                  sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Location (Zip, City, State)"
+                  fullWidth
+                  value={profile.location}
+                  onChange={(e) => setProfile({ ...profile, location: e.target.value })}
+                  sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  fullWidth
+                  disabled={loading}
+                  sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
+                >
+                  {loading ? <CircularProgress size={24} color="inherit" /> : 'Update Profile'}
+                </Button>
+              </Grid>
+            </Grid>
+          </Box>
+        </Box>
+        {user.subscriptionStatus === 'ACTIVE' && (
+          <>
+            <Box sx={{ backgroundColor: 'rgba(255,255,255,0.1)', p: 4, borderRadius: '15px', mb: 4 }}>
+              <Typography variant="h5" sx={{ color: 'white', mb: 2 }}>
+                Search Your Dream Job Here
               </Typography>
+              <Typography sx={{ color: 'white', mb: 2 }}>
+                Discover your next opportunity with AI-driven tools.
+              </Typography>
+              <Box component="form" onSubmit={handleSearch}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <TextField
+                      label="Enter Job Title, Skills"
+                      fullWidth
+                      value={searchData.jobTitle}
+                      onChange={(e) => setSearchData({ ...searchData, jobTitle: e.target.value })}
+                      sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      label="Enter Skills (comma-separated)"
+                      fullWidth
+                      value={searchData.skills}
+                      onChange={(e) => setSearchData({ ...searchData, skills: e.target.value })}
+                      sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      label="Enter Location (Zip, City, State)"
+                      fullWidth
+                      value={searchData.location}
+                      onChange={(e) => setSearchData({ ...searchData, location: e.target.value })}
+                      sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      fullWidth
+                      disabled={loading}
+                      sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
+                    >
+                      {loading ? <CircularProgress size={24} color="inherit" /> : 'Search Jobs'}
+                    </Button>
+                  </Grid>
+                </Grid>
+              </Box>
+            </Box>
+            <Typography variant="h5" sx={{ color: 'white', mb: 2 }}>
+              Recommended Jobs
+            </Typography>
+            {loading ? (
+              <CircularProgress sx={{ color: 'white' }} />
+            ) : (
               <Grid container spacing={2}>
-                {jobs.map((job) => (
-                  <Grid item xs={12} sm={6} key={job.id}>
-                    <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px' }}>
-                      <CardContent>
-                        <Typography variant="h6">{job.title}</Typography>
-                        <Typography variant="body2">Company: {job.company}</Typography>
-                        <Typography variant="body2">Technologies: {job.technologies.join(', ')}</Typography>
-                        <Typography variant="body2">Job ID: {job.id}</Typography>
-                        <Button
-                          variant="contained"
-                          sx={{ mt: 2, backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
-                          onClick={() => handleApply(job, profiles.find(p => p.technologies.includes(job.technologies[0]))?._id)}
-                        >
-                          Apply
-                        </Button>
-                      </CardContent>
-                    </Card>
+                {jobs.map(job => (
+                  <Grid item xs={12} sm={6} md={4} key={job._id}>
+                    <Box sx={{ backgroundColor: 'rgba(255,255,255,0.1)', p: 2, borderRadius: '10px' }}>
+                      <Typography sx={{ color: 'white' }}>{job.title}</Typography>
+                      <Typography sx={{ color: 'white' }}>{job.company}</Typography>
+                      <Typography sx={{ color: 'white' }}>{job.location}</Typography>
+                      <Button
+                        variant="contained"
+                        sx={{ mt: 1, backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
+                        onClick={() => handleAutoApply(job._id)}
+                      >
+                        Apply
+                      </Button>
+                    </Box>
                   </Grid>
                 ))}
               </Grid>
-            </>
-          )}
-          <Typography variant="h5" sx={{ color: 'white', mt: 4, mb: 2 }}>
-            Application History
-          </Typography>
-          <Grid container spacing={2}>
-            {applications.map((app) => (
-              <Grid item xs={12} sm={6} key={app._id}>
-                <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px' }}>
-                  <CardContent>
-                    <Typography variant="h6">{app.jobTitle}</Typography>
-                    <Typography variant="body2">Company: {app.company}</Typography>
-                    <Typography variant="body2">Technology: {app.technology}</Typography>
-                    <Typography variant="body2">Job ID: {app.jobId}</Typography>
-                    <Typography variant="body2">Applied: {new Date(app.date).toLocaleDateString()}</Typography>
-                    <Typography variant="body2">Status: {app.status || 'APPLIED'}</Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-          <Box sx={{ py: 4, backgroundColor: '#1a2a44', color: 'white', mt: 4 }}>
-            <Container maxWidth="lg">
-              <Grid container spacing={4}>
-                <Grid item xs={12} sm={4}>
-                  <Typography variant="h6" sx={{ mb: 2 }}>ZvertexAI</Typography>
-                  <Typography variant="body2">
-                    Empowering careers with AI-driven job matching, projects, and ZGPT copilot.
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Typography variant="h6" sx={{ mb: 2 }}>Quick Links</Typography>
-                  <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/why-zvertexai')}>
-                    Why ZvertexAI?
-                  </Typography>
-                  <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/interview-faqs')}>
-                    Interview FAQs
-                  </Typography>
-                  <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/zgpt')}>
-                    ZGPT Copilot
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Typography variant="h6" sx={{ mb: 2 }}>Contact Us</Typography>
-                  <Typography variant="body2" sx={{ mb: 1 }}>
-                    Address: 5900 BALCONES DR #16790 AUSTIN, TX 78731
-                  </Typography>
-                  <Typography variant="body2" sx={{ mb: 1 }}>
-                    Phone: 737-239-0920
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    sx={{ color: 'white', borderColor: 'white' }}
-                    onClick={() => history.push('/contact-us')}
-                  >
-                    Reach Out
-                  </Button>
-                </Grid>
-              </Grid>
-              <Typography variant="body2" align="center" sx={{ mt: 4 }}>
-                © 2025 ZvertexAI. All rights reserved.
-              </Typography>
-            </Container>
-          </Box>
-        </Container>
-      </Box>
+            )}
+          </>
+        )}
+      </Container>
     </Box>
   );
 }

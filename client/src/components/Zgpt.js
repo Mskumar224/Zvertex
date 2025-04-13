@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import { useHistory } from 'react-router-dom';
-import { Box, Typography, TextField, Button, Container, CircularProgress, IconButton } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { Box, Typography, TextField, Button, Container, CircularProgress, Alert } from '@mui/material';
+import BackButton from './BackButton';
 import axios from 'axios';
 
 function ZGPT({ user }) {
-  const history = useHistory();
   const [prompt, setPrompt] = useState('');
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,7 +16,7 @@ function ZGPT({ user }) {
     setError('');
     try {
       const res = await axios.post(
-        `${apiUrl}/api/zgpt/chat`,
+        `${apiUrl}/api/zgpt`,
         { prompt },
         { headers: { 'x-auth-token': localStorage.getItem('token') } }
       );
@@ -34,51 +32,43 @@ function ZGPT({ user }) {
     <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', py: 4 }}>
       <Container maxWidth="lg">
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <IconButton onClick={() => history.goBack()} sx={{ color: 'white' }}>
-            <ArrowBackIcon />
-          </IconButton>
+          <BackButton />
           <Typography variant="h4" sx={{ color: 'white', flexGrow: 1, textAlign: 'center' }}>
-            ZGPT Copilot
+            ZGPT
           </Typography>
         </Box>
-        <Typography variant="h5" sx={{ color: 'white', mb: 2 }}>
-          Your AI Career Assistant
-        </Typography>
-        <Typography variant="body1" sx={{ color: 'white', mb: 4 }}>
-          Ask ZGPT for career advice, resume tips, or job search strategies.
-        </Typography>
-        <Box component="form" onSubmit={handleSubmit}>
-          <TextField
-            label="Ask ZGPT..."
-            fullWidth
-            multiline
-            rows={4}
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            sx={{ mb: 2, input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
-          />
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={loading}
-            sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
-          >
-            {loading ? <CircularProgress size={24} color="inherit" /> : 'Submit'}
-          </Button>
-        </Box>
-        {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
-        {response && (
-          <Box sx={{ mt: 4, p: 2, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '10px' }}>
-            <Typography variant="h6" sx={{ color: 'white' }}>ZGPT Response</Typography>
-            <Typography variant="body1" sx={{ color: 'white' }}>{response}</Typography>
+        <Box sx={{ backgroundColor: 'rgba(255,255,255,0.1)', p: 4, borderRadius: '15px' }}>
+          <Typography variant="h5" sx={{ color: 'white', mb: 2 }}>
+            Ask ZGPT
+          </Typography>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          <Box component="form" onSubmit={handleSubmit}>
+            <TextField
+              label="Enter your prompt"
+              fullWidth
+              multiline
+              rows={4}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } }, mb: 2 }}
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={loading}
+              sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
+            >
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'Submit'}
+            </Button>
           </Box>
-        )}
-        <Box sx={{ py: 4, backgroundColor: '#1a2a44', color: 'white', mt: 4 }}>
-          <Container maxWidth="lg">
-            <Typography variant="body2" align="center">
-              © 2025 ZvertexAI. All rights reserved.
-            </Typography>
-          </Container>
+          {response && (
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h6" sx={{ color: 'white' }}>
+                Response
+              </Typography>
+              <Typography sx={{ color: 'white' }}>{response}</Typography>
+            </Box>
+          )}
         </Box>
       </Container>
     </Box>

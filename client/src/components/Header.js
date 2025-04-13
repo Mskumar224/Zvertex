@@ -1,57 +1,50 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
+import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
+import { styled } from '@mui/system';
 
-const Header = () => {
-  const navigate = useNavigate();
-  const token = localStorage.getItem('token');
+const StyledButton = styled(Button)(({ theme }) => ({
+  color: 'white',
+  margin: '0 10px',
+  '&:hover': {
+    backgroundColor: '#ff6d00',
+  },
+}));
 
-  const logout = () => {
+function Header({ user, setUser }) {
+  const history = useHistory();
+
+  const handleLogout = () => {
     localStorage.removeItem('token');
-    navigate('/login');
+    setUser(null);
+    history.push('/login');
   };
 
   return (
-    <header style={{ 
-      background: '#007bff', 
-      color: '#fff', 
-      padding: '15px 20px', 
-      display: 'flex', 
-      justifyContent: 'space-between', 
-      alignItems: 'center',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-    }}>
-      <h1 style={{ margin: 0, fontSize: '24px' }}>ZvertexAI</h1>
-      <nav>
-        <Link to="/" style={{ color: '#fff', margin: '0 15px', textDecoration: 'none' }}>Home</Link>
-        <Link to="/projects" style={{ color: '#fff', margin: '0 15px', textDecoration: 'none' }}>Projects</Link>
-        <Link to="/contact" style={{ color: '#fff', margin: '0 15px', textDecoration: 'none' }}>Contact</Link>
-        {token ? (
-          <>
-            <Link to="/dashboard" style={{ color: '#fff', margin: '0 15px', textDecoration: 'none' }}>Dashboard</Link>
-            <Link to="/profile" style={{ color: '#fff', margin: '0 15px', textDecoration: 'none' }}>Profile</Link>
-            <Link to="/resume-upload" style={{ color: '#fff', margin: '0 15px', textDecoration: 'none' }}>Upload Resume</Link>
-            <button 
-              onClick={logout} 
-              style={{ 
-                color: '#fff', 
-                background: 'none', 
-                border: 'none', 
-                cursor: 'pointer', 
-                fontSize: '16px' 
-              }}
-            >
-              Logout
-            </button>
-          </>
-        ) : (
-          <>
-            <Link to="/login" style={{ color: '#fff', margin: '0 15px', textDecoration: 'none' }}>Login</Link>
-            <Link to="/register" style={{ color: '#fff', margin: '0 15px', textDecoration: 'none' }}>Register</Link>
-          </>
-        )}
-      </nav>
-    </header>
+    <AppBar position="static" sx={{ backgroundColor: '#1a2a44' }}>
+      <Toolbar>
+        <Typography variant="h6" sx={{ flexGrow: 1, cursor: 'pointer' }} onClick={() => history.push('/')}>
+          ZvertexAI
+        </Typography>
+        <Box>
+          <StyledButton onClick={() => history.push('/')}>Home</StyledButton>
+          <StyledButton onClick={() => history.push('/why-zvertexai')}>Why ZvertexAI</StyledButton>
+          <StyledButton onClick={() => history.push('/interview-faqs')}>Interview FAQs</StyledButton>
+          <StyledButton onClick={() => history.push('/zgpt')}>ZGPT</StyledButton>
+          <StyledButton onClick={() => history.push('/contact-us')}>Contact Us</StyledButton>
+          {user ? (
+            <>
+              <StyledButton onClick={() => history.push('/dashboard')}>Dashboard</StyledButton>
+              <StyledButton onClick={() => history.push('/subscription')}>Subscription</StyledButton>
+              <StyledButton onClick={handleLogout}>Logout</StyledButton>
+            </>
+          ) : (
+            <StyledButton onClick={() => history.push('/login')}>Login</StyledButton>
+          )}
+        </Box>
+      </Toolbar>
+    </AppBar>
   );
-};
+}
 
 export default Header;

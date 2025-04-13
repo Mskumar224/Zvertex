@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Switch, Route, Redirect } from 'react-router-dom';
+import Header from './components/Header';
 import Landing from './components/Landing';
 import Login from './components/Login';
 import Register from './components/Register';
@@ -28,42 +29,73 @@ function App() {
     }
   }, [apiUrl]);
 
+  const noHeaderRoutes = ['/login', '/register', '/forgot-password', '/reset-password'];
+
   return (
     <Router>
       <Switch>
-        <Route exact path="/">
-          <Landing user={user} setUser={setUser} />
-        </Route>
-        <Route path="/login">
-          {user ? <Redirect to="/dashboard" /> : <Login setUser={setUser} />}
-        </Route>
-        <Route path="/register">
-          {user ? <Redirect to="/dashboard" /> : <Register setUser={setUser} />}
-        </Route>
-        <Route path="/forgot-password">
-          {user ? <Redirect to="/dashboard" /> : <ForgotPassword />}
-        </Route>
-        <Route path="/reset-password/:token">
-          {user ? <Redirect to="/dashboard" /> : <ResetPassword />}
-        </Route>
-        <Route path="/dashboard">
-          {user ? <Dashboard user={user} setUser={setUser} /> : <Redirect to="/login" />}
-        </Route>
-        <Route path="/why-zvertexai">
-          <WhyZvertexAI user={user} />
-        </Route>
-        <Route path="/interview-faqs">
-          <InterviewFAQs user={user} />
-        </Route>
-        <Route path="/zgpt">
-          <ZGPT user={user} />
-        </Route>
-        <Route path="/contact-us">
-          <ContactUs user={user} />
-        </Route>
-        <Route path="/subscription">
-          {user ? <Subscription user={user} setUser={setUser} /> : <Redirect to="/login" />}
-        </Route>
+        {['/'].map(path => (
+          <Route exact path={path} key={path}>
+            <Header user={user} setUser={setUser} />
+            <Landing user={user} setUser={setUser} />
+          </Route>
+        ))}
+        {['/login'].map(path => (
+          <Route path={path} key={path}>
+            {user ? <Redirect to="/dashboard" /> : <Login setUser={setUser} />}
+          </Route>
+        ))}
+        {['/register'].map(path => (
+          <Route path={path} key={path}>
+            {user ? <Redirect to="/dashboard" /> : <Register setUser={setUser} />}
+          </Route>
+        ))}
+        {['/forgot-password'].map(path => (
+          <Route path={path} key={path}>
+            {user ? <Redirect to="/dashboard" /> : <ForgotPassword />}
+          </Route>
+        ))}
+        {['/reset-password/:token'].map(path => (
+          <Route path={path} key={path}>
+            {user ? <Redirect to="/dashboard" /> : <ResetPassword />}
+          </Route>
+        ))}
+        {['/dashboard'].map(path => (
+          <Route path={path} key={path}>
+            <Header user={user} setUser={setUser} />
+            {user ? <Dashboard user={user} setUser={setUser} /> : <Redirect to="/login" />}
+          </Route>
+        ))}
+        {['/why-zvertexai'].map(path => (
+          <Route path={path} key={path}>
+            <Header user={user} setUser={setUser} />
+            <WhyZvertexAI user={user} />
+          </Route>
+        ))}
+        {['/interview-faqs'].map(path => (
+          <Route path={path} key={path}>
+            <Header user={user} setUser={setUser} />
+            <InterviewFAQs user={user} />
+          </Route>
+        ))}
+        {['/zgpt'].map(path => (
+          <Route path={path} key={path}>
+            <Header user={user} setUser={setUser} />
+            <ZGPT user={user} />
+          </Route>
+        ))}
+        {['/contact-us'].map(path => (
+          <Route path={path} key={path}>
+            <Header user={user} setUser={setUser} />
+            <ContactUs user={user} />
+          </Route>
+        ))}
+        {['/subscription'].map(path => (
+          <Route path={path} key={path}>
+            <Header user={user} setUser={setUser} />
+            {user ? <Subscription user={user} setUser={setUser} /> : <Redirect to="/login" />}
+          </Route>
+        ))}
         <Route path="*">
           <Redirect to="/" />
         </Route>
