@@ -9,13 +9,6 @@ import ResetPassword from './components/ResetPassword';
 import WhyZvertexAI from './components/WhyZvertexAI';
 import InterviewFAQs from './components/InterviewFAQs';
 import ZGPT from './components/Zgpt';
-import ProjectSaaS from './components/ProjectSaaS';
-import ProjectCloud from './components/ProjectCloud';
-import ProjectAI from './components/ProjectAI';
-import ProjectBigData from './components/ProjectBigData';
-import ProjectDevOps from './components/ProjectDevOps';
-import AIJobMatching from './components/AIJobMatching';
-import AIProjects from './components/AIProjects';
 import ContactUs from './components/ContactUs';
 import Subscription from './components/Subscription';
 import axios from 'axios';
@@ -64,27 +57,6 @@ function App() {
         </Route>
         <Route path="/zgpt">
           <ZGPT user={user} />
-        </Route>
-        <Route path="/project-saas">
-          <ProjectSaaS user={user} />
-        </Route>
-        <Route path="/project-cloud">
-          <ProjectCloud user={user} />
-        </Route>
-        <Route path="/project-ai">
-          <ProjectAI user={user} />
-        </Route>
-        <Route path="/project-big-data">
-          <ProjectBigData user={user} />
-        </Route>
-        <Route path="/project-devops">
-          <ProjectDevOps user={user} />
-        </Route>
-        <Route path="/ai-job-matching">
-          <AIJobMatching user={user} />
-        </Route>
-        <Route path="/ai-projects">
-          <AIProjects user={user} />
         </Route>
         <Route path="/contact-us">
           <ContactUs user={user} />
