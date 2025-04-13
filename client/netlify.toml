@@ -1,12 +1,12 @@
 [build]
   base = "client"
   command = "npm run build"
-  publish = "client/build"
-  environment = { NODE_VERSION = "16" }
+  publish = "build"
 
 [build.environment]
+  NODE_VERSION = "16.20.2"
   REACT_APP_API_URL = "https://zvertexai-orzv.onrender.com"
-  REACT_APP_STRIPE_PUBLIC_KEY = "pk_live_51R0u7fRr16KPJ9OnPwlpNKyHkwGHnvtZqibd2PWsxgkgqyzYOmx4AZE69YTmsrqpI5fk5aCSj04972mddYaBR8da004FxbliCE"
+  REACT_APP_STRIPE_PUBLIC_KEY = "pk_test_your_stripe_public_key"
 
 [[redirects]]
   from = "/*"
