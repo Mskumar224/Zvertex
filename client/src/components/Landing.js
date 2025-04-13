@@ -68,14 +68,6 @@ function Landing({ user, setUser }) {
     }
   };
 
-  const handleAIProjectsClick = () => {
-    if (user) {
-      navigate('/dashboard');
-    } else {
-      navigate('/register');
-    }
-  };
-
   return (
     <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', color: 'white' }}>
       <AppBar
@@ -259,7 +251,7 @@ function Landing({ user, setUser }) {
             Why Choose ZvertexAI?
           </Typography>
           <Grid container spacing={4}>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6}>
               <Card
                 sx={{
                   backgroundColor: 'rgba(255,255,255,0.1)',
@@ -293,7 +285,7 @@ function Landing({ user, setUser }) {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6}>
               <Card
                 sx={{
                   backgroundColor: '#212121',
