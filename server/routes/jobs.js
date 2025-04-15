@@ -3,7 +3,33 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const axios = require('axios');
 
-const fetchWithRetry = async (url, options, retries = 2, delay = 1000) => {
+// Fallback jobs (mock data for API failure)
+const fallbackJobs = [
+  {
+    _id: `job-fallback-1`,
+    title: 'Software Engineer',
+    company: 'Tech Corp',
+    location: 'Remote',
+    salary: null,
+    type: 'Full-time',
+    experienceLevel: 'Mid-level',
+    applicationUrl: '#',
+    createdAt: new Date(),
+  },
+  {
+    _id: `job-fallback-2`,
+    title: 'Data Analyst',
+    company: 'Data Inc',
+    location: 'New York',
+    salary: null,
+    type: 'Part-time',
+    experienceLevel: 'Entry-level',
+    applicationUrl: '#',
+    createdAt: new Date(),
+  },
+];
+
+const fetchWithRetry = async (url, options, retries = 3, delay = 2000) => {
   for (let i = 0; i <= retries; i++) {
     try {
       return await axios.get(url, options);
@@ -21,15 +47,15 @@ const fetchWithRetry = async (url, options, retries = 2, delay = 1000) => {
 router.get('/', auth, async (req, res) => {
   try {
     const { search, location, job_type, limit } = req.query;
-    let apiUrl = 'https://api.arbeitnow.com/api/job-board/v1/jobs';
     const params = {};
 
-    if (search) params.q = search.trim();
-    if (location) {
+    // Validate parameters
+    if (search && search.trim()) params.q = search.trim();
+    if (location && location.trim()) {
       const loc = location.trim().toLowerCase();
       params.location = loc === 'ca' ? 'California' : loc;
     }
-    if (job_type) {
+    if (job_type && job_type.trim()) {
       const validTypes = ['full-time', 'part-time', 'contract', 'internship'];
       if (validTypes.includes(job_type.toLowerCase())) {
         params.job_types = job_type.toLowerCase();
@@ -37,8 +63,15 @@ router.get('/', auth, async (req, res) => {
     }
     if (limit) params.per_page = parseInt(limit) || 10;
 
+    // Skip empty queries
+    if (!params.q && !params.location && !params.job_types) {
+      console.log('Empty query parameters, returning fallback jobs');
+      return res.json({ jobs: fallbackJobs, msg: 'Enter search criteria to find jobs' });
+    }
+
     console.log(`Fetching jobs with params: ${JSON.stringify(params)}`);
 
+    const apiUrl = 'https://api.arbeitnow.com/api/job-board/v1/jobs';
     const response = await fetchWithRetry(apiUrl, {
       params,
       timeout: 5000,
@@ -66,11 +99,11 @@ router.get('/', auth, async (req, res) => {
       params: req.query,
     });
     if (err.response?.status === 429) {
-      res.status(429).json({ msg: 'Rate limit exceeded. Please try again later.' });
+      res.status(429).json({ msg: 'Rate limit exceeded. Please try again later.', jobs: fallbackJobs });
     } else if (err.response) {
-      res.status(502).json({ msg: `Job API error: ${err.response.data?.message || 'Invalid response'}` });
+      res.status(502).json({ msg: `Job API error: ${err.response.data?.message || 'Invalid response'}`, jobs: fallbackJobs });
     } else {
-      res.status(503).json({ msg: 'Unable to reach job API. Please try again.' });
+      res.status(503).json({ msg: 'Unable to reach job API. Showing sample jobs.', jobs: fallbackJobs });
     }
   }
 });

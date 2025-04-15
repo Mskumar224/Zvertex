@@ -19,7 +19,7 @@ import {
 import axios from 'axios';
 import AutoApplyForm from './AutoApplyForm';
 
-function Matches({ user }) {
+function Matches({ user, setUser }) {
   const history = useHistory();
   const [jobs, setJobs] = useState([]);
   const [search, setSearch] = useState('');
@@ -31,36 +31,54 @@ function Matches({ user }) {
   const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
   const fetchJobs = async (retryCount = 0) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('Please log in to search jobs');
+      history.push('/login');
+      return;
+    }
+
     setLoading(true);
     setError('');
     try {
       const res = await axios.get(`${apiUrl}/api/jobs`, {
-        headers: { 'x-auth-token': localStorage.getItem('token') },
+        headers: { 'x-auth-token': token },
         params: { search, location, job_type: jobType },
       });
       setJobs(res.data.jobs || []);
       if (res.data.msg) setError(res.data.msg);
     } catch (err) {
+      if (err.response?.status === 401) {
+        setError('Session expired. Please log in again.');
+        localStorage.removeItem('token');
+        setUser(null);
+        history.push('/login');
+        return;
+      }
       if (retryCount < 3 && (err.response?.status === 503 || err.response?.status === 429)) {
         const delay = Math.pow(2, retryCount) * 1000;
         setError(`API unavailable, retrying in ${delay/1000}s...`);
         setTimeout(() => fetchJobs(retryCount + 1), delay);
         return;
       }
-      setError(err.response?.data?.msg || 'Unable to load jobs. Please try again later.');
+      setError(err.response?.data?.msg || 'Unable to load jobs. Showing sample jobs.');
+      setJobs(err.response?.data?.jobs || []); // Use fallback jobs
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && localStorage.getItem('token')) {
       const debounce = setTimeout(() => {
         fetchJobs();
       }, 500);
       return () => clearTimeout(debounce);
+    } else {
+      setError('Please log in to search jobs');
+      history.push('/login');
     }
-  }, [user, search, location, jobType]);
+  }, [user, search, location, jobType, history, setUser]);
 
   const handleApply = (job) => {
     setApplyJob(job);

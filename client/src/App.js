@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Switch, Redirect } from 'react-router-dom';
 import axios from 'axios';
 import Header from './components/Header';
+import Sidebar from './components/Sidebar';
 import Landing from './components/Landing';
 import Login from './components/Login';
 import Register from './components/Register';
@@ -19,7 +20,21 @@ import ProjectBigData from './components/ProjectBigData';
 import ProjectCloud from './components/ProjectCloud';
 import ProjectDevOps from './components/ProjectDevOps';
 import ProjectSaaS from './components/ProjectSaaS';
-import Sidebar from './components/Sidebar';
+
+function ProtectedRoute({ component: Component, user, setUser, ...rest }) {
+  return (
+    <Route
+      {...rest}
+      render={(props) =>
+        user && localStorage.getItem('token') ? (
+          <Component {...props} user={user} setUser={setUser} />
+        ) : (
+          <Redirect to="/login" />
+        )
+      }
+    />
+  );
+}
 
 function App() {
   const [user, setUser] = useState(null);
@@ -32,8 +47,13 @@ function App() {
         .get(`${apiUrl}/api/auth/user`, {
           headers: { 'x-auth-token': token },
         })
-        .then((res) => setUser(res.data))
-        .catch(() => localStorage.removeItem('token'));
+        .then((res) => {
+          setUser(res.data.user);
+        })
+        .catch(() => {
+          localStorage.removeItem('token');
+          setUser(null);
+        });
     }
   }, [apiUrl]);
 
@@ -43,22 +63,23 @@ function App() {
       <Header user={user} setUser={setUser} />
       <Switch>
         <Route exact path="/" component={Landing} />
-        <Route path="/login" component={() => <Login setUser={setUser} />} />
-        <Route path="/register" component={() => <Register setUser={setUser} />} />
-        <Route path="/forgot-password" component={ForgotPassword} />
-        <Route path="/reset-password/:token" component={ResetPassword} />
-        <Route path="/dashboard" component={() => <Dashboard user={user} />} />
-        <Route path="/matches" component={() => <Matches user={user} />} />
-        <Route path="/zgpt" component={() => <ZGPT user={user} />} />
-        <Route path="/subscription" component={() => <Subscription user={user} setUser={setUser} />} />
-        <Route path="/contact-us" component={ContactUs} />
-        <Route path="/why-zvertexai" component={() => <WhyZvertexAI user={user} />} />
-        <Route path="/interview-faqs" component={InterviewFAQs} />
-        <Route path="/project-ai" component={() => <ProjectAI user={user} />} />
-        <Route path="/project-bigdata" component={() => <ProjectBigData user={user} />} />
-        <Route path="/project-cloud" component={() => <ProjectCloud user={user} />} />
-        <Route path="/project-devops" component={() => <ProjectDevOps user={user} />} />
-        <Route path="/project-saas" component={() => <ProjectSaaS user={user} />} />
+        <Route exact path="/login" render={(props) => <Login {...props} setUser={setUser} />} />
+        <Route exact path="/register" render={(props) => <Register {...props} setUser={setUser} />} />
+        <Route exact path="/forgot-password" component={ForgotPassword} />
+        <Route exact path="/reset-password/:token" component={ResetPassword} />
+        <Route exact path="/contact-us" component={ContactUs} />
+        <Route exact path="/why-zvertexai" render={(props) => <WhyZvertexAI {...props} user={user} />} />
+        <Route exact path="/interview-faqs" component={InterviewFAQs} />
+        <ProtectedRoute exact path="/dashboard" component={Dashboard} user={user} setUser={setUser} />
+        <ProtectedRoute exact path="/matches" component={Matches} user={user} setUser={setUser} />
+        <ProtectedRoute exact path="/zgpt" component={ZGPT} user={user} setUser={setUser} />
+        <ProtectedRoute exact path="/subscription" component={Subscription} user={user} setUser={setUser} />
+        <ProtectedRoute exact path="/project-ai" component={ProjectAI} user={user} setUser={setUser} />
+        <ProtectedRoute exact path="/project-bigdata" component={ProjectBigData} user={user} setUser={setUser} />
+        <ProtectedRoute exact path="/project-cloud" component={ProjectCloud} user={user} setUser={setUser} />
+        <ProtectedRoute exact path="/project-devops" component={ProjectDevOps} user={user} setUser={setUser} />
+        <ProtectedRoute exact path="/project-saas" component={ProjectSaaS} user={user} setUser={setUser} />
+        <Redirect from="*" to="/" />
       </Switch>
     </Router>
   );
