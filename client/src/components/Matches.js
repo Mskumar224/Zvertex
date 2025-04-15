@@ -11,15 +11,23 @@ import {
   CardContent,
   CardActions,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import axios from 'axios';
+import AutoApplyForm from './AutoApplyForm'; // Fixed import
 
 function Matches({ user }) {
   const history = useHistory();
   const [jobs, setJobs] = useState([]);
   const [search, setSearch] = useState('');
+  const [location, setLocation] = useState('');
+  const [jobType, setJobType] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [applyJob, setApplyJob] = useState(null);
   const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
   const fetchJobs = async () => {
@@ -28,7 +36,7 @@ function Matches({ user }) {
     try {
       const res = await axios.get(`${apiUrl}/api/jobs`, {
         headers: { 'x-auth-token': localStorage.getItem('token') },
-        params: { search },
+        params: { search, location, job_type: jobType },
       });
       setJobs(res.data.jobs || []);
     } catch (err) {
@@ -42,24 +50,20 @@ function Matches({ user }) {
     if (user) {
       fetchJobs();
     }
-  }, [user, search]);
-
-  const handleApply = async (jobId) => {
-    try {
-      await axios.post(
-        `${apiUrl}/api/jobs/apply`,
-        { jobId },
-        { headers: { 'x-auth-token': localStorage.getItem('token') } }
-      );
-      alert('Application submitted successfully!');
-    } catch (err) {
-      alert(err.response?.data?.msg || 'Failed to apply');
-    }
-  };
+  }, [user]);
 
   const handleSearch = (e) => {
     e.preventDefault();
     fetchJobs();
+  };
+
+  const handleApply = (job) => {
+    setApplyJob(job);
+  };
+
+  const handleApplySubmit = (applicationUrl) => {
+    setApplyJob(null);
+    window.open(applicationUrl, '_blank');
   };
 
   return (
@@ -73,25 +77,51 @@ function Matches({ user }) {
             Find Your Next Opportunity
           </Typography>
           <form onSubmit={handleSearch}>
-            <TextField
-              label="Search Jobs"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              sx={{
-                mb: 3,
-                width: '50%',
-                input: { color: 'white' },
-                label: { color: 'white' },
-                '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } },
-              }}
-            />
-            <Button
-              type="submit"
-              variant="contained"
-              sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' }, ml: 2, py: 1.5 }}
-            >
-              Search
-            </Button>
+            <Grid container spacing={2} justifyContent="center">
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  label="Search Jobs"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  fullWidth
+                  sx={{ mb: 3 }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <TextField
+                  label="Location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  fullWidth
+                  sx={{ mb: 3 }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <FormControl fullWidth sx={{ mb: 3 }}>
+                  <InputLabel>Job Type</InputLabel>
+                  <Select
+                    value={jobType}
+                    onChange={(e) => setJobType(e.target.value)}
+                  >
+                    <MenuItem value="">Any</MenuItem>
+                    <MenuItem value="full-time">Full-time</MenuItem>
+                    <MenuItem value="part-time">Part-time</MenuItem>
+                    <MenuItem value="contract">Contract</MenuItem>
+                    <MenuItem value="internship">Internship</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={2}>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  fullWidth
+                  sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' }, py: 1.5 }}
+                >
+                  Search
+                </Button>
+              </Grid>
+            </Grid>
           </form>
         </Box>
 
@@ -122,7 +152,10 @@ function Matches({ user }) {
                         {job.location}
                       </Typography>
                       <Typography variant="body2" sx={{ mb: 1 }}>
-                        {job.salary ? `$${job.salary.toLocaleString()}` : 'Salary not disclosed'}
+                        {job.salary ? job.salary : 'Salary not disclosed'}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mb: 1 }}>
+                        Type: {job.type}
                       </Typography>
                     </CardContent>
                     <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
@@ -130,9 +163,9 @@ function Matches({ user }) {
                         variant="contained"
                         size="small"
                         sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
-                        onClick={() => handleApply(job._id)}
+                        onClick={() => handleApply(job)}
                       >
-                        Apply Now
+                        Auto Apply
                       </Button>
                       <Button
                         variant="outlined"
@@ -149,6 +182,15 @@ function Matches({ user }) {
             </Grid>
           )}
         </Box>
+
+        {applyJob && (
+          <AutoApplyForm
+            open={!!applyJob}
+            onClose={() => setApplyJob(null)}
+            job={applyJob}
+            onApply={handleApplySubmit}
+          />
+        )}
 
         <Box sx={{ py: 6, mt: 8, backgroundColor: '#1a2a44', borderRadius: '15px' }}>
           <Container maxWidth="lg">
