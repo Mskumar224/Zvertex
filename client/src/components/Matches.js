@@ -17,7 +17,7 @@ import {
   MenuItem,
 } from '@mui/material';
 import axios from 'axios';
-import AutoApplyForm from './AutoApplyForm'; // Fixed import
+import AutoApplyForm from './AutoApplyForm';
 
 function Matches({ user }) {
   const history = useHistory();
@@ -48,14 +48,12 @@ function Matches({ user }) {
 
   useEffect(() => {
     if (user) {
-      fetchJobs();
+      const debounce = setTimeout(() => {
+        fetchJobs();
+      }, 500); // Debounce to prevent rapid API calls
+      return () => clearTimeout(debounce);
     }
-  }, [user]);
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchJobs();
-  };
+  }, [user, search, location, jobType]); // Fetch on each input change
 
   const handleApply = (job) => {
     setApplyJob(job);
@@ -76,53 +74,41 @@ function Matches({ user }) {
           <Typography variant="h5" sx={{ color: 'white', mb: 4 }}>
             Find Your Next Opportunity
           </Typography>
-          <form onSubmit={handleSearch}>
-            <Grid container spacing={2} justifyContent="center">
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  label="Search Jobs"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  fullWidth
-                  sx={{ mb: 3 }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={3}>
-                <TextField
-                  label="Location"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  fullWidth
-                  sx={{ mb: 3 }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={3}>
-                <FormControl fullWidth sx={{ mb: 3 }}>
-                  <InputLabel>Job Type</InputLabel>
-                  <Select
-                    value={jobType}
-                    onChange={(e) => setJobType(e.target.value)}
-                  >
-                    <MenuItem value="">Any</MenuItem>
-                    <MenuItem value="full-time">Full-time</MenuItem>
-                    <MenuItem value="part-time">Part-time</MenuItem>
-                    <MenuItem value="contract">Contract</MenuItem>
-                    <MenuItem value="internship">Internship</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={2}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  fullWidth
-                  sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' }, py: 1.5 }}
-                >
-                  Search
-                </Button>
-              </Grid>
+          <Grid container spacing={2} justifyContent="center">
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="Search Jobs"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                fullWidth
+                sx={{ mb: 3 }}
+              />
             </Grid>
-          </form>
+            <Grid item xs={12} sm={3}>
+              <TextField
+                label="Location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                fullWidth
+                sx={{ mb: 3 }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <FormControl fullWidth sx={{ mb: 3 }}>
+                <InputLabel>Job Type</InputLabel>
+                <Select
+                  value={jobType}
+                  onChange={(e) => setJobType(e.target.value)}
+                >
+                  <MenuItem value="">Any</MenuItem>
+                  <MenuItem value="full-time">Full-time</MenuItem>
+                  <MenuItem value="part-time">Part-time</MenuItem>
+                  <MenuItem value="contract">Contract</MenuItem>
+                  <MenuItem value="internship">Internship</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
         </Box>
 
         <Box>
