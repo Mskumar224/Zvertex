@@ -57,12 +57,12 @@ function Matches({ user, setUser }) {
       }
       if (retryCount < 3 && (err.response?.status === 503 || err.response?.status === 429)) {
         const delay = Math.pow(2, retryCount) * 1000;
-        setError(`API unavailable, retrying in ${delay/1000}s...`);
+        setError(`Job service unavailable, retrying in ${delay/1000}s...`);
         setTimeout(() => fetchJobs(retryCount + 1), delay);
         return;
       }
       setError(err.response?.data?.msg || 'Unable to load jobs. Showing sample jobs.');
-      setJobs(err.response?.data?.jobs || []); // Use fallback jobs
+      setJobs(err.response?.data?.jobs || []);
     } finally {
       setLoading(false);
     }

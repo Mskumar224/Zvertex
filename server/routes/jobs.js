@@ -3,7 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const axios = require('axios');
 
-// Fallback jobs (mock data for API failure)
+// Fallback jobs
 const fallbackJobs = [
   {
     _id: `job-fallback-1`,
@@ -34,8 +34,8 @@ const fetchWithRetry = async (url, options, retries = 3, delay = 2000) => {
     try {
       return await axios.get(url, options);
     } catch (err) {
-      if (i === retries || err.response?.status < 500) throw err;
-      console.log(`Retry ${i + 1}/${retries} for ${url}`);
+      if (i === retries || (err.response && err.response.status < 500)) throw err;
+      console.log(`Retry ${i + 1}/${retries} for ${url}: ${err.message}`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -49,7 +49,6 @@ router.get('/', auth, async (req, res) => {
     const { search, location, job_type, limit } = req.query;
     const params = {};
 
-    // Validate parameters
     if (search && search.trim()) params.q = search.trim();
     if (location && location.trim()) {
       const loc = location.trim().toLowerCase();
@@ -63,13 +62,12 @@ router.get('/', auth, async (req, res) => {
     }
     if (limit) params.per_page = parseInt(limit) || 10;
 
-    // Skip empty queries
     if (!params.q && !params.location && !params.job_types) {
-      console.log('Empty query parameters, returning fallback jobs');
-      return res.json({ jobs: fallbackJobs, msg: 'Enter search criteria to find jobs' });
+      console.log('Empty query, returning fallback');
+      return res.status(200).json({ jobs: fallbackJobs, msg: 'Enter search criteria to find jobs' });
     }
 
-    console.log(`Fetching jobs with params: ${JSON.stringify(params)}`);
+    console.log(`Fetching jobs: ${JSON.stringify(params)}`);
 
     const apiUrl = 'https://api.arbeitnow.com/api/job-board/v1/jobs';
     const response = await fetchWithRetry(apiUrl, {
@@ -91,25 +89,30 @@ router.get('/', auth, async (req, res) => {
         }))
       : [];
 
-    res.json({ jobs, msg: jobs.length === 0 ? 'No jobs matched your criteria' : undefined });
+    res.status(200).json({ jobs, msg: jobs.length === 0 ? 'No jobs matched your criteria' : undefined });
   } catch (err) {
     console.error(`Arbeitnow API error: ${err.message}`, {
       status: err.response?.status,
       data: err.response?.data,
       params: req.query,
     });
-    if (err.response?.status === 429) {
-      res.status(429).json({ msg: 'Rate limit exceeded. Please try again later.', jobs: fallbackJobs });
+    let status = 503;
+    let msg = 'Unable to reach job API. Showing sample jobs.';
+    if (err.code === 'ENOTFOUND') {
+      msg = 'Job API unavailable (DNS error). Showing sample jobs.';
+    } else if (err.response?.status === 429) {
+      status = 429;
+      msg = 'Rate limit exceeded. Please try again later.';
     } else if (err.response) {
-      res.status(502).json({ msg: `Job API error: ${err.response.data?.message || 'Invalid response'}`, jobs: fallbackJobs });
-    } else {
-      res.status(503).json({ msg: 'Unable to reach job API. Showing sample jobs.', jobs: fallbackJobs });
+      status = 502;
+      msg = `Job API error: ${err.response.data?.message || 'Invalid response'}`;
     }
+    res.status(status).json({ msg, jobs: fallbackJobs });
   }
 });
 
 // @route   POST api/jobs/apply
-// @desc    Apply to a job (returns application URL)
+// @desc    Apply to a job
 // @access  Private
 router.post('/apply', auth, async (req, res) => {
   const { jobId } = req.body;
@@ -120,7 +123,6 @@ router.post('/apply', auth, async (req, res) => {
     if (!job) {
       return res.status(404).json({ msg: 'Job not found' });
     }
-
     res.json({ msg: 'Application ready', applicationUrl: job.url });
   } catch (err) {
     console.error('Apply error:', err.message);

@@ -26,11 +26,11 @@ app.use(cors({
   credentials: true,
 }));
 
-// Log CORS headers for debugging
+// Log all requests and responses
 app.use((req, res, next) => {
   console.log(`Request: ${req.method} ${req.url} from Origin: ${req.headers.origin}`);
   res.on('finish', () => {
-    console.log(`Response Headers: Access-Control-Allow-Origin=${res.get('Access-Control-Allow-Origin')}`);
+    console.log(`Response: ${res.statusCode} Headers: Access-Control-Allow-Origin=${res.get('Access-Control-Allow-Origin')}`);
   });
   next();
 });
@@ -54,6 +54,16 @@ app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobsRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/zgpt', zgptRoutes);
+
+// Error handling for 401
+app.use((err, req, res, next) => {
+  if (err.name === 'UnauthorizedError') {
+    console.error(`401 Error: Invalid token for ${req.url}`);
+    res.status(401).json({ msg: 'Invalid or missing token' });
+  } else {
+    next(err);
+  }
+});
 
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI, {

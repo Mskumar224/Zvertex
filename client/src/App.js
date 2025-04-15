@@ -50,7 +50,8 @@ function App() {
         .then((res) => {
           setUser(res.data.user);
         })
-        .catch(() => {
+        .catch((err) => {
+          console.error('Token validation failed:', err.response?.status);
           localStorage.removeItem('token');
           setUser(null);
         });
