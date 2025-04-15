@@ -1,94 +1,97 @@
 import React from 'react';
 import { useHistory } from 'react-router-dom';
-import { Box, Typography, Button, Container, Grid, Card, CardContent, IconButton } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { Box, Typography, Button, Container, Grid } from '@mui/material';
 
 function AIJobMatching({ user }) {
   const history = useHistory();
 
   return (
-    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', py: 4 }}>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', py: 8 }}>
       <Container maxWidth="lg">
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <IconButton onClick={() => history.goBack()} sx={{ color: 'white' }}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h4" sx={{ color: 'white', flexGrow: 1, textAlign: 'center' }}>
+        <Box sx={{ textAlign: 'center', mb: 6 }}>
+          <Typography variant="h2" sx={{ color: 'white', mb: 2, fontWeight: 'bold' }}>
             AI Job Matching
           </Typography>
+          <Typography variant="h5" sx={{ color: 'white', mb: 4 }}>
+            Find Your Perfect Job
+          </Typography>
+          <Typography variant="body1" sx={{ color: 'white', mb: 4, maxWidth: '600px', mx: 'auto' }}>
+            Our AI analyzes your skills and preferences to match you with the best job opportunities.
+          </Typography>
         </Box>
-        <Typography variant="h5" sx={{ color: 'white', mb: 2 }}>
-          Find Your Perfect Role with AI
-        </Typography>
-        <Typography variant="body1" sx={{ color: 'white', mb: 4 }}>
-          Our AI Job Matching system parses your resume to identify key skills and matches you with top opportunities at leading companies. Auto-apply to jobs every 30 minutes with personalized applications.
-        </Typography>
         <Grid container spacing={4}>
           <Grid item xs={12} sm={6}>
-            <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px' }}>
-              <CardContent>
-                <Typography variant="h6">Use Case: Software Engineer</Typography>
-                <Typography variant="body2">
-                  Upload your resume, select technologies like Python and React, and let our AI apply to roles at Google, Amazon, and more.
-                </Typography>
-              </CardContent>
-            </Card>
+            <Box sx={{ backgroundColor: 'rgba(255,255,255,0.1)', p: 3, borderRadius: '15px' }}>
+              <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+                How It Works
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'white' }}>
+                Upload your resume, select your preferred technologies and companies, and let our AI find real-time job listings tailored to you.
+              </Typography>
+            </Box>
           </Grid>
           <Grid item xs={12} sm={6}>
-            <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '15px' }}>
-              <CardContent>
-                <Typography variant="h6">Why Join?</Typography>
-                <Typography variant="body2">
-                  <strong>Clients:</strong> Hire top talent effortlessly.<br />
-                  <strong>Users:</strong> Land your dream job with minimal effort.
-                </Typography>
-              </CardContent>
-            </Card>
+            <Box sx={{ backgroundColor: 'rgba(255,255,255,0.1)', p: 3, borderRadius: '15px' }}>
+              <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+                Benefits
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'white' }}>
+                <strong>Accuracy:</strong> Precise job matches.<br />
+                <strong>Speed:</strong> Instant applications.<br />
+                <strong>Support:</strong> ZGPT career advice.
+              </Typography>
+            </Box>
           </Grid>
         </Grid>
         <Box sx={{ textAlign: 'center', mt: 6 }}>
           <Button
             variant="contained"
-            sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' }, mr: 2 }}
+            sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' }, px: 4, py: 1.5, mr: 2 }}
             onClick={() => history.push('/dashboard')}
           >
-            Manage Applications
+            Start Matching
           </Button>
           <Button
             variant="outlined"
-            sx={{ color: 'white', borderColor: 'white' }}
+            sx={{ color: 'white', borderColor: 'white', px: 4, py: 1.5 }}
             onClick={() => history.push('/contact-us')}
           >
-            Contact Us to Learn More
+            Learn More
           </Button>
         </Box>
-        <Box sx={{ py: 4, backgroundColor: '#1a2a44', color: 'white', mt: 4 }}>
+        <Box sx={{ py: 6, mt: 8, backgroundColor: '#1a2a44', borderRadius: '15px' }}>
           <Container maxWidth="lg">
             <Grid container spacing={4}>
               <Grid item xs={12} sm={4}>
-                <Typography variant="h6" sx={{ mb: 2 }}>ZvertexAI</Typography>
-                <Typography variant="body2">
-                  Empowering careers with AI-driven job matching, projects, and ZGPT copilot.
+                <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+                  ZvertexAI
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'white' }}>
+                  Empowering careers with AI-driven solutions.
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={4}>
-                <Typography variant="h6" sx={{ mb: 2 }}>Quick Links</Typography>
-                <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/why-zvertexai')}>
+                <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+                  Quick Links
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'white', mb: 1, cursor: 'pointer' }} onClick={() => history.push('/why-zvertexai')}>
                   Why ZvertexAI?
                 </Typography>
-                <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/interview-faqs')}>
+                <Typography variant="body2" sx={{ color: 'white', mb: 1, cursor: 'pointer' }} onClick={() => history.push('/interview-faqs')}>
                   Interview FAQs
                 </Typography>
-                <Typography variant="body2" sx={{ mb: 1, cursor: 'pointer' }} onClick={() => history.push('/zgpt')}>
+                <Typography variant="body2" sx={{ color: 'white', mb: 1, cursor: 'pointer' }} onClick={() => history.push('/zgpt')}>
                   ZGPT Copilot
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={4}>
-                <Typography variant="h6" sx={{ mb: 2 }}>Contact Us</Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
+                <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+                  Contact Us
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'white', mb: 1 }}>
                   Address: 5900 BALCONES DR #16790 AUSTIN, TX 78731
                 </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
+                <Typography variant="body2" sx={{ color: 'white', mb: 1 }}>
                   Phone: 737-239-0920
                 </Typography>
                 <Button
@@ -100,7 +103,7 @@ function AIJobMatching({ user }) {
                 </Button>
               </Grid>
             </Grid>
-            <Typography variant="body2" align="center" sx={{ mt: 4 }}>
+            <Typography variant="body2" align="center" sx={{ color: 'white', mt: 4 }}>
               © 2025 ZvertexAI. All rights reserved.
             </Typography>
           </Container>

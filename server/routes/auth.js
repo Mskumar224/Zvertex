@@ -4,6 +4,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const User = require('../models/User');
+const PendingAction = require('../models/PendingAction');
+const { check, validationResult } = require('express-validator');
 require('dotenv').config();
 
 // Register
@@ -28,7 +30,29 @@ router.post('/register', async (req, res) => {
     await user.save();
     const payload = { user: { id: user.id } };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.json({ token, user: { id: user.id, name, email, profile, subscriptionStatus: user.subscriptionStatus } });
+    const confirmToken = jwt.sign({ userId: user.id, action: 'register' }, process.env.JWT_SECRET, { expiresIn: '24h' });
+    await new PendingAction({
+      userId: user.id,
+      action: 'register',
+      data: {},
+      token: confirmToken,
+    }).save();
+    const transporter = nodemailer.createTransport({
+      service: 'Gmail',
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+    });
+    const mailOptions = {
+      from: 'zvertexai@honotech.com',
+      to: email,
+      subject: 'Confirm Your ZvertexAI Registration',
+      html: `
+        <p>Please confirm your registration:</p>
+        <a href="${process.env.CLIENT_URL}/confirm-action/${confirmToken}">Confirm Email</a>
+        <p>This link expires in 24 hours.</p>
+      `,
+    };
+    await transporter.sendMail(mailOptions);
+    res.json({ msg: 'Registration pending email confirmation', token });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ msg: 'Server error' });
@@ -44,6 +68,7 @@ router.post('/login', async (req, res) => {
     }
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ msg: 'Invalid credentials' });
+    if (!user.isVerified) return res.status(400).json({ msg: 'Please confirm your email' });
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ msg: 'Invalid credentials' });
     const payload = { user: { id: user.id } };
@@ -63,6 +88,7 @@ router.get('/me', async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.user.id).select('-password');
     if (!user) return res.status(400).json({ msg: 'User not found' });
+    if (!user.isVerified) return res.status(400).json({ msg: 'Please confirm your email' });
     res.json(user);
   } catch (err) {
     console.error(err.message);
@@ -86,7 +112,11 @@ router.post('/forgot-password', async (req, res) => {
       from: 'zvertexai@honotech.com',
       to: email,
       subject: 'Password Reset',
-      text: `Click this link to reset your password: ${process.env.CLIENT_URL}/reset-password/${token}`,
+      html: `
+        <p>Reset your password:</p>
+        <a href="${process.env.CLIENT_URL}/reset-password/${token}">Reset Password</a>
+        <p>This link expires in 1 hour.</p>
+      `,
     };
     await transporter.sendMail(mailOptions);
     res.json({ msg: 'Password reset email sent' });
@@ -124,6 +154,7 @@ router.post('/subscribe', async (req, res) => {
     const decoded = jwt.verify(req.header('x-auth-token'), process.env.JWT_SECRET);
     const user = await User.findById(decoded.user.id);
     if (!user) return res.status(400).json({ msg: 'User not found' });
+    if (!user.isVerified) return res.status(400).json({ msg: 'Please confirm your email' });
     const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
     const paymentMethod = await stripe.paymentMethods.create({
       type: 'card',
@@ -143,10 +174,67 @@ router.post('/subscribe', async (req, res) => {
     user.subscriptionStatus = 'ACTIVE';
     user.subscriptionPlan = plan;
     await user.save();
-    res.json({ msg: 'Subscription successful', subscription });
+    const confirmToken = jwt.sign(
+      { userId: user.id, action: 'subscribe', plan },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    await new PendingAction({
+      userId: user.id,
+      action: 'subscribe',
+      data: { stripeCustomerId: customer.id, subscriptionPlan: plan },
+      token: confirmToken,
+    }).save();
+    const transporter = nodemailer.createTransport({
+      service: 'Gmail',
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+    });
+    const mailOptions = {
+      from: 'zvertexai@honotech.com',
+      to: user.email,
+      subject: 'Confirm Your ZvertexAI Subscription',
+      html: `
+        <p>Please confirm your subscription:</p>
+        <a href="${process.env.CLIENT_URL}/confirm-action/${confirmToken}">Confirm Subscription</a>
+        <p>This link expires in 24 hours.</p>
+      `,
+    };
+    await transporter.sendMail(mailOptions);
+    res.json({ msg: 'Subscription pending email confirmation', subscription });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ msg: 'Subscription failed' });
+  }
+});
+
+// Confirm action
+router.get('/confirm-action/:token', async (req, res) => {
+  try {
+    const decoded = jwt.verify(req.params.token, process.env.JWT_SECRET);
+    const pendingAction = await PendingAction.findOne({ token: req.params.token });
+    if (!pendingAction) return res.status(400).json({ msg: 'Invalid or expired token' });
+
+    const user = await User.findById(pendingAction.userId);
+    if (!user) return res.status(400).json({ msg: 'User not found' });
+
+    if (pendingAction.action === 'register') {
+      user.isVerified = true;
+    } else if (pendingAction.action === 'profile_update') {
+      await User.findByIdAndUpdate(pendingAction.userId, { $set: pendingAction.data });
+    } else if (pendingAction.action === 'job_apply') {
+      // Handle job application confirmation
+    } else if (pendingAction.action === 'subscribe') {
+      user.stripeCustomerId = pendingAction.data.stripeCustomerId;
+      user.subscriptionStatus = 'ACTIVE';
+      user.subscriptionPlan = pendingAction.data.subscriptionPlan;
+    }
+
+    await user.save();
+    await PendingAction.deleteOne({ token: req.params.token });
+    res.json({ msg: 'Action confirmed successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(400).json({ msg: 'Invalid or expired token' });
   }
 });
 

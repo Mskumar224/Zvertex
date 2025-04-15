@@ -1,15 +1,6 @@
 import React from 'react';
 import { useHistory } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
-import { styled } from '@mui/system';
-
-const StyledButton = styled(Button)(({ theme }) => ({
-  color: 'white',
-  margin: '0 10px',
-  '&:hover': {
-    backgroundColor: '#ff6d00',
-  },
-}));
 
 function Header({ user, setUser }) {
   const history = useHistory();
@@ -17,29 +8,61 @@ function Header({ user, setUser }) {
   const handleLogout = () => {
     localStorage.removeItem('token');
     setUser(null);
-    history.push('/login');
+    history.push('/');
   };
 
   return (
-    <AppBar position="static" sx={{ backgroundColor: '#1a2a44' }}>
-      <Toolbar>
-        <Typography variant="h6" sx={{ flexGrow: 1, cursor: 'pointer' }} onClick={() => history.push('/')}>
+    <AppBar
+      position="sticky"
+      sx={{ background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', boxShadow: 'none' }}
+    >
+      <Toolbar sx={{ justifyContent: 'space-between' }}>
+        <Typography
+          variant="h6"
+          sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+          onClick={() => history.push('/')}
+        >
           ZvertexAI
         </Typography>
-        <Box>
-          <StyledButton onClick={() => history.push('/')}>Home</StyledButton>
-          <StyledButton onClick={() => history.push('/why-zvertexai')}>Why ZvertexAI</StyledButton>
-          <StyledButton onClick={() => history.push('/interview-faqs')}>Interview FAQs</StyledButton>
-          <StyledButton onClick={() => history.push('/zgpt')}>ZGPT</StyledButton>
-          <StyledButton onClick={() => history.push('/contact-us')}>Contact Us</StyledButton>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button color="inherit" onClick={() => history.push('/why-zvertexai')}>
+            Why ZvertexAI
+          </Button>
+          <Button color="inherit" onClick={() => history.push('/zgpt')}>
+            ZGPT
+          </Button>
+          <Button color="inherit" onClick={() => history.push('/matches')}>
+            Matches
+          </Button>
+          <Button color="inherit" onClick={() => history.push('/contact-us')}>
+            Contact Us
+          </Button>
           {user ? (
             <>
-              <StyledButton onClick={() => history.push('/dashboard')}>Dashboard</StyledButton>
-              <StyledButton onClick={() => history.push('/subscription')}>Subscription</StyledButton>
-              <StyledButton onClick={handleLogout}>Logout</StyledButton>
+              <Button color="inherit" onClick={() => history.push('/dashboard')}>
+                Dashboard
+              </Button>
+              <Button
+                variant="outlined"
+                sx={{ color: 'white', borderColor: 'white' }}
+                onClick={handleLogout}
+              >
+                Logout
+              </Button>
             </>
           ) : (
-            <StyledButton onClick={() => history.push('/login')}>Login</StyledButton>
+            <>
+              <Button color="inherit" onClick={() => history.push('/login')}>
+                Login
+              </Button>
+              <Button
+                variant="contained"
+                sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
+                onClick={() => history.push('/register')}
+              >
+                Register
+              </Button>
+            </>
           )}
         </Box>
       </Toolbar>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { Box, Typography, TextField, Button, Container, Grid, CircularProgress } from '@mui/material';
+import { Box, Typography, TextField, Button, Container, Grid, CircularProgress, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import axios from 'axios';
 
 function Register({ setUser }) {
@@ -9,9 +9,8 @@ function Register({ setUser }) {
     name: '',
     email: '',
     password: '',
-    jobTitle: '',
-    skills: '',
-    location: '',
+    confirmPassword: '',
+    subscriptionType: 'STUDENT',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,17 +20,19 @@ function Register({ setUser }) {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const profile = {
-        jobTitle: formData.jobTitle,
-        skills: formData.skills.split(',').map(skill => skill.trim()),
-        location: formData.location,
-      };
       const res = await axios.post(`${apiUrl}/api/auth/register`, {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        profile,
+        subscriptionType: formData.subscriptionType,
       });
       localStorage.setItem('token', res.data.token);
       setUser(res.data.user);
@@ -44,12 +45,17 @@ function Register({ setUser }) {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', py: 4 }}>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', py: 8 }}>
       <Container maxWidth="sm">
-        <Box sx={{ backgroundColor: 'rgba(255,255,255,0.1)', p: 4, borderRadius: '15px' }}>
-          <Typography variant="h4" sx={{ color: 'white', mb: 3, textAlign: 'center' }}>
+        <Box sx={{ textAlign: 'center', mb: 6 }}>
+          <Typography variant="h2" sx={{ color: 'white', mb: 2, fontWeight: 'bold' }}>
             Register
           </Typography>
+          <Typography variant="h5" sx={{ color: 'white', mb: 4 }}>
+            Create Your Account
+          </Typography>
+        </Box>
+        <Box sx={{ backgroundColor: 'rgba(255,255,255,0.1)', p: 4, borderRadius: '15px' }}>
           {error && <Typography color="error" sx={{ mb: 2, textAlign: 'center' }}>{error}</Typography>}
           <Box component="form" onSubmit={handleSubmit}>
             <Grid container spacing={2}>
@@ -84,30 +90,28 @@ function Register({ setUser }) {
               </Grid>
               <Grid item xs={12}>
                 <TextField
-                  label="Job Title"
+                  label="Confirm Password"
+                  type="password"
                   fullWidth
-                  value={formData.jobTitle}
-                  onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                   sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
                 />
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  label="Skills (comma-separated)"
-                  fullWidth
-                  value={formData.skills}
-                  onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
-                  sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label="Location (Zip, City, State)"
-                  fullWidth
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
-                />
+                <FormControl fullWidth sx={{ '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}>
+                  <InputLabel sx={{ color: 'white' }}>Subscription Type</InputLabel>
+                  <Select
+                    value={formData.subscriptionType}
+                    label="Subscription Type"
+                    onChange={(e) => setFormData({ ...formData, subscriptionType: e.target.value })}
+                    sx={{ color: 'white', '& .MuiSvgIcon-root': { color: 'white' } }}
+                  >
+                    <MenuItem value="STUDENT">Student</MenuItem>
+                    <MenuItem value="RECRUITER">Recruiter</MenuItem>
+                    <MenuItem value="BUSINESS">Business</MenuItem>
+                  </Select>
+                </FormControl>
               </Grid>
               <Grid item xs={12}>
                 <Button
@@ -115,7 +119,7 @@ function Register({ setUser }) {
                   variant="contained"
                   fullWidth
                   disabled={loading}
-                  sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
+                  sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' }, py: 1.5 }}
                 >
                   {loading ? <CircularProgress size={24} color="inherit" /> : 'Register'}
                 </Button>
@@ -128,6 +132,55 @@ function Register({ setUser }) {
               Login
             </Button>
           </Typography>
+        </Box>
+        <Box sx={{ py: 6, mt: 8, backgroundColor: '#1a2a44', borderRadius: '15px' }}>
+          <Container maxWidth="lg">
+            <Grid container spacing={4}>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+                  ZvertexAI
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'white' }}>
+                  Empowering careers with AI-driven solutions.
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+                  Quick Links
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'white', mb: 1, cursor: 'pointer' }} onClick={() => history.push('/why-zvertexai')}>
+                  Why ZvertexAI?
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'white', mb: 1, cursor: 'pointer' }} onClick={() => history.push('/interview-faqs')}>
+                  Interview FAQs
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'white', mb: 1, cursor: 'pointer' }} onClick={() => history.push('/zgpt')}>
+                  ZGPT Copilot
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+                  Contact Us
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'white', mb: 1 }}>
+                  Address: 5900 BALCONES DR #16790 AUSTIN, TX 78731
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'white', mb: 1 }}>
+                  Phone: 737-239-0920
+                </Typography>
+                <Button
+                  variant="outlined"
+                  sx={{ color: 'white', borderColor: 'white' }}
+                  onClick={() => history.push('/contact-us')}
+                >
+                  Reach Out
+                </Button>
+              </Grid>
+            </Grid>
+            <Typography variant="body2" align="center" sx={{ color: 'white', mt: 4 }}>
+              © 2025 ZvertexAI. All rights reserved.
+            </Typography>
+          </Container>
         </Box>
       </Container>
     </Box>

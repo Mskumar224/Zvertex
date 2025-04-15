@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Switch, Route, Redirect } from 'react-router-dom';
+import Header from './components/Header';
 import Landing from './components/Landing';
 import Login from './components/Login';
 import Register from './components/Register';
@@ -9,8 +10,16 @@ import ResetPassword from './components/ResetPassword';
 import WhyZvertexAI from './components/WhyZvertexAI';
 import InterviewFAQs from './components/InterviewFAQs';
 import ZGPT from './components/Zgpt';
+import ProjectSaaS from './components/ProjectSaaS';
+import ProjectCloud from './components/ProjectCloud';
+import ProjectAI from './components/ProjectAI';
+import ProjectBigData from './components/ProjectBigData';
+import ProjectDevOps from './components/ProjectDevOps';
+import AIJobMatching from './components/AIJobMatching';
+import AIProjects from './components/AIProjects';
 import ContactUs from './components/ContactUs';
 import Subscription from './components/Subscription';
+import Matches from './components/Matches';
 import axios from 'axios';
 
 function App() {
@@ -30,6 +39,7 @@ function App() {
 
   return (
     <Router>
+      <Header user={user} setUser={setUser} />
       <Switch>
         <Route exact path="/">
           <Landing user={user} setUser={setUser} />
@@ -58,11 +68,35 @@ function App() {
         <Route path="/zgpt">
           <ZGPT user={user} />
         </Route>
+        <Route path="/project-saas">
+          <ProjectSaaS user={user} />
+        </Route>
+        <Route path="/project-cloud">
+          <ProjectCloud user={user} />
+        </Route>
+        <Route path="/project-ai">
+          <ProjectAI user={user} />
+        </Route>
+        <Route path="/project-big-data">
+          <ProjectBigData user={user} />
+        </Route>
+        <Route path="/project-devops">
+          <ProjectDevOps user={user} />
+        </Route>
+        <Route path="/ai-job-matching">
+          <AIJobMatching user={user} />
+        </Route>
+        <Route path="/ai-projects">
+          <AIProjects user={user} />
+        </Route>
         <Route path="/contact-us">
           <ContactUs user={user} />
         </Route>
         <Route path="/subscription">
           {user ? <Subscription user={user} setUser={setUser} /> : <Redirect to="/login" />}
+        </Route>
+        <Route path="/matches">
+          <Matches user={user} />
         </Route>
         <Route path="*">
           <Redirect to="/" />
