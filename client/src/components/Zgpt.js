@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { Box, Typography, TextField, Button, Container, Grid, CircularProgress } from '@mui/material';
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Container,
+  CircularProgress,
+  Grid,
+} from '@mui/material';
 import axios from 'axios';
 
 function ZGPT({ user }) {
@@ -16,7 +24,6 @@ function ZGPT({ user }) {
     setLoading(true);
     setError('');
     setResponse('');
-
     try {
       const res = await axios.post(
         `${apiUrl}/api/zgpt`,
@@ -39,50 +46,54 @@ function ZGPT({ user }) {
             ZGPT Copilot
           </Typography>
           <Typography variant="h5" sx={{ color: 'white', mb: 4 }}>
-            Your AI Career Assistant
-          </Typography>
-          <Typography variant="body1" sx={{ color: 'white', mb: 4, maxWidth: '600px', mx: 'auto' }}>
-            Ask ZGPT for career advice, interview tips, or job search strategies.
+            Your AI-Powered Career Assistant
           </Typography>
         </Box>
-        <Box sx={{ maxWidth: '600px', mx: 'auto', mb: 6 }}>
-          <Box component="form" onSubmit={handleSubmit} sx={{ backgroundColor: 'rgba(255,255,255,0.1)', p: 4, borderRadius: '15px' }}>
+
+        <Box sx={{ mb: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '15px', p: 4 }}>
+          <form onSubmit={handleSubmit}>
             <TextField
-              placeholder="Ask ZGPT anything..."
+              label="Ask ZGPT anything..."
               fullWidth
               multiline
               rows={4}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               sx={{
-                mb: 2,
+                mb: 3,
                 input: { color: 'white' },
                 textarea: { color: 'white' },
+                label: { color: 'white' },
                 '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } },
               }}
             />
             <Button
               type="submit"
               variant="contained"
-              fullWidth
-              disabled={loading}
+              disabled={loading || !query}
               sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' }, py: 1.5 }}
             >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Ask ZGPT'}
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'Send'}
             </Button>
-          </Box>
-          {error && <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>{error}</Typography>}
+          </form>
+
+          {error && (
+            <Typography sx={{ color: 'white', mt: 2, textAlign: 'center' }}>
+              {error}
+            </Typography>
+          )}
           {response && (
-            <Box sx={{ mt: 4, backgroundColor: 'rgba(255,255,255,0.1)', p: 3, borderRadius: '15px' }}>
-              <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h6" sx={{ color: 'white', mb: 2, fontWeight: 'bold' }}>
                 ZGPT Response
               </Typography>
-              <Typography variant="body1" sx={{ color: 'white' }}>
+              <Typography sx={{ color: 'white', backgroundColor: 'rgba(0,0,0,0.2)', p: 2, borderRadius: '10px' }}>
                 {response}
               </Typography>
             </Box>
           )}
         </Box>
+
         <Box sx={{ py: 6, mt: 8, backgroundColor: '#1a2a44', borderRadius: '15px' }}>
           <Container maxWidth="lg">
             <Grid container spacing={4}>
@@ -98,13 +109,25 @@ function ZGPT({ user }) {
                 <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
                   Quick Links
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'white', mb: 1, cursor: 'pointer' }} onClick={() => history.push('/why-zvertexai')}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'white', mb: 1, cursor: 'pointer' }}
+                  onClick={() => history.push('/why-zvertexai')}
+                >
                   Why ZvertexAI?
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'white', mb: 1, cursor: 'pointer' }} onClick={() => history.push('/interview-faqs')}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'white', mb: 1, cursor: 'pointer' }}
+                  onClick={() => history.push('/interview-faqs')}
+                >
                   Interview FAQs
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'white', mb: 1, cursor: 'pointer' }} onClick={() => history.push('/zgpt')}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'white', mb: 1, cursor: 'pointer' }}
+                  onClick={() => history.push('/zgpt')}
+                >
                   ZGPT Copilot
                 </Typography>
               </Grid>

@@ -5,18 +5,28 @@ const dotenv = require('dotenv');
 const authRoutes = require('./routes/auth');
 const jobsRoutes = require('./routes/jobs');
 const subscriptionRoutes = require('./routes/subscription');
+const zgptRoutes = require('./routes/zgpt');
 
 dotenv.config();
 
 const app = express();
 
-// Configure CORS to allow requests from the frontend origin
+// Apply CORS middleware first
 app.use(cors({
   origin: ['https://zvertexai.com', 'http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-auth-token'],
   credentials: true,
 }));
+
+// Log requests and response headers for debugging
+app.use((req, res, next) => {
+  console.log(`Request: ${req.method} ${req.url}`);
+  res.on('finish', () => {
+    console.log(`Response Headers: ${JSON.stringify(res.getHeaders())}`);
+  });
+  next();
+});
 
 // Handle preflight OPTIONS requests globally
 app.options('*', cors());
@@ -28,6 +38,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobsRoutes);
 app.use('/api/subscription', subscriptionRoutes);
+app.use('/api/zgpt', zgptRoutes);
 
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI, {

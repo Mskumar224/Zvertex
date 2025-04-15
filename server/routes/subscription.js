@@ -28,7 +28,6 @@ router.post('/upgrade', auth, async (req, res) => {
     if (!user) {
       return res.status(404).json({ msg: 'User not found' });
     }
-    // Stubbed: Update subscription status (integrate with Stripe in production)
     user.subscriptionStatus = 'Premium';
     await user.save();
     res.json({ subscriptionStatus: user.subscriptionStatus });
