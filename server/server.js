@@ -11,9 +11,16 @@ dotenv.config();
 
 const app = express();
 
-// Apply CORS middleware first
+// CORS configuration
+const allowedOrigins = ['https://zvertexai.com', 'http://localhost:3000'];
 app.use(cors({
-  origin: 'https://zvertexai.com', // Explicitly allow only production origin
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-auth-token'],
   credentials: true,
@@ -21,15 +28,23 @@ app.use(cors({
 
 // Log CORS headers for debugging
 app.use((req, res, next) => {
-  console.log(`Request: ${req.method} ${req.url}`);
+  console.log(`Request: ${req.method} ${req.url} from Origin: ${req.headers.origin}`);
   res.on('finish', () => {
-    console.log(`Response CORS Headers: Access-Control-Allow-Origin=${res.get('Access-Control-Allow-Origin')}`);
+    console.log(`Response Headers: Access-Control-Allow-Origin=${res.get('Access-Control-Allow-Origin')}`);
   });
   next();
 });
 
 // Handle preflight OPTIONS requests
-app.options('*', cors());
+app.options('*', (req, res) => {
+  res.set({
+    'Access-Control-Allow-Origin': allowedOrigins.includes(req.headers.origin) ? req.headers.origin : 'https://zvertexai.com',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type,x-auth-token',
+    'Access-Control-Max-Age': 86400,
+  });
+  res.sendStatus(204);
+});
 
 // Middleware
 app.use(express.json());

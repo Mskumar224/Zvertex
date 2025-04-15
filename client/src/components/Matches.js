@@ -39,13 +39,15 @@ function Matches({ user }) {
         params: { search, location, job_type: jobType },
       });
       setJobs(res.data.jobs || []);
-      if (res.data.msg) setError(res.data.msg); // Show backend warnings
+      if (res.data.msg) setError(res.data.msg);
     } catch (err) {
-      if (retryCount < 2 && err.response?.status >= 500) {
-        setTimeout(() => fetchJobs(retryCount + 1), 1000); // Retry on 5xx
+      if (retryCount < 3 && (err.response?.status === 503 || err.response?.status === 429)) {
+        const delay = Math.pow(2, retryCount) * 1000;
+        setError(`API unavailable, retrying in ${delay/1000}s...`);
+        setTimeout(() => fetchJobs(retryCount + 1), delay);
         return;
       }
-      setError(err.response?.data?.msg || 'Unable to load jobs. Please try again.');
+      setError(err.response?.data?.msg || 'Unable to load jobs. Please try again later.');
     } finally {
       setLoading(false);
     }

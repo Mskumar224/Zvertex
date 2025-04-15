@@ -3,6 +3,18 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const axios = require('axios');
 
+const fetchWithRetry = async (url, options, retries = 2, delay = 1000) => {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await axios.get(url, options);
+    } catch (err) {
+      if (i === retries || err.response?.status < 500) throw err;
+      console.log(`Retry ${i + 1}/${retries} for ${url}`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+};
+
 // @route   GET api/jobs
 // @desc    Get job matches from Arbeitnow API
 // @access  Private
@@ -14,23 +26,27 @@ router.get('/', auth, async (req, res) => {
 
     if (search) params.q = search.trim();
     if (location) {
-      // Normalize common abbreviations
       const loc = location.trim().toLowerCase();
       params.location = loc === 'ca' ? 'California' : loc;
     }
-    if (job_type) params.job_types = job_type.trim().toLowerCase(); // Arbeitnow expects job_types
+    if (job_type) {
+      const validTypes = ['full-time', 'part-time', 'contract', 'internship'];
+      if (validTypes.includes(job_type.toLowerCase())) {
+        params.job_types = job_type.toLowerCase();
+      }
+    }
     if (limit) params.per_page = parseInt(limit) || 10;
 
     console.log(`Fetching jobs with params: ${JSON.stringify(params)}`);
 
-    const response = await axios.get(apiUrl, {
+    const response = await fetchWithRetry(apiUrl, {
       params,
       timeout: 5000,
     });
 
     const jobs = response.data.data && Array.isArray(response.data.data)
       ? response.data.data.map(job => ({
-          _id: job.slug || `job-${Date.now()}-${Math.random()}`, // Fallback ID
+          _id: job.slug || `job-${Date.now()}-${Math.random()}`,
           title: job.title || 'Untitled Job',
           company: job.company_name || 'Unknown Company',
           location: job.location || 'Unknown Location',
@@ -42,24 +58,19 @@ router.get('/', auth, async (req, res) => {
         }))
       : [];
 
-    if (jobs.length === 0) {
-      console.log('No jobs found for params:', params);
-      return res.json({ jobs, msg: 'No jobs matched your criteria' });
-    }
-
-    res.json({ jobs });
+    res.json({ jobs, msg: jobs.length === 0 ? 'No jobs matched your criteria' : undefined });
   } catch (err) {
     console.error(`Arbeitnow API error: ${err.message}`, {
       status: err.response?.status,
       data: err.response?.data,
       params: req.query,
     });
-    if (err.response) {
+    if (err.response?.status === 429) {
+      res.status(429).json({ msg: 'Rate limit exceeded. Please try again later.' });
+    } else if (err.response) {
       res.status(502).json({ msg: `Job API error: ${err.response.data?.message || 'Invalid response'}` });
-    } else if (err.request) {
-      res.status(503).json({ msg: 'Unable to reach job API' });
     } else {
-      res.status(500).json({ msg: 'Error processing job request' });
+      res.status(503).json({ msg: 'Unable to reach job API. Please try again.' });
     }
   }
 });
