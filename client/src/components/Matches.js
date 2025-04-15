@@ -30,7 +30,7 @@ function Matches({ user }) {
   const [applyJob, setApplyJob] = useState(null);
   const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
-  const fetchJobs = async () => {
+  const fetchJobs = async (retryCount = 0) => {
     setLoading(true);
     setError('');
     try {
@@ -39,8 +39,13 @@ function Matches({ user }) {
         params: { search, location, job_type: jobType },
       });
       setJobs(res.data.jobs || []);
+      if (res.data.msg) setError(res.data.msg); // Show backend warnings
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to fetch jobs');
+      if (retryCount < 2 && err.response?.status >= 500) {
+        setTimeout(() => fetchJobs(retryCount + 1), 1000); // Retry on 5xx
+        return;
+      }
+      setError(err.response?.data?.msg || 'Unable to load jobs. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -50,10 +55,10 @@ function Matches({ user }) {
     if (user) {
       const debounce = setTimeout(() => {
         fetchJobs();
-      }, 500); // Debounce to prevent rapid API calls
+      }, 500);
       return () => clearTimeout(debounce);
     }
-  }, [user, search, location, jobType]); // Fetch on each input change
+  }, [user, search, location, jobType]);
 
   const handleApply = (job) => {
     setApplyJob(job);

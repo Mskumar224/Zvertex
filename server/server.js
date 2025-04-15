@@ -13,22 +13,22 @@ const app = express();
 
 // Apply CORS middleware first
 app.use(cors({
-  origin: ['https://zvertexai.com', 'http://localhost:3000'],
+  origin: 'https://zvertexai.com', // Explicitly allow only production origin
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-auth-token'],
   credentials: true,
 }));
 
-// Log requests and response headers for debugging
+// Log CORS headers for debugging
 app.use((req, res, next) => {
   console.log(`Request: ${req.method} ${req.url}`);
   res.on('finish', () => {
-    console.log(`Response Headers: ${JSON.stringify(res.getHeaders())}`);
+    console.log(`Response CORS Headers: Access-Control-Allow-Origin=${res.get('Access-Control-Allow-Origin')}`);
   });
   next();
 });
 
-// Handle preflight OPTIONS requests globally
+// Handle preflight OPTIONS requests
 app.options('*', cors());
 
 // Middleware

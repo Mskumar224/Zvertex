@@ -12,46 +12,54 @@ router.get('/', auth, async (req, res) => {
     let apiUrl = 'https://api.arbeitnow.com/api/job-board/v1/jobs';
     const params = {};
 
-    if (search) params.q = search;
-    if (location) params.location = location;
-    if (job_type) params.job_types = job_type; // Fixed: Arbeitnow uses job_types
+    if (search) params.q = search.trim();
+    if (location) {
+      // Normalize common abbreviations
+      const loc = location.trim().toLowerCase();
+      params.location = loc === 'ca' ? 'California' : loc;
+    }
+    if (job_type) params.job_types = job_type.trim().toLowerCase(); // Arbeitnow expects job_types
     if (limit) params.per_page = parseInt(limit) || 10;
 
-    console.log('Fetching jobs with params:', params); // Debug log
+    console.log(`Fetching jobs with params: ${JSON.stringify(params)}`);
 
-    const response = await axios.get(apiUrl, { 
+    const response = await axios.get(apiUrl, {
       params,
-      timeout: 5000 // Prevent hanging
+      timeout: 5000,
     });
 
-    if (!response.data.data) {
-      console.error('Arbeitnow API returned no data');
-      return res.status(502).json({ msg: 'No jobs returned from external API' });
-    }
+    const jobs = response.data.data && Array.isArray(response.data.data)
+      ? response.data.data.map(job => ({
+          _id: job.slug || `job-${Date.now()}-${Math.random()}`, // Fallback ID
+          title: job.title || 'Untitled Job',
+          company: job.company_name || 'Unknown Company',
+          location: job.location || 'Unknown Location',
+          salary: job.salary || null,
+          type: job.job_types?.join(', ') || 'Not specified',
+          experienceLevel: job.experience_level || 'Not specified',
+          applicationUrl: job.url || '#',
+          createdAt: job.created_at ? new Date(job.created_at * 1000) : new Date(),
+        }))
+      : [];
 
-    const jobs = response.data.data.map(job => ({
-      _id: job.slug,
-      title: job.title,
-      company: job.company_name,
-      location: job.location,
-      salary: job.salary || null,
-      type: job.job_types?.join(', ') || 'Not specified',
-      experienceLevel: job.experience_level || 'Not specified',
-      applicationUrl: job.url,
-      createdAt: new Date(job.created_at * 1000),
-    }));
+    if (jobs.length === 0) {
+      console.log('No jobs found for params:', params);
+      return res.json({ jobs, msg: 'No jobs matched your criteria' });
+    }
 
     res.json({ jobs });
   } catch (err) {
-    console.error('Arbeitnow API error:', err.message, err.response?.data);
+    console.error(`Arbeitnow API error: ${err.message}`, {
+      status: err.response?.status,
+      data: err.response?.data,
+      params: req.query,
+    });
     if (err.response) {
-      res.status(err.response.status).json({ 
-        msg: `External API error: ${err.response.data?.message || 'Unknown error'}` 
-      });
+      res.status(502).json({ msg: `Job API error: ${err.response.data?.message || 'Invalid response'}` });
     } else if (err.request) {
-      res.status(503).json({ msg: 'Failed to reach job API' });
+      res.status(503).json({ msg: 'Unable to reach job API' });
     } else {
-      res.status(500).json({ msg: 'Server error fetching jobs' });
+      res.status(500).json({ msg: 'Error processing job request' });
     }
   }
 });
