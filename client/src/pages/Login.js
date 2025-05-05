@@ -6,21 +6,40 @@ import { useHistory, Link } from 'react-router-dom';
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const history = useHistory();
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      setError('Please fill in all fields.');
+      return;
+    }
+
     try {
       const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, { email, password });
       localStorage.setItem('token', data.token);
       history.push('/student-dashboard');
     } catch (error) {
-      alert('Login failed!');
+      console.error('Login error:', error.response?.data?.error || error.message);
+      setError(error.response?.data?.error || 'Login failed. Please try again.');
     }
   };
 
   return (
     <Container maxWidth="sm" sx={{ py: 5 }} className="zgpt-container">
       <div className="card">
+        <Button
+          onClick={() => history.push('/')}
+          sx={{
+            mb: 3,
+            color: 'white',
+            backgroundColor: '#00e676',
+            '&:hover': { backgroundColor: '#00c853' },
+          }}
+          className="back-button"
+        >
+          Back
+        </Button>
         <Typography variant="h4" gutterBottom align="center">
           Login to Your Account
         </Typography>
@@ -30,7 +49,15 @@ function Login() {
             fullWidth
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            sx={{ mb: 3 }}
+            sx={{
+              mb: 3,
+              '& .MuiInputBase-input': { color: '#000000' },
+              '& .MuiInputLabel-root': { color: '#333333' },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': { borderColor: '#333333' },
+                '&:hover fieldset': { borderColor: '#000000' },
+              },
+            }}
             variant="outlined"
           />
           <TextField
@@ -39,9 +66,22 @@ function Login() {
             fullWidth
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            sx={{ mb: 3 }}
+            sx={{
+              mb: 3,
+              '& .MuiInputBase-input': { color: '#000000' },
+              '& .MuiInputLabel-root': { color: '#333333' },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': { borderColor: '#333333' },
+                '&:hover fieldset': { borderColor: '#000000' },
+              },
+            }}
             variant="outlined"
           />
+          {error && (
+            <Typography color="error" sx={{ mb: 2 }}>
+              {error}
+            </Typography>
+          )}
           <Button
             variant="contained"
             color="primary"

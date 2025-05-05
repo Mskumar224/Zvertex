@@ -15,9 +15,14 @@ function RecruiterDashboard() {
         <Button
           onClick={() => history.push('/')}
           className="back-button"
-          sx={{ mb: 3 }}
+          sx={{
+            mb: 3,
+            color: 'white',
+            backgroundColor: '#00e676',
+            '&:hover': { backgroundColor: '#00c853' },
+          }}
         >
-          Back to Home
+          Back
         </Button>
         <Typography variant="h4" gutterBottom>
           ZvertexAI Recruiter Dashboard

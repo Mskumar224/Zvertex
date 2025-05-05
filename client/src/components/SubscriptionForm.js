@@ -36,6 +36,18 @@ function SubscriptionForm() {
   return (
     <Container maxWidth="sm" sx={{ py: 5 }} className="zgpt-container">
       <div className="card">
+        <Button
+          onClick={() => history.push('/')}
+          sx={{
+            mb: 3,
+            color: 'white',
+            backgroundColor: '#00e676',
+            '&:hover': { backgroundColor: '#00c853' },
+          }}
+          className="back-button"
+        >
+          Back
+        </Button>
         <Typography variant="h4" gutterBottom align="center">
           Subscribe to {plan} Plan
         </Typography>

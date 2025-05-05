@@ -8,25 +8,32 @@ function Navbar() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    history.push('/login');
+    history.push('/');
   };
 
   return (
-    <div className="header">
-      <h1 onClick={() => history.push('/')}>ZvertexAI</h1>
-      <div className="nav-links">
-        <Link to="/">Home</Link>
+    <div className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 20px', backgroundColor: '#1a2a44', color: 'white' }}>
+      <h1 style={{ cursor: 'pointer' }} onClick={() => history.push('/')}>ZvertexAI</h1>
+      <div className="nav-links" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <Link to="/" style={{ color: 'white', textDecoration: 'none', padding: '5px 10px' }}>Home</Link>
         {!token ? (
           <>
-            <Link to="/signup">Signup</Link>
-            <Link to="/login">Login</Link>
+            <Link to="/signup" style={{ color: 'white', textDecoration: 'none', padding: '5px 10px' }}>Signup</Link>
+            <Link to="/login" style={{ color: 'white', textDecoration: 'none', padding: '5px 10px' }}>Login</Link>
           </>
         ) : (
-          <>
-            <Button onClick={handleLogout} sx={{ color: '#f28c38', ml: 2 }}>
-              Logout
-            </Button>
-          </>
+          <Button
+            onClick={handleLogout}
+            sx={{
+              color: 'white',
+              backgroundColor: '#00e676',
+              '&:hover': { backgroundColor: '#00c853' },
+              textTransform: 'none',
+              padding: '5px 15px',
+            }}
+          >
+            Logout
+          </Button>
         )}
       </div>
     </div>

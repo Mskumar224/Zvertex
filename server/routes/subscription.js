@@ -30,25 +30,37 @@ router.post('/submit', async (req, res) => {
     await subscriptionRequest.save();
 
     // Send confirmation email to user
-    await sendEmail(
-      email,
-      'ZvertexAI Subscription Request',
-      `Thank you, ${name}, for your interest in the ${plan} plan! Our team will contact you at ${phone} to finalize your subscription.`
-    );
+    try {
+      await sendEmail(
+        email,
+        'ZvertexAI Subscription Request',
+        `Thank you, ${name}, for your interest in the ${plan} plan! Our team will contact you at ${phone} to finalize your subscription.`
+      );
+    } catch (emailError) {
+      console.error('Failed to send user email:', emailError.message);
+    }
 
     // Notify admin (EMAIL_USER)
-    await sendEmail(
-      process.env.EMAIL_USER,
-      'New ZvertexAI Subscription Request',
-      `New request for ${plan} plan:\nName: ${name}\nEmail: ${email}\nPhone: ${phone}`
-    );
+    try {
+      await sendEmail(
+        process.env.EMAIL_USER,
+        'New ZvertexAI Subscription Request',
+        `New request for ${plan} plan:\nName: ${name}\nEmail: ${email}\nPhone: ${phone}`
+      );
+    } catch (emailError) {
+      console.error('Failed to send admin email:', emailError.message);
+    }
 
     // Notify zvertex.247@gmail.com
-    await sendEmail(
-      'zvertex.247@gmail.com',
-      'New ZvertexAI Subscription Request',
-      `New request for ${plan} plan:\nName: ${name}\nEmail: ${email}\nPhone: ${phone}`
-    );
+    try {
+      await sendEmail(
+        'zvertex.247@gmail.com',
+        'New ZvertexAI Subscription Request',
+        `New request for ${plan} plan:\nName: ${name}\nEmail: ${email}\nPhone: ${phone}`
+      );
+    } catch (emailError) {
+      console.error('Failed to send zvertex.247 email:', emailError.message);
+    }
 
     res.json({ message: 'Submission successful' });
   } catch (error) {
