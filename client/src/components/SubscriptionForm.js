@@ -21,15 +21,15 @@ function SubscriptionForm() {
     }
 
     try {
-      await axios.post(
+      const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/subscription/submit`,
-        { name, email, phone, plan },
-        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+        { name, email, phone, plan }
       );
       alert('Thank you! The ZvertexAI team will contact you soon to finalize your subscription.');
       history.push('/');
     } catch (err) {
-      setError('Submission failed. Please try again.');
+      console.error('Subscription form error:', err.response?.data?.error || err.message);
+      setError(err.response?.data?.error || 'Submission failed. Please try again.');
     }
   };
 

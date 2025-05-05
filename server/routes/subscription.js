@@ -3,26 +3,29 @@ const router = express.Router();
 const User = require('../models/User');
 const SubscriptionRequest = require('../models/SubscriptionRequest');
 const { sendEmail } = require('../utils/email');
-const jwt = require('jsonwebtoken');
 
 router.post('/submit', async (req, res) => {
   const { name, email, phone, plan } = req.body;
-  const token = req.headers.authorization?.split(' ')[1];
+
+  // Validate input
+  if (!name || !email || !phone || !plan) {
+    console.error('Missing required fields:', { name, email, phone, plan });
+    return res.status(400).json({ error: 'All fields (name, email, phone, plan) are required' });
+  }
+
+  // Validate plan
+  const validPlans = ['STUDENT', 'RECRUITER', 'BUSINESS'];
+  if (!validPlans.includes(plan)) {
+    console.error('Invalid plan:', plan);
+    return res.status(400).json({ error: 'Invalid plan specified' });
+  }
 
   try {
-    let userId;
-    if (token) {
-      const decoded = jwt.verify(token, 'secret');
-      const user = await User.findById(decoded.id);
-      if (user) userId = user._id;
-    }
-
     const subscriptionRequest = new SubscriptionRequest({
       name,
       email,
       phone,
       plan,
-      user: userId,
     });
     await subscriptionRequest.save();
 
@@ -49,7 +52,8 @@ router.post('/submit', async (req, res) => {
 
     res.json({ message: 'Submission successful' });
   } catch (error) {
-    res.status(400).json({ error: 'Submission failed' });
+    console.error('Subscription submission error:', error.message);
+    res.status(400).json({ error: `Submission failed: ${error.message}` });
   }
 });
 
