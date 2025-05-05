@@ -51,8 +51,8 @@ function Login() {
             onChange={(e) => setEmail(e.target.value)}
             sx={{
               mb: 3,
-              '& .MuiInputBase-input': { color: '#000000' },
-              '& .MuiInputLabel-root': { color: '#333333' },
+              '& .MuiInputBase-input': { color: '#000000' }, // Black text
+              '& .MuiInputLabel-root': { color: '#333333' }, // Dark gray label
               '& .MuiOutlinedInput-root': {
                 '& fieldset': { borderColor: '#333333' },
                 '&:hover fieldset': { borderColor: '#000000' },
@@ -68,8 +68,8 @@ function Login() {
             onChange={(e) => setPassword(e.target.value)}
             sx={{
               mb: 3,
-              '& .MuiInputBase-input': { color: '#000000' },
-              '& .MuiInputLabel-root': { color: '#333333' },
+              '& .MuiInputBase-input': { color: '#000000' }, // Black text
+              '& .MuiInputLabel-root': { color: '#333333' }, // Dark gray label
               '& .MuiOutlinedInput-root': {
                 '& fieldset': { borderColor: '#333333' },
                 '&:hover fieldset': { borderColor: '#000000' },

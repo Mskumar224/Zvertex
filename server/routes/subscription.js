@@ -9,15 +9,22 @@ router.post('/submit', async (req, res) => {
 
   // Validate input
   if (!name || !email || !phone || !plan) {
-    console.error('Missing required fields:', { name, email, phone, plan });
+    console.error('Subscription failed: Missing required fields', { name, email, phone, plan });
     return res.status(400).json({ error: 'All fields (name, email, phone, plan) are required' });
   }
 
   // Validate plan
   const validPlans = ['STUDENT', 'RECRUITER', 'BUSINESS'];
   if (!validPlans.includes(plan)) {
-    console.error('Invalid plan:', plan);
-    return res.status(400).json({ error: 'Invalid plan specified' });
+    console.error('Subscription failed: Invalid plan', { plan });
+    return res.status(400).json({ error: 'Invalid plan specified. Must be STUDENT, RECRUITER, or BUSINESS' });
+  }
+
+  // Basic email format validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    console.error('Subscription failed: Invalid email format', { email });
+    return res.status(400).json({ error: 'Invalid email format' });
   }
 
   try {
