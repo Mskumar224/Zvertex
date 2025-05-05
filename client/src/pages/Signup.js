@@ -11,9 +11,24 @@ function Signup() {
   const [isOtpSent, setIsOtpSent] = useState(false);
   const history = useHistory();
 
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSignup = async () => {
     if (!email || !password) {
       setError('Please fill in all fields.');
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
       return;
     }
 
@@ -71,11 +86,12 @@ function Signup() {
               onChange={(e) => setEmail(e.target.value)}
               sx={{
                 mb: 3,
-                '& .MuiInputBase-input': { color: '#000000' }, // Black text
-                '& .MuiInputLabel-root': { color: '#333333' }, // Dark gray label
+                '& .MuiInputBase-input': { color: '#000000 !important' }, // Black text
+                '& .MuiInputLabel-root': { color: '#333333 !important' }, // Dark gray label
                 '& .MuiOutlinedInput-root': {
                   '& fieldset': { borderColor: '#333333' },
                   '&:hover fieldset': { borderColor: '#000000' },
+                  '&.Mui-focused fieldset': { borderColor: '#000000' },
                 },
               }}
               variant="outlined"
@@ -88,11 +104,12 @@ function Signup() {
               onChange={(e) => setPassword(e.target.value)}
               sx={{
                 mb: 3,
-                '& .MuiInputBase-input': { color: '#000000' }, // Black text
-                '& .MuiInputLabel-root': { color: '#333333' }, // Dark gray label
+                '& .MuiInputBase-input': { color: '#000000 !important' }, // Black text
+                '& .MuiInputLabel-root': { color: '#333333 !important' }, // Dark gray label
                 '& .MuiOutlinedInput-root': {
                   '& fieldset': { borderColor: '#333333' },
                   '&:hover fieldset': { borderColor: '#000000' },
+                  '&.Mui-focused fieldset': { borderColor: '#000000' },
                 },
               }}
               variant="outlined"
@@ -125,11 +142,12 @@ function Signup() {
               onChange={(e) => setOtp(e.target.value)}
               sx={{
                 mb: 3,
-                '& .MuiInputBase-input': { color: '#000000' }, // Black text
-                '& .MuiInputLabel-root': { color: '#333333' }, // Dark gray label
+                '& .MuiInputBase-input': { color: '#000000 !important' }, // Black text
+                '& .MuiInputLabel-root': { color: '#333333 !important' }, // Dark gray label
                 '& .MuiOutlinedInput-root': {
                   '& fieldset': { borderColor: '#333333' },
                   '&:hover fieldset': { borderColor: '#000000' },
+                  '&.Mui-focused fieldset': { borderColor: '#000000' },
                 },
               }}
               variant="outlined"

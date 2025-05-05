@@ -9,9 +9,19 @@ function Login() {
   const [error, setError] = useState('');
   const history = useHistory();
 
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleLogin = async () => {
     if (!email || !password) {
       setError('Please fill in all fields.');
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address.');
       return;
     }
 
@@ -51,11 +61,12 @@ function Login() {
             onChange={(e) => setEmail(e.target.value)}
             sx={{
               mb: 3,
-              '& .MuiInputBase-input': { color: '#000000' }, // Black text
-              '& .MuiInputLabel-root': { color: '#333333' }, // Dark gray label
+              '& .MuiInputBase-input': { color: '#000000 !important' }, // Black text
+              '& .MuiInputLabel-root': { color: '#333333 !important' }, // Dark gray label
               '& .MuiOutlinedInput-root': {
                 '& fieldset': { borderColor: '#333333' },
                 '&:hover fieldset': { borderColor: '#000000' },
+                '&.Mui-focused fieldset': { borderColor: '#000000' },
               },
             }}
             variant="outlined"
@@ -68,11 +79,12 @@ function Login() {
             onChange={(e) => setPassword(e.target.value)}
             sx={{
               mb: 3,
-              '& .MuiInputBase-input': { color: '#000000' }, // Black text
-              '& .MuiInputLabel-root': { color: '#333333' }, // Dark gray label
+              '& .MuiInputBase-input': { color: '#000000 !important' }, // Black text
+              '& .MuiInputLabel-root': { color: '#333333 !important' }, // Dark gray label
               '& .MuiOutlinedInput-root': {
                 '& fieldset': { borderColor: '#333333' },
                 '&:hover fieldset': { borderColor: '#000000' },
+                '&.Mui-focused fieldset': { borderColor: '#000000' },
               },
             }}
             variant="outlined"
