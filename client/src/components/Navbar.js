@@ -1,39 +1,35 @@
 import React from 'react';
 import { Link, useHistory } from 'react-router-dom';
-import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
+import { Button } from '@mui/material';
 
-function Navbar({ user, setUser }) {
+function Navbar() {
   const history = useHistory();
+  const token = localStorage.getItem('token');
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    setUser(null);
-    history.push('/');
+    history.push('/login');
   };
 
   return (
-    <AppBar position="static" sx={{ background: '#1a2a44' }}>
-      <Toolbar>
-        <Typography variant="h6" component={Link} to="/" sx={{ flexGrow: 1, color: 'white', textDecoration: 'none' }}>
-          ZvertexAI
-        </Typography>
-        <Box>
-          <Button color="inherit" component={Link} to="/projects">Projects</Button>
-          <Button color="inherit" component={Link} to="/contact">Contact</Button>
-          {user ? (
-            <>
-              <Button color="inherit" component={Link} to="/dashboard">Dashboard</Button>
-              <Button color="inherit" onClick={handleLogout}>Logout</Button>
-            </>
-          ) : (
-            <>
-              <Button color="inherit" component={Link} to="/login">Login</Button>
-              <Button color="inherit" component={Link} to="/register">Register</Button>
-            </>
-          )}
-        </Box>
-      </Toolbar>
-    </AppBar>
+    <div className="header">
+      <h1 onClick={() => history.push('/')}>ZvertexAI</h1>
+      <div className="nav-links">
+        <Link to="/">Home</Link>
+        {!token ? (
+          <>
+            <Link to="/signup">Signup</Link>
+            <Link to="/login">Login</Link>
+          </>
+        ) : (
+          <>
+            <Button onClick={handleLogout} sx={{ color: '#f28c38', ml: 2 }}>
+              Logout
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 

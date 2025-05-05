@@ -1,17 +1,28 @@
-# Node.js
+# Node.js dependencies
 node_modules/
-npm-debug.log
-yarn-error.log
+client/node_modules/
+server/node_modules/
 
 # Environment variables
 .env
+client/.env
+server/.env
 
-# Build output
+# Build outputs
 client/build/
+server/build/
 
-# Dependency lock files (optional, include if you commit them)
-# package-lock.json
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# OS-specific files
-.DS_Store
-Thumbs.db
+# IDE and editor files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp

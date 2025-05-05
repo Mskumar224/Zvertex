@@ -1,28 +1,20 @@
-const fs = require('fs').promises;
+const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
 
-const techList = [
-  'JavaScript', 'Python', 'Java', 'C++', 'C#', 'Ruby', 'PHP', 'Go', 'Swift', 'Kotlin',
-  'TypeScript', 'SQL', 'R', 'MATLAB', 'Scala', 'Perl', 'Haskell', 'Lua', 'Rust', 'Dart',
-  'Elixir', 'Clojure', 'F#', 'Groovy', 'PowerShell', 'Shell', 'HTML', 'CSS', 'React',
-  'Angular', 'Vue.js', 'Node.js', 'Django', 'Flask', 'Spring', 'ASP.NET', 'Laravel',
-  'Ruby on Rails', 'Express.js', 'FastAPI', 'TensorFlow', 'PyTorch', 'Keras', 'Scikit-learn',
-  'Pandas', 'NumPy', 'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Terraform', 'Ansible',
-  'Jenkins', 'Git', 'Linux', 'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Oracle', 'SQL Server',
-  'Cassandra', 'Elasticsearch', 'Prometheus', 'Grafana',
-];
-
-const parseResume = async (filePath) => {
-  try {
-    // Mock parsing (replace with real parser like pdf2json or docx-parser)
-    const content = await fs.readFile(filePath, 'utf8');
-    const technologies = techList.filter((tech) =>
-      content.toLowerCase().includes(tech.toLowerCase())
-    );
-    return technologies;
-  } catch (err) {
-    console.error('Resume parsing error:', err);
-    return [];
+async function parseResume(file) {
+  let text = '';
+  if (file.mimetype === 'application/pdf') {
+    const data = await pdfParse(file.data);
+    text = data.text.toLowerCase();
+  } else if (file.mimetype === 'application/msword' || file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    const { value } = await mammoth.extractRawText({ buffer: file.data });
+    text = value.toLowerCase();
+  } else if (file.mimetype === 'text/plain') {
+    text = file.data.toString('utf8').toLowerCase();
   }
-};
+
+  const keywords = ['javascript', 'python', 'react', 'node', 'java', 'sql', 'aws', 'docker'].filter((kw) => text.includes(kw));
+  return keywords.length > 0 ? keywords : ['Add manually'];
+}
 
 module.exports = { parseResume };
