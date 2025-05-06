@@ -1,10 +1,10 @@
 import React from 'react';
+import { AppBar, Toolbar, Typography, Button } from '@mui/material';
 import { Link, useHistory } from 'react-router-dom';
-import { Button } from '@mui/material';
 
 function Navbar() {
   const history = useHistory();
-  const token = localStorage.getItem('token');
+  const isLoggedIn = !!localStorage.getItem('token');
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -12,31 +12,25 @@ function Navbar() {
   };
 
   return (
-    <div className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 20px', backgroundColor: '#1a2a44', color: 'white' }}>
-      <h1 style={{ cursor: 'pointer' }} onClick={() => history.push('/')}>ZvertexAI</h1>
-      <div className="nav-links" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-        <Link to="/" style={{ color: 'white', textDecoration: 'none', padding: '5px 10px' }}>Home</Link>
-        {!token ? (
+    <AppBar position="static" sx={{ backgroundColor: '#007BFF' }}>
+      <Toolbar>
+        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+          ZvertexAI
+        </Typography>
+        <Button color="inherit" component={Link} to="/">Home</Button>
+        {!isLoggedIn ? (
           <>
-            <Link to="/signup" style={{ color: 'white', textDecoration: 'none', padding: '5px 10px' }}>Signup</Link>
-            <Link to="/login" style={{ color: 'white', textDecoration: 'none', padding: '5px 10px' }}>Login</Link>
+            <Button color="inherit" component={Link} to="/signup">Sign Up</Button>
+            <Button color="inherit" component={Link} to="/login">Login</Button>
           </>
         ) : (
-          <Button
-            onClick={handleLogout}
-            sx={{
-              color: 'white',
-              backgroundColor: '#00e676',
-              '&:hover': { backgroundColor: '#00c853' },
-              textTransform: 'none',
-              padding: '5px 15px',
-            }}
-          >
-            Logout
-          </Button>
+          <>
+            <Button color="inherit" component={Link} to="/student-dashboard">Dashboard</Button>
+            <Button color="inherit" onClick={handleLogout}>Logout</Button>
+          </>
         )}
-      </div>
-    </div>
+      </Toolbar>
+    </AppBar>
   );
 }
 

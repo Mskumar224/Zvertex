@@ -11,27 +11,23 @@ const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString()
 router.post('/signup', async (req, res) => {
   const { email, password, subscriptionType } = req.body;
 
-  // Validate input
   if (!email || !password) {
     console.error('Signup failed: Missing email or password', { email, password });
     return res.status(400).json({ error: 'Email and password are required' });
   }
 
-  // Basic email format validation
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     console.error('Signup failed: Invalid email format', { email });
     return res.status(400).json({ error: 'Invalid email format' });
   }
 
-  // Password length validation
   if (password.length < 6) {
     console.error('Signup failed: Password too short', { email });
     return res.status(400).json({ error: 'Password must be at least 6 characters' });
   }
 
   try {
-    // Check for existing user
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       console.error('Signup failed: Email already exists', { email });
@@ -40,7 +36,7 @@ router.post('/signup', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const otp = generateOTP();
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // OTP valid for 10 minutes
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
     const user = new User({
       email,
@@ -48,11 +44,10 @@ router.post('/signup', async (req, res) => {
       otp,
       status: 'pending',
       otpExpires,
-      subscriptionType: subscriptionType || 'Free', // Default to Free
+      subscriptionType: subscriptionType || 'Free',
     });
     await user.save();
 
-    // Send OTP email to ZvertexAI
     try {
       await sendEmail(
         'zvertex.247@gmail.com',
@@ -82,7 +77,6 @@ router.post('/signup', async (req, res) => {
 router.post('/verify-otp', async (req, res) => {
   const { email, otp } = req.body;
 
-  // Validate input
   if (!email || !otp) {
     console.error('OTP verification failed: Missing email or OTP', { email, otp });
     return res.status(400).json({ error: 'Email and OTP are required' });
@@ -100,13 +94,11 @@ router.post('/verify-otp', async (req, res) => {
       return res.status(400).json({ error: 'OTP has expired. Please request a new OTP.' });
     }
 
-    // Set user as approved
     user.status = 'approved';
     user.otp = undefined;
     user.otpExpires = undefined;
     await user.save();
 
-    // Send confirmation email to user
     try {
       await sendEmail(
         email,
@@ -135,7 +127,6 @@ router.post('/verify-otp', async (req, res) => {
 router.post('/resend-otp', async (req, res) => {
   const { email } = req.body;
 
-  // Validate input
   if (!email) {
     console.error('Resend OTP failed: Missing email', { email });
     return res.status(400).json({ error: 'Email is required' });
@@ -155,7 +146,6 @@ router.post('/resend-otp', async (req, res) => {
     user.otpExpires = otpExpires;
     await user.save();
 
-    // Send new OTP email
     try {
       await sendEmail(
         'zvertex.247@gmail.com',
@@ -185,7 +175,6 @@ router.post('/resend-otp', async (req, res) => {
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
-  // Validate input
   if (!email || !password) {
     console.error('Login failed: Missing email or password', { email });
     return res.status(400).json({ error: 'Email and password are required' });
@@ -238,6 +227,26 @@ router.post('/login', async (req, res) => {
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '1h' });
+
+    // Send login confirmation email
+    try {
+      await sendEmail(
+        email,
+        'ZvertexAI Login Confirmation',
+        `
+          <p>Dear ${email},</p>
+          <p>You have successfully logged in to your ZvertexAI account.</p>
+          <p><span class="highlight">Login Details:</span></p>
+          <p>Email: ${email}</p>
+          <p>Time: ${new Date().toLocaleString()}</p>
+          <p>If this was not you, please contact us immediately at <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a>.</p>
+          <p>Best regards,<br>ZvertexAI Team</p>
+        `
+      );
+    } catch (emailError) {
+      console.error('Failed to send login confirmation email:', emailError.message);
+    }
+
     res.json({ token });
   } catch (error) {
     console.error('Login error:', error.message);

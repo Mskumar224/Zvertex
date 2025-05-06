@@ -9,7 +9,6 @@ const transporter = nodemailer.createTransport({
 });
 
 const sendEmail = async (to, subject, content) => {
-  // Professional HTML email template
   const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -39,7 +38,7 @@ const sendEmail = async (to, subject, content) => {
           ${content}
         </div>
         <div class="footer">
-          <p>&copy; 2025 ZvertexAI. All rights reserved.</p>
+          <p>© 2025 ZvertexAI. All rights reserved.</p>
           <p><a href="https://zvertexai.com">Visit our website</a> | <a href="mailto:zvertex.247@gmail.com">Contact Us</a></p>
         </div>
       </div>
