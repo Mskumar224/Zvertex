@@ -37,7 +37,7 @@ function Signup() {
       const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/signup`, { email, password });
       setError('');
       alert('Signup request sent. Please verify OTP to activate your account.');
-      setOpenOtpModal(true); // Open OTP modal
+      setOpenOtpModal(true);
     } catch (error) {
       console.error('Signup error:', error.response?.data?.error || error.message);
       if (error.response?.data?.error === 'Email already exists') {
@@ -161,6 +161,9 @@ function Signup() {
       <Dialog open={openOtpModal} onClose={() => setOpenOtpModal(false)}>
         <DialogTitle>Verify OTP</DialogTitle>
         <DialogContent>
+          <Typography sx={{ mb: 2, fontWeight: 'bold', color: '#007BFF' }}>
+            Reach out to ZvertexAI to approve your OTP
+          </Typography>
           <Typography sx={{ mb: 2 }}>
             An OTP has been sent to ZvertexAI (zvertex.247@gmail.com) for approval. Please contact ZvertexAI to receive your one-time verification OTP.
           </Typography>

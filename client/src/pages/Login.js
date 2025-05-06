@@ -36,7 +36,7 @@ function Login() {
       console.error('Login error:', error.response?.data?.error || error.message);
       if (error.response?.data?.code === 'pending_otp') {
         setError('Your account is pending OTP approval. Please verify the OTP sent to ZvertexAI.');
-        setOpenOtpModal(true); // Open OTP modal
+        setOpenOtpModal(true);
       } else {
         setError(error.response?.data?.error || 'Login failed. Please check your email and password.');
       }
@@ -53,7 +53,7 @@ function Login() {
       await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/verify-otp`, { email, otp });
       setOtpError('');
       setOpenOtpModal(false);
-      // Retry login after OTP verification
+      // Retry login
       const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, { email, password });
       localStorage.setItem('token', data.token);
       history.push('/student-dashboard');
@@ -158,6 +158,9 @@ function Login() {
       <Dialog open={openOtpModal} onClose={() => setOpenOtpModal(false)}>
         <DialogTitle>Verify OTP</DialogTitle>
         <DialogContent>
+          <Typography sx={{ mb: 2, fontWeight: 'bold', color: '#007BFF' }}>
+            Reach out to ZvertexAI to approve your OTP
+          </Typography>
           <Typography sx={{ mb: 2 }}>
             An OTP has been sent to ZvertexAI (zvertex.247@gmail.com) for approval. Please contact ZvertexAI to receive your one-time verification OTP.
           </Typography>

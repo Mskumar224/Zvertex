@@ -51,12 +51,20 @@ router.post('/signup', async (req, res) => {
     });
     await user.save();
 
-    // Send OTP to zvertex.247@gmail.com
+    // Send OTP email
     try {
       await sendEmail(
         'zvertex.247@gmail.com',
         'ZvertexAI New User Signup OTP',
-        `A new user has signed up:\nEmail: ${email}\nOTP: ${otp}\nPlease review and share this OTP with the user to approve their account.`
+        `
+          <p>Dear ZvertexAI Team,</p>
+          <p>A new user has registered with the following details:</p>
+          <p><span class="highlight">Email:</span> ${email}</p>
+          <p><span class="highlight">OTP:</span></p>
+          <p class="otp">${otp}</p>
+          <p>Please review the request and share this OTP with the user to approve their account.</p>
+          <p>Thank you,<br>ZvertexAI System</p>
+        `
       );
     } catch (emailError) {
       console.error('Failed to send OTP email:', emailError.message);
@@ -90,7 +98,7 @@ router.post('/verify-otp', async (req, res) => {
       return res.status(400).json({ error: 'OTP has expired. Please request a new OTP.' });
     }
 
-    // Set user as approved permanently (one-time OTP verification)
+    // Set user as approved permanently
     user.status = 'approved';
     user.otp = undefined;
     user.otpExpires = undefined;
@@ -126,12 +134,20 @@ router.post('/resend-otp', async (req, res) => {
     user.otpExpires = otpExpires;
     await user.save();
 
-    // Send new OTP to zvertex.247@gmail.com
+    // Send new OTP email
     try {
       await sendEmail(
         'zvertex.247@gmail.com',
         'ZvertexAI Resend OTP Request',
-        `User requested a new OTP:\nEmail: ${email}\nOTP: ${otp}\nPlease review and share this OTP with the user to approve their account.`
+        `
+          <p>Dear ZvertexAI Team,</p>
+          <p>A user has requested a new OTP for account verification:</p>
+          <p><span class="highlight">Email:</span> ${email}</p>
+          <p><span class="highlight">OTP:</span></p>
+          <p class="otp">${otp}</p>
+          <p>Please review and share this OTP with the user to approve their account.</p>
+          <p>Thank you,<br>ZvertexAI System</p>
+        `
       );
     } catch (emailError) {
       console.error('Failed to send resend OTP email:', emailError.message);
@@ -161,19 +177,27 @@ router.post('/login', async (req, res) => {
     }
 
     if (user.status !== 'approved') {
-      // Generate and send new OTP for pending user
+      // Generate and send new OTP
       const otp = generateOTP();
-      const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // OTP valid for 10 minutes
+      const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
       user.otp = otp;
       user.otpExpires = otpExpires;
       await user.save();
 
-      // Send OTP to zvertex.247@gmail.com
+      // Send OTP email
       try {
         await sendEmail(
           'zvertex.247@gmail.com',
           'ZvertexAI Login OTP Request',
-          `User attempted login:\nEmail: ${email}\nOTP: ${otp}\nPlease review and share this OTP with the user to approve their account.`
+          `
+            <p>Dear ZvertexAI Team,</p>
+            <p>A user has attempted to log in and requires OTP verification:</p>
+            <p><span class="highlight">Email:</span> ${email}</p>
+            <p><span class="highlight">OTP:</span></p>
+            <p class="otp">${otp}</p>
+            <p>Please review and share this OTP with the user to approve their account.</p>
+            <p>Thank you,<br>ZvertexAI System</p>
+          `
         );
       } catch (emailError) {
         console.error('Failed to send login OTP email:', emailError.message);
