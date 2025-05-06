@@ -9,13 +9,8 @@ function ResumeUpload() {
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
-    if (selectedFile && selectedFile.size > 5 * 1024 * 1024) {
-      setError('File size exceeds 5MB limit.');
-      setFile(null);
-    } else {
-      setFile(selectedFile);
-      setError('');
-    }
+    setFile(selectedFile);
+    setError('');
   };
 
   const handleUpload = async () => {

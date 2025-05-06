@@ -25,7 +25,10 @@ app.use(cors({
 
 // Middleware
 app.use(express.json());
-app.use(fileUpload());
+app.use(fileUpload({
+  limits: { fileSize: 50 * 1024 * 1024 }, // Set limit to 50MB
+  abortOnLimit: true,
+}));
 
 // Routes
 app.use('/api/auth', authRoutes);

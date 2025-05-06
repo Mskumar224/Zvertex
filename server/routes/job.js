@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { parseResume } = require('../utils/resumeParser');
-const Job = require('../models/Job'); // Assumed model
+const Job = require('../models/Job');
 const verifyToken = require('../middleware/auth');
 
 // Upload resume
@@ -13,11 +13,7 @@ router.post('/upload-resume', verifyToken, async (req, res) => {
   }
 
   const resume = req.files.resume;
-  // Limit file size to 5MB
-  if (resume.size > 5 * 1024 * 1024) {
-    console.error('Resume upload failed: File too large', { size: resume.size });
-    return res.status(400).json({ error: 'Resume file size exceeds 5MB limit' });
-  }
+  console.log('Resume file received:', { name: resume.name, size: resume.size });
 
   try {
     const parsedData = await parseResume(resume);

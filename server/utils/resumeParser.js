@@ -4,10 +4,12 @@ const mammoth = require('mammoth');
 const parseResume = async (file) => {
   try {
     const fileType = file.mimetype;
-    let text;
+    const fileSize = file.size;
+    console.log('Parsing resume:', { fileType, fileSize });
 
+    let text;
     if (fileType === 'application/pdf') {
-      const pdfData = await pdfParse(file.data, { max: 10 }); // Limit pages to prevent memory issues
+      const pdfData = await pdfParse(file.data, { max: 20 }); // Limit to 20 pages
       text = pdfData.text;
     } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       const docData = await mammoth.extractRawText({ buffer: file.data });
