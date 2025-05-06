@@ -9,6 +9,12 @@ require('dotenv').config();
 
 const app = express();
 
+// Logging middleware for debugging
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 // CORS configuration
 app.use(cors({
   origin: 'https://zvertexai.com',

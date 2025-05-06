@@ -1,66 +1,76 @@
 import React, { useState } from 'react';
-import { Button, TextField, Typography, Box } from '@mui/material';
+import { Box, Button, Typography, Input } from '@mui/material';
 import axios from 'axios';
 
-function ResumeUpload({ onResumeParsed }) {
+function ResumeUpload() {
   const [file, setFile] = useState(null);
-  const [techs, setTechs] = useState([]);
-  const [manualTech, setManualTech] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile && selectedFile.size > 5 * 1024 * 1024) {
+      setError('File size exceeds 5MB limit.');
+      setFile(null);
+    } else {
+      setFile(selectedFile);
+      setError('');
+    }
+  };
 
   const handleUpload = async () => {
+    if (!file) {
+      setError('Please select a resume file.');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('resume', file);
 
     try {
-      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/job/upload-resume`, formData, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'multipart/form-data' },
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/job/upload-resume`, formData, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      setTechs(data.keywords);
-      onResumeParsed(data.keywords);
+      setSuccess('Resume uploaded successfully!');
+      setError('');
+      setFile(null);
     } catch (error) {
-      alert('Resume upload failed!');
+      console.error('Resume upload error:', error.response?.data?.error || error.message);
+      setError(error.response?.data?.error || 'Failed to upload resume. Please try again.');
+      setSuccess('');
     }
   };
 
   return (
-    <Box className="card">
-      <Typography variant="h6" sx={{ mb: 2 }}>Upload Your Resume</Typography>
-      <input
+    <Box sx={{ mt: 4 }}>
+      <Typography variant="h5" gutterBottom>
+        Upload Resume
+      </Typography>
+      <Input
         type="file"
-        accept=".pdf,.doc,.docx,.txt"
-        onChange={(e) => setFile(e.target.files[0])}
-        style={{ display: 'block', marginBottom: '16px' }}
+        accept=".pdf,.docx"
+        onChange={handleFileChange}
+        sx={{ mb: 2 }}
       />
+      {error && (
+        <Typography color="error" sx={{ mb: 2 }}>
+          {error}
+        </Typography>
+      )}
+      {success && (
+        <Typography color="success" sx={{ mb: 2 }}>
+          {success}
+        </Typography>
+      )}
       <Button
         variant="contained"
         color="primary"
         onClick={handleUpload}
         disabled={!file}
-        className="back-button"
       >
         Upload
       </Button>
-      {techs.length > 0 && (
-        <Box sx={{ mt: 2 }}>
-          <Typography>Suggested Technologies: {techs.join(', ')}</Typography>
-          <TextField
-            label="Add Technology Manually"
-            value={manualTech}
-            onChange={(e) => setManualTech(e.target.value)}
-            sx={{ mt: 2, mr: 2 }}
-          />
-          <Button
-            variant="outlined"
-            color="primary"
-            onClick={() => {
-              setTechs([...techs, manualTech]);
-              setManualTech('');
-            }}
-          >
-            Add
-          </Button>
-        </Box>
-      )}
     </Box>
   );
 }

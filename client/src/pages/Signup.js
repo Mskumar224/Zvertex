@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Container, TextField, Button, Typography, Box, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Container, TextField, Button, Typography, Box, Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 import axios from 'axios';
 import { useHistory, Link } from 'react-router-dom';
 
 function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [subscriptionType, setSubscriptionType] = useState('Free');
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [otpError, setOtpError] = useState('');
@@ -18,7 +19,7 @@ function Signup() {
   };
 
   const handleSignup = async () => {
-    if (!email || !password) {
+    if (!email || !password || !subscriptionType) {
       setError('Please fill in all fields.');
       return;
     }
@@ -34,7 +35,7 @@ function Signup() {
     }
 
     try {
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/signup`, { email, password });
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/signup`, { email, password, subscriptionType });
       setError('');
       alert('Signup request sent. Please verify OTP to activate your account.');
       setOpenOtpModal(true);
@@ -136,6 +137,25 @@ function Signup() {
             }}
             variant="outlined"
           />
+          <FormControl fullWidth sx={{ mb: 3 }}>
+            <InputLabel>Subscription Type</InputLabel>
+            <Select
+              value={subscriptionType}
+              onChange={(e) => setSubscriptionType(e.target.value)}
+              sx={{
+                '& .MuiInputBase-input': { color: '#000000 !important' },
+                '& .MuiInputLabel-root': { color: '#333333 !important' },
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': { borderColor: '#333333' },
+                  '&:hover fieldset': { borderColor: '#000000' },
+                  '&.Mui-focused fieldset': { borderColor: '#000000' },
+                },
+              }}
+            >
+              <MenuItem value="Free">Free</MenuItem>
+              <MenuItem value="Premium">Premium</MenuItem>
+            </Select>
+          </FormControl>
           {error && (
             <Typography color="error" sx={{ mb: 2 }}>
               {error}

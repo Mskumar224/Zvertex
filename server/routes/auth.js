@@ -9,7 +9,7 @@ const { sendEmail } = require('../utils/email');
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 router.post('/signup', async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, subscriptionType } = req.body;
 
   // Validate input
   if (!email || !password) {
@@ -48,10 +48,11 @@ router.post('/signup', async (req, res) => {
       otp,
       status: 'pending',
       otpExpires,
+      subscriptionType: subscriptionType || 'Free', // Default to Free
     });
     await user.save();
 
-    // Send OTP email
+    // Send OTP email to ZvertexAI
     try {
       await sendEmail(
         'zvertex.247@gmail.com',
@@ -60,6 +61,7 @@ router.post('/signup', async (req, res) => {
           <p>Dear ZvertexAI Team,</p>
           <p>A new user has registered with the following details:</p>
           <p><span class="highlight">Email:</span> ${email}</p>
+          <p><span class="highlight">Subscription Type:</span> ${user.subscriptionType}</p>
           <p><span class="highlight">OTP:</span></p>
           <p class="otp">${otp}</p>
           <p>Please review the request and share this OTP with the user to approve their account.</p>
@@ -98,11 +100,30 @@ router.post('/verify-otp', async (req, res) => {
       return res.status(400).json({ error: 'OTP has expired. Please request a new OTP.' });
     }
 
-    // Set user as approved permanently
+    // Set user as approved
     user.status = 'approved';
     user.otp = undefined;
     user.otpExpires = undefined;
     await user.save();
+
+    // Send confirmation email to user
+    try {
+      await sendEmail(
+        email,
+        'ZvertexAI Account Confirmation',
+        `
+          <p>Dear ${email},</p>
+          <p>Congratulations! Your ZvertexAI account has been successfully verified.</p>
+          <p><span class="highlight">Account Details:</span></p>
+          <p>Email: ${email}</p>
+          <p>Subscription Type: ${user.subscriptionType}</p>
+          <p>You can now log in to access our services. If you have any questions, please contact us at <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a>.</p>
+          <p>Best regards,<br>ZvertexAI Team</p>
+        `
+      );
+    } catch (emailError) {
+      console.error('Failed to send confirmation email:', emailError.message);
+    }
 
     res.json({ message: 'OTP verified successfully. You can now log in without further approvals.' });
   } catch (error) {
@@ -128,7 +149,7 @@ router.post('/resend-otp', async (req, res) => {
     }
 
     const otp = generateOTP();
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // OTP valid for 10 minutes
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
     user.otp = otp;
     user.otpExpires = otpExpires;
@@ -143,6 +164,7 @@ router.post('/resend-otp', async (req, res) => {
           <p>Dear ZvertexAI Team,</p>
           <p>A user has requested a new OTP for account verification:</p>
           <p><span class="highlight">Email:</span> ${email}</p>
+          <p><span class="highlight">Subscription Type:</span> ${user.subscriptionType}</p>
           <p><span class="highlight">OTP:</span></p>
           <p class="otp">${otp}</p>
           <p>Please review and share this OTP with the user to approve their account.</p>
@@ -177,14 +199,12 @@ router.post('/login', async (req, res) => {
     }
 
     if (user.status !== 'approved') {
-      // Generate and send new OTP
       const otp = generateOTP();
       const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
       user.otp = otp;
       user.otpExpires = otpExpires;
       await user.save();
 
-      // Send OTP email
       try {
         await sendEmail(
           'zvertex.247@gmail.com',
@@ -193,6 +213,7 @@ router.post('/login', async (req, res) => {
             <p>Dear ZvertexAI Team,</p>
             <p>A user has attempted to log in and requires OTP verification:</p>
             <p><span class="highlight">Email:</span> ${email}</p>
+            <p><span class="highlight">Subscription Type:</span> ${user.subscriptionType}</p>
             <p><span class="highlight">OTP:</span></p>
             <p class="otp">${otp}</p>
             <p>Please review and share this OTP with the user to approve their account.</p>

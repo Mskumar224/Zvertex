@@ -4,11 +4,9 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   otp: { type: String },
-  status: { type: String, enum: ['pending', 'approved'], default: 'pending' },
+  status: { type: String, default: 'pending' },
   otpExpires: { type: Date },
-  submissionsToday: { type: Number, default: 0 },
-  lastReset: { type: Date, default: Date.now },
-  jobsApplied: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Job' }],
+  subscriptionType: { type: String, default: 'Free' }, // Added subscription type
 });
 
 module.exports = mongoose.model('User', userSchema);
