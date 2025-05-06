@@ -60,7 +60,16 @@ function SubscriptionForm() {
             fullWidth
             value={name}
             onChange={(e) => setName(e.target.value)}
-            sx={{ mb: 3 }}
+            sx={{
+              mb: 3,
+              '& .MuiInputBase-input': { color: '#000000 !important' }, // Black text
+              '& .MuiInputLabel-root': { color: '#333333 !important' }, // Dark gray label
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': { borderColor: '#333333' },
+                '&:hover fieldset': { borderColor: '#000000' },
+                '&.Mui-focused fieldset': { borderColor: '#000000' },
+              },
+            }}
             variant="outlined"
           />
           <TextField
@@ -69,7 +78,16 @@ function SubscriptionForm() {
             fullWidth
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            sx={{ mb: 3 }}
+            sx={{
+              mb: 3,
+              '& .MuiInputBase-input': { color: '#000000 !important' }, // Black text
+              '& .MuiInputLabel-root': { color: '#333333 !important' }, // Dark gray label
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': { borderColor: '#333333' },
+                '&:hover fieldset': { borderColor: '#000000' },
+                '&.Mui-focused fieldset': { borderColor: '#000000' },
+              },
+            }}
             variant="outlined"
           />
           <TextField
@@ -78,7 +96,16 @@ function SubscriptionForm() {
             fullWidth
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            sx={{ mb: 3 }}
+            sx={{
+              mb: 3,
+              '& .MuiInputBase-input': { color: '#000000 !important' }, // Black text
+              '& .MuiInputLabel-root': { color: '#333333 !important' }, // Dark gray label
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': { borderColor: '#333333' },
+                '&:hover fieldset': { borderColor: '#000000' },
+                '&.Mui-focused fieldset': { borderColor: '#000000' },
+              },
+            }}
             variant="outlined"
           />
           {error && (
