@@ -3,8 +3,18 @@ const Job = require('../models/Job');
 const autoApplyJobs = async (resumeText, jobs, user) => {
   const appliedJobs = [];
 
+  // Get previously applied jobs to avoid duplicates
+  const existingJobs = await Job.find({ userId: user._id });
+  const appliedJobKeys = existingJobs.map(job => `${job.title}:${job.company}`);
+
   for (const job of jobs) {
-    // Simple keyword matching (case-insensitive)
+    const jobKey = `${job.title}:${job.company}`;
+    if (appliedJobKeys.includes(jobKey)) {
+      console.log('Skipping already applied job:', { title: job.title, company: job.company });
+      continue;
+    }
+
+    // Simple keyword matching
     const resumeLower = resumeText.toLowerCase();
     const jobDescLower = job.description.toLowerCase();
     const keywords = ['javascript', 'python', 'react', 'node.js', 'sql', 'product management'];
@@ -12,7 +22,7 @@ const autoApplyJobs = async (resumeText, jobs, user) => {
       return score + (resumeLower.includes(keyword) && jobDescLower.includes(keyword) ? 1 : 0);
     }, 0);
 
-    if (matchScore > 0) { // Apply if at least one keyword matches
+    if (matchScore > 0) {
       const newJob = new Job({
         userId: user._id,
         title: job.title,

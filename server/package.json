@@ -16,8 +16,8 @@
     "jsonwebtoken": "^9.0.2",
     "mammoth": "^1.8.0",
     "mongoose": "^6.12.9",
-    "nodemailer": "^6.9.15",
     "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.15",
     "pdf-parse": "^1.1.1"
   }
 }

@@ -6,7 +6,8 @@ const userSchema = new mongoose.Schema({
   otp: { type: String },
   status: { type: String, default: 'pending' },
   otpExpires: { type: Date },
-  subscriptionType: { type: String, default: 'Free' }, // Added subscription type
+  subscriptionType: { type: String, default: 'Free' },
+  resumeText: { type: String }, // Added for periodic job matching
 });
 
 module.exports = mongoose.model('User', userSchema);

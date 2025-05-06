@@ -27,6 +27,10 @@ router.post('/upload-resume', verifyToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Store resume text for periodic job matching
+    user.resumeText = parsedData.text;
+    await user.save();
+
     // Send resume upload confirmation email
     try {
       await sendEmail(
@@ -64,7 +68,7 @@ router.post('/upload-resume', verifyToken, async (req, res) => {
               <p>Job Title: ${job.title}</p>
               <p>Company: ${job.company}</p>
               <p>Location: ${job.location}</p>
-              <p>Applied On: ${new Date().toLocaleString()}</p>
+              <p>Applied On: ${new Date(job.appliedAt).toLocaleString()}</p>
               <hr>
             `).join('')}
             <p>You can track the status of these applications in your ZvertexAI dashboard.</p>

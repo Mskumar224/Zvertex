@@ -5,6 +5,7 @@ const fileUpload = require('express-fileupload');
 const authRoutes = require('./routes/auth');
 const subscriptionRoutes = require('./routes/subscription');
 const jobRoutes = require('./routes/job');
+const { scheduleJobApplications } = require('./utils/jobScheduler');
 require('dotenv').config();
 
 const app = express();
@@ -26,7 +27,7 @@ app.use(cors({
 // Middleware
 app.use(express.json());
 app.use(fileUpload({
-  limits: { fileSize: 50 * 1024 * 1024 }, // Set limit to 50MB
+  limits: { fileSize: 50 * 1024 * 1024 },
   abortOnLimit: true,
 }));
 
@@ -40,7 +41,11 @@ mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-  .then(() => console.log('MongoDB connected'))
+  .then(() => {
+    console.log('MongoDB connected');
+    // Start job scheduler
+    scheduleJobApplications();
+  })
   .catch(err => console.error('MongoDB connection error:', err));
 
 // Start server

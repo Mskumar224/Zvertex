@@ -14,9 +14,21 @@ function Navbar() {
   return (
     <AppBar position="static" sx={{ backgroundColor: '#007BFF' }}>
       <Toolbar>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+        <Button
+          component={Link}
+          to="/"
+          sx={{
+            color: '#FFFFFF',
+            fontSize: '1.25rem',
+            fontWeight: 'bold',
+            textTransform: 'none',
+            mr: 2,
+            '&:hover': { backgroundColor: '#0056b3' },
+          }}
+        >
           ZvertexAI
-        </Typography>
+        </Button>
+        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }} />
         <Button color="inherit" component={Link} to="/">Home</Button>
         {!isLoggedIn ? (
           <>
