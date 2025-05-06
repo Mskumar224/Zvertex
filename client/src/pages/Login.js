@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { Container, TextField, Button, Typography, Box } from '@mui/material';
+import { Container, TextField, Button, Typography, Box, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import axios from 'axios';
 import { useHistory, Link } from 'react-router-dom';
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
+  const [otpError, setOtpError] = useState('');
+  const [openOtpModal, setOpenOtpModal] = useState(false);
   const history = useHistory();
 
   const validateEmail = (email) => {
@@ -31,7 +34,48 @@ function Login() {
       history.push('/student-dashboard');
     } catch (error) {
       console.error('Login error:', error.response?.data?.error || error.message);
-      setError(error.response?.data?.error || 'Login failed. Please try again.');
+      if (error.response?.data?.code === 'pending_otp') {
+        setError('Your account is pending OTP approval. Please verify the OTP sent to ZvertexAI.');
+        setOpenOtpModal(true); // Open OTP modal
+      } else {
+        setError(error.response?.data?.error || 'Login failed. Please check your email and password.');
+      }
+    }
+  };
+
+  const handleOtpVerification = async () => {
+    if (!otp) {
+      setOtpError('Please enter the OTP.');
+      return;
+    }
+
+    try {
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/verify-otp`, { email, otp });
+      setOtpError('');
+      setOpenOtpModal(false);
+      // Retry login after OTP verification
+      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, { email, password });
+      localStorage.setItem('token', data.token);
+      history.push('/student-dashboard');
+    } catch (error) {
+      console.error('OTP verification error:', error.response?.data?.error || error.message);
+      setOtpError(error.response?.data?.error || 'OTP verification failed. Please try again or resend OTP.');
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!email) {
+      setOtpError('Please enter your email to resend OTP.');
+      return;
+    }
+
+    try {
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/resend-otp`, { email });
+      setOtpError('');
+      alert('New OTP sent to ZvertexAI. Please contact ZvertexAI at zvertex.247@gmail.com to receive it.');
+    } catch (error) {
+      console.error('Resend OTP error:', error.response?.data?.error || error.message);
+      setOtpError(error.response?.data?.error || 'Failed to resend OTP. Please try again.');
     }
   };
 
@@ -61,8 +105,8 @@ function Login() {
             onChange={(e) => setEmail(e.target.value)}
             sx={{
               mb: 3,
-              '& .MuiInputBase-input': { color: '#000000 !important' }, // Black text
-              '& .MuiInputLabel-root': { color: '#333333 !important' }, // Dark gray label
+              '& .MuiInputBase-input': { color: '#000000 !important' },
+              '& .MuiInputLabel-root': { color: '#333333 !important' },
               '& .MuiOutlinedInput-root': {
                 '& fieldset': { borderColor: '#333333' },
                 '&:hover fieldset': { borderColor: '#000000' },
@@ -79,8 +123,8 @@ function Login() {
             onChange={(e) => setPassword(e.target.value)}
             sx={{
               mb: 3,
-              '& .MuiInputBase-input': { color: '#000000 !important' }, // Black text
-              '& .MuiInputLabel-root': { color: '#333333 !important' }, // Dark gray label
+              '& .MuiInputBase-input': { color: '#000000 !important' },
+              '& .MuiInputLabel-root': { color: '#333333 !important' },
               '& .MuiOutlinedInput-root': {
                 '& fieldset': { borderColor: '#333333' },
                 '&:hover fieldset': { borderColor: '#000000' },
@@ -109,6 +153,46 @@ function Login() {
           Don't have an account? <Link to="/signup">Sign Up</Link>
         </Typography>
       </div>
+
+      {/* OTP Verification Modal */}
+      <Dialog open={openOtpModal} onClose={() => setOpenOtpModal(false)}>
+        <DialogTitle>Verify OTP</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mb: 2 }}>
+            An OTP has been sent to ZvertexAI (zvertex.247@gmail.com) for approval. Please contact ZvertexAI to receive your one-time verification OTP.
+          </Typography>
+          <TextField
+            label="OTP"
+            fullWidth
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+            sx={{
+              mb: 3,
+              '& .MuiInputBase-input': { color: '#000000 !important' },
+              '& .MuiInputLabel-root': { color: '#333333 !important' },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': { borderColor: '#333333' },
+                '&:hover fieldset': { borderColor: '#000000' },
+                '&.Mui-focused fieldset': { borderColor: '#000000' },
+              },
+            }}
+            variant="outlined"
+          />
+          {otpError && (
+            <Typography color="error" sx={{ mb: 2 }}>
+              {otpError}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleResendOtp} color="primary">
+            Resend OTP
+          </Button>
+          <Button onClick={handleOtpVerification} color="primary" variant="contained">
+            Verify OTP
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

@@ -1,49 +1,48 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import { Typography, Box } from '@mui/material';
 import axios from 'axios';
 
 function JobTracker() {
   const [jobs, setJobs] = useState([]);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchJobs = async () => {
-      const { data } = await axios.get(`${process.env.REACT_APP_API_URL}/api/job/tracker`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-      setJobs(data);
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/job/tracker`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setJobs(response.data);
+        setError('');
+      } catch (err) {
+        console.error('Job tracker error:', err.response?.data?.error || err.message);
+        setError('Failed to load job applications. Please try again later.');
+      }
     };
     fetchJobs();
   }, []);
 
   return (
-    <Container sx={{ mt: 5 }} className="zgpt-container">
-      <div className="card">
-        <Typography variant="h5" gutterBottom>Job Application Tracker</Typography>
-        <Table className="zgpt-results">
-          <TableHead>
-            <TableRow>
-              <TableCell>Job Title</TableCell>
-              <TableCell>Company</TableCell>
-              <TableCell>Link</TableCell>
-              <TableCell>Date Applied</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {jobs.map((job) => (
-              <TableRow key={job.jobId}>
-                <TableCell>{job.title}</TableCell>
-                <TableCell>{job.company}</TableCell>
-                <TableCell>
-                  <a href={job.link} target="_blank" rel="noopener noreferrer">{job.link}</a>
-                </TableCell>
-                <TableCell>{new Date(job.createdAt).toLocaleDateString()}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <Typography sx={{ mt: 2 }}>Total Applied: {jobs.length}</Typography>
-      </div>
-    </Container>
+    <Box sx={{ mt: 4 }}>
+      <Typography variant="h5" gutterBottom>
+        Your Job Applications
+      </Typography>
+      {error ? (
+        <Typography color="error">{error}</Typography>
+      ) : jobs.length === 0 ? (
+        <Typography>No job applications yet.</Typography>
+      ) : (
+        jobs.map((job) => (
+          <Box key={job._id} sx={{ mb: 2, p: 2, border: '1px solid #ccc' }}>
+            <Typography><strong>Job Title:</strong> {job.title}</Typography>
+            <Typography><strong>Company:</strong> {job.company}</Typography>
+            <Typography><strong>Status:</strong> {job.status}</Typography>
+            <Typography><strong>Applied On:</strong> {new Date(job.appliedAt).toLocaleDateString()}</Typography>
+          </Box>
+        ))
+      )}
+    </Box>
   );
 }
 

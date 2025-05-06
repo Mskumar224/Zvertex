@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Container, TextField, Button, Typography, Box } from '@mui/material';
+import { Container, TextField, Button, Typography, Box, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import axios from 'axios';
 import { useHistory, Link } from 'react-router-dom';
 
@@ -8,7 +8,8 @@ function Signup() {
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
-  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [otpError, setOtpError] = useState('');
+  const [openOtpModal, setOpenOtpModal] = useState(false);
   const history = useHistory();
 
   const validateEmail = (email) => {
@@ -33,29 +34,51 @@ function Signup() {
     }
 
     try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/signup`, { email, password });
-      setIsOtpSent(true);
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/signup`, { email, password });
       setError('');
-      alert('Signup request sent. Please check with ZvertexAI for your OTP approval.');
+      alert('Signup request sent. Please verify OTP to activate your account.');
+      setOpenOtpModal(true); // Open OTP modal
     } catch (error) {
       console.error('Signup error:', error.response?.data?.error || error.message);
-      setError(error.response?.data?.error || 'Signup failed. Please try again.');
+      if (error.response?.data?.error === 'Email already exists') {
+        setError('This email is already registered. Please log in or use a different email.');
+      } else {
+        setError(error.response?.data?.error || 'Signup failed. Please try again.');
+      }
     }
   };
 
   const handleOtpVerification = async () => {
     if (!otp) {
-      setError('Please enter the OTP.');
+      setOtpError('Please enter the OTP.');
       return;
     }
 
     try {
       await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/verify-otp`, { email, otp });
-      alert('OTP verified! You can now log in.');
+      setOtpError('');
+      setOpenOtpModal(false);
+      alert('OTP verified successfully! You can now log in.');
       history.push('/login');
     } catch (error) {
       console.error('OTP verification error:', error.response?.data?.error || error.message);
-      setError(error.response?.data?.error || 'OTP verification failed. Please try again.');
+      setOtpError(error.response?.data?.error || 'OTP verification failed. Please try again or resend OTP.');
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!email) {
+      setOtpError('Please enter your email to resend OTP.');
+      return;
+    }
+
+    try {
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/resend-otp`, { email });
+      setOtpError('');
+      alert('New OTP sent to ZvertexAI. Please contact ZvertexAI at zvertex.247@gmail.com to receive it.');
+    } catch (error) {
+      console.error('Resend OTP error:', error.response?.data?.error || error.message);
+      setOtpError(error.response?.data?.error || 'Failed to resend OTP. Please try again.');
     }
   };
 
@@ -77,102 +100,102 @@ function Signup() {
         <Typography variant="h4" gutterBottom align="center">
           Create Your Account
         </Typography>
-        {!isOtpSent ? (
-          <Box component="form" sx={{ mt: 3 }}>
-            <TextField
-              label="Email"
-              fullWidth
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              sx={{
-                mb: 3,
-                '& .MuiInputBase-input': { color: '#000000 !important' }, // Black text
-                '& .MuiInputLabel-root': { color: '#333333 !important' }, // Dark gray label
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: '#333333' },
-                  '&:hover fieldset': { borderColor: '#000000' },
-                  '&.Mui-focused fieldset': { borderColor: '#000000' },
-                },
-              }}
-              variant="outlined"
-            />
-            <TextField
-              label="Password"
-              type="password"
-              fullWidth
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              sx={{
-                mb: 3,
-                '& .MuiInputBase-input': { color: '#000000 !important' }, // Black text
-                '& .MuiInputLabel-root': { color: '#333333 !important' }, // Dark gray label
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: '#333333' },
-                  '&:hover fieldset': { borderColor: '#000000' },
-                  '&.Mui-focused fieldset': { borderColor: '#000000' },
-                },
-              }}
-              variant="outlined"
-            />
-            {error && (
-              <Typography color="error" sx={{ mb: 2 }}>
-                {error}
-              </Typography>
-            )}
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleSignup}
-              fullWidth
-              className="back-button"
-              sx={{ py: 1.5 }}
-            >
-              Sign Up
-            </Button>
-          </Box>
-        ) : (
-          <Box sx={{ mt: 3 }}>
-            <Typography sx={{ mb: 2 }}>
-              An OTP has been sent to ZvertexAI for approval. Please enter the OTP provided by ZvertexAI.
+        <Box component="form" sx={{ mt: 3 }}>
+          <TextField
+            label="Email"
+            fullWidth
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            sx={{
+              mb: 3,
+              '& .MuiInputBase-input': { color: '#000000 !important' },
+              '& .MuiInputLabel-root': { color: '#333333 !important' },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': { borderColor: '#333333' },
+                '&:hover fieldset': { borderColor: '#000000' },
+                '&.Mui-focused fieldset': { borderColor: '#000000' },
+              },
+            }}
+            variant="outlined"
+          />
+          <TextField
+            label="Password"
+            type="password"
+            fullWidth
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            sx={{
+              mb: 3,
+              '& .MuiInputBase-input': { color: '#000000 !important' },
+              '& .MuiInputLabel-root': { color: '#333333 !important' },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': { borderColor: '#333333' },
+                '&:hover fieldset': { borderColor: '#000000' },
+                '&.Mui-focused fieldset': { borderColor: '#000000' },
+              },
+            }}
+            variant="outlined"
+          />
+          {error && (
+            <Typography color="error" sx={{ mb: 2 }}>
+              {error}
             </Typography>
-            <TextField
-              label="OTP"
-              fullWidth
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              sx={{
-                mb: 3,
-                '& .MuiInputBase-input': { color: '#000000 !important' }, // Black text
-                '& .MuiInputLabel-root': { color: '#333333 !important' }, // Dark gray label
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: '#333333' },
-                  '&:hover fieldset': { borderColor: '#000000' },
-                  '&.Mui-focused fieldset': { borderColor: '#000000' },
-                },
-              }}
-              variant="outlined"
-            />
-            {error && (
-              <Typography color="error" sx={{ mb: 2 }}>
-                {error}
-              </Typography>
-            )}
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleOtpVerification}
-              fullWidth
-              className="back-button"
-              sx={{ py: 1.5 }}
-            >
-              Verify OTP
-            </Button>
-          </Box>
-        )}
+          )}
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSignup}
+            fullWidth
+            className="back-button"
+            sx={{ py: 1.5 }}
+          >
+            Sign Up
+          </Button>
+        </Box>
         <Typography sx={{ mt: 2, textAlign: 'center' }}>
           Already have an account? <Link to="/login">Login</Link>
         </Typography>
       </div>
+
+      {/* OTP Verification Modal */}
+      <Dialog open={openOtpModal} onClose={() => setOpenOtpModal(false)}>
+        <DialogTitle>Verify OTP</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mb: 2 }}>
+            An OTP has been sent to ZvertexAI (zvertex.247@gmail.com) for approval. Please contact ZvertexAI to receive your one-time verification OTP.
+          </Typography>
+          <TextField
+            label="OTP"
+            fullWidth
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+            sx={{
+              mb: 3,
+              '& .MuiInputBase-input': { color: '#000000 !important' },
+              '& .MuiInputLabel-root': { color: '#333333 !important' },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': { borderColor: '#333333' },
+                '&:hover fieldset': { borderColor: '#000000' },
+                '&.Mui-focused fieldset': { borderColor: '#000000' },
+              },
+            }}
+            variant="outlined"
+          />
+          {otpError && (
+            <Typography color="error" sx={{ mb: 2 }}>
+              {otpError}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleResendOtp} color="primary">
+            Resend OTP
+          </Button>
+          <Button onClick={handleOtpVerification} color="primary" variant="contained">
+            Verify OTP
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
