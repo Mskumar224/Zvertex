@@ -6,14 +6,32 @@ import { useHistory } from 'react-router-dom';
 function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
   const [error, setError] = useState(null);
+  const [otpSent, setOtpSent] = useState(false);
   const history = useHistory();
+
+  const handleRequestOtp = async () => {
+    try {
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/request-otp`, { email });
+      setOtpSent(true);
+      setError(null);
+      alert('OTP sent to Zvertex.247@gmail.com. Please check the email.');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to request OTP');
+    }
+  };
 
   const handleSignup = async () => {
     try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/signup`, { email, password });
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/signup`, {
+        email,
+        password,
+        otp,
+      });
+      localStorage.setItem('token', response.data.token);
       setError(null);
-      history.push('/login');
+      history.push('/student-dashboard'); // Default to student dashboard
     } catch (err) {
       setError(err.response?.data?.message || 'Signup failed');
     }
@@ -32,6 +50,7 @@ function Signup() {
           onChange={(e) => setEmail(e.target.value)}
           sx={{ mb: 3 }}
           variant="outlined"
+          disabled={otpSent}
         />
         <TextField
           label="Password"
@@ -41,10 +60,41 @@ function Signup() {
           onChange={(e) => setPassword(e.target.value)}
           sx={{ mb: 3 }}
           variant="outlined"
+          disabled={otpSent}
         />
-        <Button variant="contained" color="primary" onClick={handleSignup} fullWidth sx={{ py: 1.5 }}>
-          Sign Up
-        </Button>
+        {!otpSent ? (
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleRequestOtp}
+            fullWidth
+            sx={{ py: 1.5 }}
+            disabled={!email}
+          >
+            Request OTP
+          </Button>
+        ) : (
+          <>
+            <TextField
+              label="Enter OTP"
+              fullWidth
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              sx={{ mb: 3 }}
+              variant="outlined"
+            />
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSignup}
+              fullWidth
+              sx={{ py: 1.5 }}
+              disabled={!otp}
+            >
+              Verify OTP and Sign Up
+            </Button>
+          </>
+        )}
         {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
       </Box>
       <Typography sx={{ mt: 2, textAlign: 'center' }}>

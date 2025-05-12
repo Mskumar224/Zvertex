@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Container, Typography, TextField, Button, MenuItem, Select, Box } from '@mui/material';
 import axios from 'axios';
 import DocumentUpload from '../components/DocumentUpload';
+import { useHistory } from 'react-router-dom';
 
-function JobApply({ keywords, maxResumes, maxSubmissions }) {
+function JobApply({ keywords }) {
   const [company, setCompany] = useState('');
   const [manualCompany, setManualCompany] = useState('');
   const [jobs, setJobs] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
+  const history = useHistory();
   const companies = ['Google', 'Microsoft', 'Amazon', 'Apple', 'Facebook'];
 
   const fetchJobs = async (companyName) => {
@@ -40,6 +42,13 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
 
   return (
     <Container sx={{ py: 5 }}>
+      <Button
+        variant="outlined"
+        onClick={() => history.goBack()}
+        sx={{ mb: 2 }}
+      >
+        Back
+      </Button>
       <Typography variant="h5" gutterBottom>Select a Company</Typography>
       <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
         <Select

@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true }, // TODO: Hash with bcrypt in production
+  isVerified: { type: Boolean, default: false }, // Added for OTP verification
   subscription: { type: String, default: 'NONE' },
   resumes: { type: Number, default: 0 },
   submissions: { type: Number, default: 0 },

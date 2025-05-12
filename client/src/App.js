@@ -1,44 +1,33 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
-import { Elements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
 import Signup from './pages/Signup';
 import Login from './pages/Login';
-import Subscription from './pages/Subscription';
 import StudentDashboard from './pages/StudentDashboard';
 import RecruiterDashboard from './pages/RecruiterDashboard';
 import BusinessDashboard from './pages/BusinessDashboard';
 import JobApply from './pages/JobApply';
-
-// Validate Stripe publishable key
-const stripeKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
-if (!stripeKey || typeof stripeKey !== 'string') {
-  console.error('Error: REACT_APP_STRIPE_PUBLISHABLE_KEY is missing or invalid. Please set it in environment variables.');
-}
-
-const stripePromise = stripeKey && typeof stripeKey === 'string' ? loadStripe(stripeKey) : null;
+import Header from './components/Header';
+import Footer from './components/Footer';
+import { Box } from '@mui/material';
 
 function App() {
   return (
     <Router>
-      {stripePromise ? (
-        <Elements stripe={stripePromise}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <Header />
+        <Box sx={{ flexGrow: 1 }}>
           <Switch>
             <Route exact path="/" component={Login} />
             <Route path="/signup" component={Signup} />
             <Route path="/login" component={Login} />
-            <Route path="/subscription" component={Subscription} />
             <Route path="/student-dashboard" component={StudentDashboard} />
             <Route path="/recruiter-dashboard" component={RecruiterDashboard} />
             <Route path="/business-dashboard" component={BusinessDashboard} />
             <Route path="/job-apply" component={JobApply} />
           </Switch>
-        </Elements>
-      ) : (
-        <div style={{ textAlign: 'center', padding: '20px', color: 'red' }}>
-          Error: Stripe configuration is missing. Please contact support.
-        </div>
-      )}
+        </Box>
+        <Footer />
+      </Box>
     </Router>
   );
 }

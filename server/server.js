@@ -2,14 +2,13 @@ require('dotenv').config();
 console.log('Environment Variables Loaded:');
 console.log('MONGO_URI:', process.env.MONGO_URI || 'Not set');
 console.log('PORT:', process.env.PORT || 'Not set');
-console.log('STRIPE_SECRET_KEY:', process.env.STRIPE_SECRET_KEY ? 'Set' : 'Not set');
+console.log('EMAIL_USER:', process.env.EMAIL_USER || 'Not set');
 
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const fileUpload = require('express-fileupload');
 const authRoutes = require('./routes/auth');
-const subscriptionRoutes = require('./routes/subscription');
 const jobRoutes = require('./routes/job');
 const { scheduleDailyEmails } = require('./utils/dailyEmail');
 
@@ -20,13 +19,13 @@ const corsOptions = {
   origin: (origin, callback) => {
     const allowedOrigins = [
       'https://zvertexai.com', // Production frontend
-      'https://67e23ab86a51458e138e0032--zvertexagi.netlify.app', // Netlify subdomains
+      'https://67e23ab86a51458e138e0032--zvertexagi.netlify.app',
       'https://67e2641113aab6f39709cd06--zvertexagi.netlify.app',
       'https://67e34047bb1fc30008a62bbb--zvertexagi.netlify.app',
       'http://localhost:3000', // Local development
     ];
     if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, origin || '*'); // Return specific origin or '*' for non-browser requests
+      callback(null, origin || '*');
     } else {
       console.error(`CORS blocked for origin: ${origin}`);
       callback(new Error(`CORS policy: ${origin} not allowed`));
@@ -38,7 +37,7 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 
-// Log CORS requests and response headers for debugging
+// Log CORS requests and responses
 app.use((req, res, next) => {
   console.log(`[CORS] ${req.method} ${req.url} from origin: ${req.headers.origin}`);
   res.on('finish', () => {
@@ -54,7 +53,6 @@ app.use(express.json());
 app.use(fileUpload());
 
 app.use('/api/auth', authRoutes);
-app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/job', jobRoutes);
 
 app.get('/test', (req, res) => res.send('Server is alive'));

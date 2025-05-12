@@ -17,7 +17,7 @@ function Login() {
       );
       localStorage.setItem('token', response.data.token);
       setError(null);
-      history.push('/subscription');
+      history.push('/student-dashboard'); // Default to student dashboard
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Network Error';
       console.error('Login Error:', errorMessage);
@@ -27,6 +27,13 @@ function Login() {
 
   return (
     <Container maxWidth="sm" sx={{ py: 5, background: '#fff', borderRadius: 2, boxShadow: 3 }}>
+      <Button
+        variant="outlined"
+        onClick={() => history.goBack()}
+        sx={{ mb: 2 }}
+      >
+        Back
+      </Button>
       <Typography variant="h4" gutterBottom align="center" sx={{ color: '#1976d2' }}>
         Login
       </Typography>
