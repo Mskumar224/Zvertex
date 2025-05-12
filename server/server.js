@@ -26,7 +26,7 @@ const corsOptions = {
       'http://localhost:3000', // Local development
     ];
     if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, origin || '*'); // Return the specific origin or '*' for non-browser requests
+      callback(null, origin || '*'); // Return specific origin or '*' for non-browser requests
     } else {
       console.error(`CORS blocked for origin: ${origin}`);
       callback(new Error(`CORS policy: ${origin} not allowed`));
@@ -38,9 +38,12 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 
-// Log CORS requests for debugging
+// Log CORS requests and response headers for debugging
 app.use((req, res, next) => {
   console.log(`[CORS] ${req.method} ${req.url} from origin: ${req.headers.origin}`);
+  res.on('finish', () => {
+    console.log(`[CORS] Response status: ${res.statusCode}, Headers: ${JSON.stringify(res.getHeaders())}`);
+  });
   next();
 });
 
