@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const User = require('../models/User');
 const { sendEmail } = require('../utils/email');
 
@@ -9,11 +10,11 @@ const { sendEmail } = require('../utils/email');
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 router.post('/signup', async (req, res) => {
-  const { email, password, subscriptionType } = req.body;
+  const { email, password, subscriptionType, timeZone } = req.body;
 
-  if (!email || !password) {
-    console.error('Signup failed: Missing email or password', { email, password });
-    return res.status(400).json({ error: 'Email and password are required' });
+  if (!email || !password || !timeZone) {
+    console.error('Signup failed: Missing required fields', { email });
+    return res.status(400).json({ error: 'Email, password, and time zone are required' });
   }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -45,6 +46,7 @@ router.post('/signup', async (req, res) => {
       status: 'pending',
       otpExpires,
       subscriptionType: subscriptionType || 'Free',
+      timeZone,
     });
     await user.save();
 
@@ -61,10 +63,35 @@ router.post('/signup', async (req, res) => {
           <p class="otp">${otp}</p>
           <p>Please review the request and share this OTP with the user to approve their account.</p>
           <p>Thank you,<br>ZvertexAI System</p>
-        `
+        `,
+        'UTC'
       );
     } catch (emailError) {
       console.error('Failed to send OTP email:', emailError.message);
+    }
+
+    if (user.firstSignup) {
+      try {
+        await sendEmail(
+          email,
+          'ZvertexAI Signup Confirmation',
+          `
+            <p>Dear ${email},</p>
+            <p>Welcome to ZvertexAI! Your account has been created successfully.</p>
+            <p><span class="highlight">Account Details:</span></p>
+            <p>Email: ${email}</p>
+            <p>Subscription Type: ${user.subscriptionType}</p>
+            <p>Signup Time: {{formattedDate}}</p>
+            <p>Please verify your OTP to activate your account.</p>
+            <p>Best regards,<br>ZvertexAI Team</p>
+          `,
+          timeZone
+        );
+        user.firstSignup = false;
+        await user.save();
+      } catch (emailError) {
+        console.error('Failed to send signup confirmation email:', emailError.message);
+      }
     }
 
     res.json({ message: 'Signup successful. Please verify OTP to activate your account.', email });
@@ -102,19 +129,20 @@ router.post('/verify-otp', async (req, res) => {
     try {
       await sendEmail(
         email,
-        'ZvertexAI Account Confirmation',
+        'ZvertexAI Account Verification Confirmation',
         `
           <p>Dear ${email},</p>
           <p>Congratulations! Your ZvertexAI account has been successfully verified.</p>
           <p><span class="highlight">Account Details:</span></p>
           <p>Email: ${email}</p>
-          <p>Subscription Type: ${user.subscriptionType}</p>
-          <p>You can now log in to access our services. If you have any questions, please contact us at <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a>.</p>
+          <p>Verification Time: {{formattedDate}}</p>
+          <p>You can now log in to access our services.</p>
           <p>Best regards,<br>ZvertexAI Team</p>
-        `
+        `,
+        user.timeZone
       );
     } catch (emailError) {
-      console.error('Failed to send confirmation email:', emailError.message);
+      console.error('Failed to send verification confirmation email:', emailError.message);
     }
 
     res.json({ message: 'OTP verified successfully. You can now log in without further approvals.' });
@@ -159,7 +187,8 @@ router.post('/resend-otp', async (req, res) => {
           <p class="otp">${otp}</p>
           <p>Please review and share this OTP with the user to approve their account.</p>
           <p>Thank you,<br>ZvertexAI System</p>
-        `
+        `,
+        'UTC'
       );
     } catch (emailError) {
       console.error('Failed to send resend OTP email:', emailError.message);
@@ -207,7 +236,8 @@ router.post('/login', async (req, res) => {
             <p class="otp">${otp}</p>
             <p>Please review and share this OTP with the user to approve their account.</p>
             <p>Thank you,<br>ZvertexAI System</p>
-          `
+          `,
+          'UTC'
         );
       } catch (emailError) {
         console.error('Failed to send login OTP email:', emailError.message);
@@ -228,29 +258,135 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '1h' });
 
-    // Send login confirmation email
-    try {
-      await sendEmail(
-        email,
-        'ZvertexAI Login Confirmation',
-        `
-          <p>Dear ${email},</p>
-          <p>You have successfully logged in to your ZvertexAI account.</p>
-          <p><span class="highlight">Login Details:</span></p>
-          <p>Email: ${email}</p>
-          <p>Time: ${new Date().toLocaleString()}</p>
-          <p>If this was not you, please contact us immediately at <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a>.</p>
-          <p>Best regards,<br>ZvertexAI Team</p>
-        `
-      );
-    } catch (emailError) {
-      console.error('Failed to send login confirmation email:', emailError.message);
+    if (user.firstLogin) {
+      try {
+        await sendEmail(
+          email,
+          'ZvertexAI Login Confirmation',
+          `
+            <p>Dear ${email},</p>
+            <p>You have successfully logged in to your ZvertexAI account for the first time.</p>
+            <p><span class="highlight">Login Details:</span></p>
+            <p>Email: ${email}</p>
+            <p>Time: {{formattedDate}}</p>
+            <p>If this was not you, please contact us immediately at <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a>.</p>
+            <p>Best regards,<br>ZvertexAI Team</p>
+          `,
+          user.timeZone
+        );
+        user.firstLogin = false;
+        await user.save();
+      } catch (emailError) {
+        console.error('Failed to send login confirmation email:', emailError.message);
+      }
     }
 
     res.json({ token });
   } catch (error) {
     console.error('Login error:', error.message);
     res.status(500).json({ error: 'Server error during login' });
+  }
+});
+
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    console.error('Forgot password failed: Missing email', { email });
+    return res.status(400).json({ error: 'Email is required' });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      console.error('Forgot password failed: User not found', { email });
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000;
+    await user.save();
+
+    try {
+      await sendEmail(
+        email,
+        'ZvertexAI Password Reset Request',
+        `
+          <p>Dear ${email},</p>
+          <p>You have requested to reset your ZvertexAI account password.</p>
+          <p>Please click the link below to reset your password (valid for 1 hour):</p>
+          <a href="https://zvertexai.com/reset-password/${resetToken}" class="button">Reset Password</a>
+          <p>Request Time: {{formattedDate}}</p>
+          <p>If you did not request this, please ignore this email.</p>
+          <p>Best regards,<br>ZvertexAI Team</p>
+        `,
+        user.timeZone
+      );
+    } catch (emailError) {
+      console.error('Failed to send password reset email:', emailError.message);
+    }
+
+    res.json({ message: 'Password reset link sent to your email.' });
+  } catch (error) {
+    console.error('Forgot password error:', error.message);
+    res.status(500).json({ error: 'Server error during password reset request' });
+  }
+});
+
+router.post('/reset-password/:token', async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  if (!password) {
+    console.error('Reset password failed: Missing password');
+    return res.status(400).json({ error: 'New password is required' });
+  }
+
+  if (password.length < 6) {
+    console.error('Reset password failed: Password too short');
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  }
+
+  try {
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      console.error('Reset password failed: Invalid or expired token');
+      return res.status(400).json({ error: 'Invalid or expired password reset token' });
+    }
+
+    user.password = await bcrypt.hash(password, 10);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    try {
+      await sendEmail(
+        user.email,
+        'ZvertexAI Password Reset Confirmation',
+        `
+          <p>Dear ${user.email},</p>
+          <p>Your ZvertexAI account password has been successfully reset.</p>
+          <p><span class="highlight">Reset Details:</span></p>
+          <p>Email: ${user.email}</p>
+          <p>Time: {{formattedDate}}</p>
+          <p>You can now log in with your new password.</p>
+          <p>Best regards,<br>ZvertexAI Team</p>
+        `,
+        user.timeZone
+      );
+    } catch (emailError) {
+      console.error('Failed to send password reset confirmation email:', emailError.message);
+    }
+
+    res.json({ message: 'Password reset successfully. You can now log in.' });
+  } catch (error) {
+    console.error('Reset password error:', error.message);
+    res.status(500).json({ error: 'Server error during password reset' });
   }
 });
 

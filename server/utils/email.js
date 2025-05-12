@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { DateTime } = require('luxon');
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -8,7 +9,8 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const sendEmail = async (to, subject, content) => {
+const sendEmail = async (to, subject, content, timeZone = 'UTC') => {
+  const formattedDate = DateTime.now().setZone(timeZone).toLocaleString(DateTime.DATETIME_FULL);
   const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -33,7 +35,7 @@ const sendEmail = async (to, subject, content) => {
           <h1>ZvertexAI</h1>
         </div>
         <div class="content">
-          ${content}
+          ${content.replace('{{formattedDate}}', formattedDate)}
         </div>
         <div class="footer">
           <p>© 2025 ZvertexAI. All rights reserved.</p>

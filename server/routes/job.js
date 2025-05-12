@@ -8,7 +8,31 @@ const Job = require('../models/Job');
 const User = require('../models/User');
 const verifyToken = require('../middleware/auth');
 
-// Upload resume
+router.post('/set-preferences', verifyToken, async (req, res) => {
+  const { jobType, locationZip, jobPosition } = req.body;
+
+  if (!jobType || !locationZip || !jobPosition) {
+    console.error('Set preferences failed: Missing required fields', { userId: req.userId });
+    return res.status(400).json({ error: 'Job type, location zip code, and job position are required' });
+  }
+
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      console.error('Set preferences failed: User not found', { userId: req.userId });
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    user.jobPreferences = { jobType, locationZip, jobPosition };
+    await user.save();
+
+    res.json({ message: 'Job preferences saved successfully.' });
+  } catch (error) {
+    console.error('Set preferences error:', error.message);
+    res.status(500).json({ error: 'Server error during setting preferences' });
+  }
+});
+
 router.post('/upload-resume', verifyToken, async (req, res) => {
   console.log('Upload resume request:', { userId: req.userId });
   if (!req.files || !req.files.resume) {
@@ -20,41 +44,47 @@ router.post('/upload-resume', verifyToken, async (req, res) => {
   console.log('Resume file received:', { name: resume.name, size: resume.size });
 
   try {
-    const parsedData = await parseResume(resume);
     const user = await User.findById(req.userId);
     if (!user) {
       console.error('Resume upload failed: User not found', { userId: req.userId });
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Store resume text for periodic job matching
+    if (!user.jobPreferences?.jobType || !user.jobPreferences?.locationZip || !user.jobPreferences?.jobPosition) {
+      console.error('Resume upload failed: Job preferences not set', { userId: req.userId });
+      return res.status(400).json({ error: 'Please set job preferences before uploading a resume.', redirect: '/job-preferences' });
+    }
+
+    const parsedData = await parseResume(resume);
     user.resumeText = parsedData.text;
     await user.save();
 
-    // Send resume upload confirmation email
-    try {
-      await sendEmail(
-        user.email,
-        'ZvertexAI Resume Upload Confirmation',
-        `
-          <p>Dear ${user.email},</p>
-          <p>Your resume has been successfully uploaded to ZvertexAI.</p>
-          <p><span class="highlight">Upload Details:</span></p>
-          <p>File Name: ${resume.name}</p>
-          <p>Time: ${new Date().toLocaleString()}</p>
-          <p>We will now process your resume to find and apply to suitable job opportunities.</p>
-          <p>Best regards,<br>ZvertexAI Team</p>
-        `
-      );
-    } catch (emailError) {
-      console.error('Failed to send resume upload email:', emailError.message);
+    if (user.firstResumeUpload) {
+      try {
+        await sendEmail(
+          user.email,
+          'ZvertexAI Resume Upload Confirmation',
+          `
+            <p>Dear ${user.email},</p>
+            <p>Your resume has been successfully uploaded to ZvertexAI for the first time.</p>
+            <p><span class="highlight">Upload Details:</span></p>
+            <p>File Name: ${resume.name}</p>
+            <p>Time: {{formattedDate}}</p>
+            <p>We will now process your resume to find and apply to suitable job opportunities based on your preferences.</p>
+            <p>Best regards,<br>ZvertexAI Team</p>
+          `,
+          user.timeZone
+        );
+        user.firstResumeUpload = false;
+        await user.save();
+      } catch (emailError) {
+        console.error('Failed to send resume upload email:', emailError.message);
+      }
     }
 
-    // Fetch real-time jobs and auto-apply
-    const jobs = await fetchJobs();
+    const jobs = await fetchJobs(user.jobPreferences);
     const appliedJobs = await autoApplyJobs(parsedData.text, jobs, user);
 
-    // Send job application confirmation email
     if (appliedJobs.length > 0) {
       try {
         await sendEmail(
@@ -65,16 +95,18 @@ router.post('/upload-resume', verifyToken, async (req, res) => {
             <p>We have successfully applied to ${appliedJobs.length} job opportunities on your behalf based on your resume.</p>
             <p><span class="highlight">Applied Jobs:</span></p>
             ${appliedJobs.map(job => `
+              <p>Job ID: ${job.jobId}</p>
               <p>Job Title: ${job.title}</p>
               <p>Company: ${job.company}</p>
               <p>Location: ${job.location}</p>
-              <p>Applied On: ${new Date(job.appliedAt).toLocaleString()}</p>
+              <p>Applied On: {{formattedDate}}</p>
               <hr>
             `).join('')}
             <p>You can track the status of these applications in your ZvertexAI dashboard.</p>
             <p>Best regards,<br>ZvertexAI Team</p>
             <a href="https://zvertexai.com/student-dashboard" class="button">View Dashboard</a>
-          `
+          `,
+          user.timeZone
         );
       } catch (emailError) {
         console.error('Failed to send job application email:', emailError.message);
@@ -97,7 +129,6 @@ router.post('/upload-resume', verifyToken, async (req, res) => {
   }
 });
 
-// Job tracker
 router.get('/tracker', verifyToken, async (req, res) => {
   console.log('Job tracker request:', { userId: req.userId });
   try {

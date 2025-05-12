@@ -7,6 +7,7 @@ function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [subscriptionType, setSubscriptionType] = useState('Free');
+  const [timeZone, setTimeZone] = useState('UTC');
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [otpError, setOtpError] = useState('');
@@ -19,7 +20,7 @@ function Signup() {
   };
 
   const handleSignup = async () => {
-    if (!email || !password || !subscriptionType) {
+    if (!email || !password || !subscriptionType || !timeZone) {
       setError('Please fill in all fields.');
       return;
     }
@@ -35,7 +36,7 @@ function Signup() {
     }
 
     try {
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/signup`, { email, password, subscriptionType });
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/signup`, { email, password, subscriptionType, timeZone });
       setError('');
       alert('Signup request sent. Please verify OTP to activate your account.');
       setOpenOtpModal(true);
@@ -84,17 +85,11 @@ function Signup() {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ py: 5 }} className="zgpt-container">
-      <div className="card">
+    <Container maxWidth="sm" sx={{ py: 5 }}>
+      <Box sx={{ bgcolor: '#fff', p: 4, borderRadius: 2, boxShadow: 3 }}>
         <Button
           onClick={() => history.push('/')}
-          sx={{
-            mb: 3,
-            color: 'white',
-            backgroundColor: '#00e676',
-            '&:hover': { backgroundColor: '#00c853' },
-          }}
-          className="back-button"
+          sx={{ mb: 3, color: '#fff', bgcolor: '#00e676', '&:hover': { bgcolor: '#00c853' } }}
         >
           Back
         </Button>
@@ -107,16 +102,7 @@ function Signup() {
             fullWidth
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            sx={{
-              mb: 3,
-              '& .MuiInputBase-input': { color: '#000000 !important' },
-              '& .MuiInputLabel-root': { color: '#333333 !important' },
-              '& .MuiOutlinedInput-root': {
-                '& fieldset': { borderColor: '#333333' },
-                '&:hover fieldset': { borderColor: '#000000' },
-                '&.Mui-focused fieldset': { borderColor: '#000000' },
-              },
-            }}
+            sx={{ mb: 3 }}
             variant="outlined"
           />
           <TextField
@@ -125,16 +111,7 @@ function Signup() {
             fullWidth
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            sx={{
-              mb: 3,
-              '& .MuiInputBase-input': { color: '#000000 !important' },
-              '& .MuiInputLabel-root': { color: '#333333 !important' },
-              '& .MuiOutlinedInput-root': {
-                '& fieldset': { borderColor: '#333333' },
-                '&:hover fieldset': { borderColor: '#000000' },
-                '&.Mui-focused fieldset': { borderColor: '#000000' },
-              },
-            }}
+            sx={{ mb: 3 }}
             variant="outlined"
           />
           <FormControl fullWidth sx={{ mb: 3 }}>
@@ -142,18 +119,23 @@ function Signup() {
             <Select
               value={subscriptionType}
               onChange={(e) => setSubscriptionType(e.target.value)}
-              sx={{
-                '& .MuiInputBase-input': { color: '#000000 !important' },
-                '& .MuiInputLabel-root': { color: '#333333 !important' },
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: '#333333' },
-                  '&:hover fieldset': { borderColor: '#000000' },
-                  '&.Mui-focused fieldset': { borderColor: '#000000' },
-                },
-              }}
             >
               <MenuItem value="Free">Free</MenuItem>
               <MenuItem value="Premium">Premium</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControl fullWidth sx={{ mb: 3 }}>
+            <InputLabel>Time Zone</InputLabel>
+            <Select
+              value={timeZone}
+              onChange={(e) => setTimeZone(e.target.value)}
+            >
+              <MenuItem value="UTC">UTC</MenuItem>
+              <MenuItem value="America/New_York">America/New York</MenuItem>
+              <MenuItem value="America/Los_Angeles">America/Los Angeles</MenuItem>
+              <MenuItem value="Europe/London">Europe/London</MenuItem>
+              <MenuItem value="Asia/Tokyo">Asia/Tokyo</MenuItem>
+              <MenuItem value="Australia/Sydney">Australia/Sydney</MenuItem>
             </Select>
           </FormControl>
           {error && (
@@ -166,7 +148,6 @@ function Signup() {
             color="primary"
             onClick={handleSignup}
             fullWidth
-            className="back-button"
             sx={{ py: 1.5 }}
           >
             Sign Up
@@ -175,9 +156,8 @@ function Signup() {
         <Typography sx={{ mt: 2, textAlign: 'center' }}>
           Already have an account? <Link to="/login">Login</Link>
         </Typography>
-      </div>
+      </Box>
 
-      {/* OTP Verification Modal */}
       <Dialog open={openOtpModal} onClose={() => setOpenOtpModal(false)}>
         <DialogTitle>Verify OTP</DialogTitle>
         <DialogContent>
@@ -192,16 +172,7 @@ function Signup() {
             fullWidth
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
-            sx={{
-              mb: 3,
-              '& .MuiInputBase-input': { color: '#000000 !important' },
-              '& .MuiInputLabel-root': { color: '#333333 !important' },
-              '& .MuiOutlinedInput-root': {
-                '& fieldset': { borderColor: '#333333' },
-                '&:hover fieldset': { borderColor: '#000000' },
-                '&.Mui-focused fieldset': { borderColor: '#000000' },
-              },
-            }}
+            sx={{ mb: 3 }}
             variant="outlined"
           />
           {otpError && (

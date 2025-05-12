@@ -19,7 +19,7 @@ function Login() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setError('Please fill in all fields.');
+      setError('Please enter both email and password.');
       return;
     }
 
@@ -31,6 +31,7 @@ function Login() {
     try {
       const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, { email, password });
       localStorage.setItem('token', data.token);
+      setError('');
       history.push('/student-dashboard');
     } catch (error) {
       console.error('Login error:', error.response?.data?.error || error.message);
@@ -53,7 +54,6 @@ function Login() {
       await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/verify-otp`, { email, otp });
       setOtpError('');
       setOpenOtpModal(false);
-      // Retry login
       const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, { email, password });
       localStorage.setItem('token', data.token);
       history.push('/student-dashboard');
@@ -80,17 +80,11 @@ function Login() {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ py: 5 }} className="zgpt-container">
-      <div className="card">
+    <Container maxWidth="sm" sx={{ py: 5 }}>
+      <Box sx={{ bgcolor: '#fff', p: 4, borderRadius: 2, boxShadow: 3 }}>
         <Button
           onClick={() => history.push('/')}
-          sx={{
-            mb: 3,
-            color: 'white',
-            backgroundColor: '#00e676',
-            '&:hover': { backgroundColor: '#00c853' },
-          }}
-          className="back-button"
+          sx={{ mb: 3, color: '#fff', bgcolor: '#00e676', '&:hover': { bgcolor: '#00c853' } }}
         >
           Back
         </Button>
@@ -103,16 +97,7 @@ function Login() {
             fullWidth
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            sx={{
-              mb: 3,
-              '& .MuiInputBase-input': { color: '#000000 !important' },
-              '& .MuiInputLabel-root': { color: '#333333 !important' },
-              '& .MuiOutlinedInput-root': {
-                '& fieldset': { borderColor: '#333333' },
-                '&:hover fieldset': { borderColor: '#000000' },
-                '&.Mui-focused fieldset': { borderColor: '#000000' },
-              },
-            }}
+            sx={{ mb: 3 }}
             variant="outlined"
           />
           <TextField
@@ -121,16 +106,7 @@ function Login() {
             fullWidth
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            sx={{
-              mb: 3,
-              '& .MuiInputBase-input': { color: '#000000 !important' },
-              '& .MuiInputLabel-root': { color: '#333333 !important' },
-              '& .MuiOutlinedInput-root': {
-                '& fieldset': { borderColor: '#333333' },
-                '&:hover fieldset': { borderColor: '#000000' },
-                '&.Mui-focused fieldset': { borderColor: '#000000' },
-              },
-            }}
+            sx={{ mb: 3 }}
             variant="outlined"
           />
           {error && (
@@ -143,7 +119,6 @@ function Login() {
             color="primary"
             onClick={handleLogin}
             fullWidth
-            className="back-button"
             sx={{ py: 1.5 }}
           >
             Login
@@ -152,9 +127,11 @@ function Login() {
         <Typography sx={{ mt: 2, textAlign: 'center' }}>
           Don't have an account? <Link to="/signup">Sign Up</Link>
         </Typography>
-      </div>
+        <Typography sx={{ mt: 1, textAlign: 'center' }}>
+          Forgot your password? <Link to="/forgot-password">Reset Password</Link>
+        </Typography>
+      </Box>
 
-      {/* OTP Verification Modal */}
       <Dialog open={openOtpModal} onClose={() => setOpenOtpModal(false)}>
         <DialogTitle>Verify OTP</DialogTitle>
         <DialogContent>
@@ -169,16 +146,7 @@ function Login() {
             fullWidth
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
-            sx={{
-              mb: 3,
-              '& .MuiInputBase-input': { color: '#000000 !important' },
-              '& .MuiInputLabel-root': { color: '#333333 !important' },
-              '& .MuiOutlinedInput-root': {
-                '& fieldset': { borderColor: '#333333' },
-                '&:hover fieldset': { borderColor: '#000000' },
-                '&.Mui-focused fieldset': { borderColor: '#000000' },
-              },
-            }}
+            sx={{ mb: 3 }}
             variant="outlined"
           />
           {otpError && (

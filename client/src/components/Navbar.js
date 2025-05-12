@@ -34,10 +34,12 @@ function Navbar() {
           <>
             <Button color="inherit" component={Link} to="/signup">Sign Up</Button>
             <Button color="inherit" component={Link} to="/login">Login</Button>
+            <Button color="inherit" component={Link} to="/forgot-password">Forgot Password</Button>
           </>
         ) : (
           <>
             <Button color="inherit" component={Link} to="/student-dashboard">Dashboard</Button>
+            <Button color="inherit" component={Link} to="/job-preferences">Job Preferences</Button>
             <Button color="inherit" onClick={handleLogout}>Logout</Button>
           </>
         )}

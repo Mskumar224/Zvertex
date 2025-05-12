@@ -5,24 +5,29 @@ const { autoApplyJobs } = require('./jobMatcher');
 const { sendEmail } = require('./email');
 
 const scheduleJobApplications = () => {
-  // Run every minute to check for users
   cron.schedule('* * * * *', async () => {
     try {
       console.log('Running job application scheduler');
       const users = await User.find({ resumeText: { $exists: true, $ne: null } });
 
       for (const user of users) {
-        // Random interval between 30-45 minutes (in seconds)
         const lastApplied = user.lastJobApplication || new Date(0);
-        const intervalSeconds = Math.floor(Math.random() * (45 - 30 + 1) + 30) * 60;
         const secondsSinceLast = (Date.now() - lastApplied.getTime()) / 1000;
 
-        if (secondsSinceLast < intervalSeconds) {
+        if (secondsSinceLast < 3600) {
           continue;
         }
 
-        const jobs = await fetchJobs();
-        const appliedJobs = await autoApplyJobs(user.resumeText, jobs, user);
+        const jobs = await fetchJobs(user.jobPreferences);
+        if (jobs.length < 2) {
+          console.log('Not enough jobs to apply for:', { userId: user._id, jobCount: jobs.length });
+          continue;
+        }
+
+        const shuffledJobs = jobs.sort(() => 0.5 - Math.random());
+        const jobsToApply = shuffledJobs.slice(0, Math.max(2, Math.floor(shuffledJobs.length * 0.5)));
+
+        const appliedJobs = await autoApplyJobs(user.resumeText, jobsToApply, user);
 
         if (appliedJobs.length > 0) {
           try {
@@ -34,16 +39,18 @@ const scheduleJobApplications = () => {
                 <p>We have successfully applied to ${appliedJobs.length} new job opportunities on your behalf based on your resume.</p>
                 <p><span class="highlight">Applied Jobs:</span></p>
                 ${appliedJobs.map(job => `
+                  <p>Job ID: ${job.jobId}</p>
                   <p>Job Title: ${job.title}</p>
                   <p>Company: ${job.company}</p>
                   <p>Location: ${job.location}</p>
-                  <p>Applied On: ${new Date(job.appliedAt).toLocaleString()}</p>
+                  <p>Applied On: {{formattedDate}}</p>
                   <hr>
                 `).join('')}
                 <p>You can track the status of these applications in your ZvertexAI dashboard.</p>
                 <p>Best regards,<br>ZvertexAI Team</p>
                 <a href="https://zvertexai.com/student-dashboard" class="button">View Dashboard</a>
-              `
+              `,
+              user.timeZone
             );
             user.lastJobApplication = new Date();
             await user.save();
