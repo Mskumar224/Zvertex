@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Container, Typography, Grid, Box } from '@mui/material';
 import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 import SubscriptionCard from '../components/SubscriptionCard';
@@ -9,6 +9,8 @@ function Subscription() {
   const stripe = useStripe();
   const elements = useElements();
   const history = useHistory();
+  const [paymentError, setPaymentError] = useState(null);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
 
   const plans = [
     { title: 'STUDENT', price: 39, resumes: 1, submissions: 45, description: 'Perfect for students starting their career.' },
@@ -17,62 +19,90 @@ function Subscription() {
   ];
 
   const handleSubscription = async (plan) => {
+    setPaymentError(null);
+    setPaymentProcessing(true);
+
     try {
-      if (stripe && elements) {
-        const cardElement = elements.getElement(CardElement);
-        const { paymentMethod } = await stripe.createPaymentMethod({ type: 'card', card: cardElement });
-        await axios.post(
-          `${process.env.REACT_APP_API_URL}/api/subscription/subscribe`,
-          { paymentMethodId: paymentMethod.id, plan: plan.title },
-          { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
-        );
-      } else {
-        await axios.post(
-          `${process.env.REACT_APP_API_URL}/api/subscription/subscribe`,
-          { plan: plan.title },
-          { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
-        );
+      if (!stripe || !elements) throw new Error('Stripe not initialized.');
+      const cardElement = elements.getElement(CardElement);
+      if (!cardElement) throw new Error('Card input not found.');
+
+      const { paymentMethod, error } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: cardElement,
+      });
+      if (error) throw new Error(error.message);
+
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No authentication token found.');
+
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/subscription/subscribe`,
+        { paymentMethodId: paymentMethod.id, plan: plan.title },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      console.log('Subscription response:', response.data);
+
+      if (response.data.clientSecret) {
+        const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(response.data.clientSecret);
+        if (confirmError) throw new Error(confirmError.message);
+        if (paymentIntent.status === 'succeeded') redirectToDashboard(plan.title);
+      } else if (response.data.message === 'Subscription successful') {
+        redirectToDashboard(plan.title);
       }
-      const redirectMap = {
-        STUDENT: '/student-dashboard',
-        RECRUITER: '/recruiter-dashboard',
-        BUSINESS: '/business-dashboard',
-      };
-      history.push(redirectMap[plan.title]);
     } catch (err) {
-      alert('Subscription failed!');
+      const errorMessage = err.response?.data?.error || err.message || 'An unexpected error occurred';
+      console.error('Subscription Error:', errorMessage);
+      setPaymentError(`Subscription failed: ${errorMessage}`);
+    } finally {
+      setPaymentProcessing(false);
     }
   };
 
+  const redirectToDashboard = (planTitle) => {
+    const redirectMap = {
+      STUDENT: '/student-dashboard',
+      RECRUITER: '/recruiter-dashboard',
+      BUSINESS: '/business-dashboard',
+    };
+    history.push(redirectMap[planTitle]);
+  };
+
   return (
-    <Container sx={{ py: 8 }} className="zgpt-container">
-      <div className="card">
-        <Typography variant="h3" align="center" gutterBottom>
-          Choose Your Subscription
+    <Container sx={{ py: 8, background: '#f5f5f5' }}>
+      <Typography variant="h3" align="center" gutterBottom sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+        Choose Your Subscription
+      </Typography>
+      <Typography align="center" sx={{ mb: 5, color: '#616161' }}>
+        Select a plan tailored to your career or business needs.
+      </Typography>
+      <Grid container spacing={4} justifyContent="center">
+        {plans.map((plan) => (
+          <Grid item key={plan.title}>
+            <SubscriptionCard
+              title={plan.title}
+              price={plan.price}
+              resumes={plan.resumes}
+              submissions={plan.submissions}
+              description={plan.description}
+              onSelect={() => handleSubscription(plan)}
+              disabled={paymentProcessing || !stripe}
+            />
+          </Grid>
+        ))}
+      </Grid>
+      {stripe ? (
+        <Box sx={{ mt: 5, maxWidth: 400, mx: 'auto' }}>
+          <CardElement options={{ style: { base: { fontSize: '16px' } } }} />
+          {paymentError && <Typography color="error" sx={{ mt: 2 }}>{paymentError}</Typography>}
+          {paymentProcessing && <Typography sx={{ mt: 2 }}>Processing payment...</Typography>}
+        </Box>
+      ) : (
+        <Typography color="error" align="center" sx={{ mt: 5 }}>
+          Stripe failed to load.
         </Typography>
-        <Typography align="center" sx={{ mb: 5 }}>
-          Select a plan tailored to your career or business needs.
-        </Typography>
-        <Grid container spacing={4} justifyContent="center">
-          {plans.map((plan) => (
-            <Grid item key={plan.title}>
-              <SubscriptionCard
-                title={plan.title}
-                price={plan.price}
-                resumes={plan.resumes}
-                submissions={plan.submissions}
-                description={plan.description}
-                onSelect={() => handleSubscription(plan)}
-              />
-            </Grid>
-          ))}
-        </Grid>
-        {stripe && (
-          <Box sx={{ mt: 5, maxWidth: 400, mx: 'auto' }}>
-            <CardElement options={{ style: { base: { fontSize: '16px' } } }} />
-          </Box>
-        )}
-      </div>
+      )}
     </Container>
   );
 }

@@ -10,17 +10,21 @@ function DocumentUpload({ job, onClose }) {
     formData.append('document', file);
     formData.append('jobId', job.id);
 
-    await axios.post(`${process.env.REACT_APP_API_URL}/api/job/apply-with-docs`, formData, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'multipart/form-data' },
-    });
-    alert('Application submitted with documents!');
-    onClose();
+    try {
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/job/apply`, formData, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'multipart/form-data' },
+      });
+      alert('Application submitted with documents!');
+      onClose();
+    } catch (error) {
+      console.error('Document Upload Error:', error);
+    }
   };
 
   return (
-    <Dialog open={true} onClose={onClose} className="zgpt-container">
+    <Dialog open={true} onClose={onClose}>
       <DialogTitle>Upload Additional Documents for {job.title}</DialogTitle>
-      <DialogContent className="card">
+      <DialogContent>
         <Typography>Upload required documents or apply manually:</Typography>
         <input type="file" onChange={(e) => setFile(e.target.files[0])} style={{ marginTop: '16px' }} />
         <Typography sx={{ mt: 2 }}>
@@ -28,16 +32,8 @@ function DocumentUpload({ job, onClose }) {
         </Typography>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} color="secondary">Cancel</Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleUpload}
-          disabled={!file}
-          className="back-button"
-        >
-          Submit
-        </Button>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button variant="contained" onClick={handleUpload} disabled={!file}>Submit</Button>
       </DialogActions>
     </Dialog>
   );

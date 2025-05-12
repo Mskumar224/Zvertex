@@ -1,195 +1,55 @@
 import React, { useState } from 'react';
-import { Container, TextField, Button, Typography, Box, Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import axios from 'axios';
-import { useHistory, Link } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
 
 function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [subscriptionType, setSubscriptionType] = useState('Free');
-  const [timeZone, setTimeZone] = useState('UTC');
-  const [otp, setOtp] = useState('');
-  const [error, setError] = useState('');
-  const [otpError, setOtpError] = useState('');
-  const [openOtpModal, setOpenOtpModal] = useState(false);
+  const [error, setError] = useState(null);
   const history = useHistory();
 
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
   const handleSignup = async () => {
-    if (!email || !password || !subscriptionType || !timeZone) {
-      setError('Please fill in all fields.');
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      setError('Please enter a valid email address.');
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
-      return;
-    }
-
     try {
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/signup`, { email, password, subscriptionType, timeZone });
-      setError('');
-      alert('Signup request sent. Please verify OTP to activate your account.');
-      setOpenOtpModal(true);
-    } catch (error) {
-      console.error('Signup error:', error.response?.data?.error || error.message);
-      if (error.response?.data?.error === 'Email already exists') {
-        setError('This email is already registered. Please log in or use a different email.');
-      } else {
-        setError(error.response?.data?.error || 'Signup failed. Please try again.');
-      }
-    }
-  };
-
-  const handleOtpVerification = async () => {
-    if (!otp) {
-      setOtpError('Please enter the OTP.');
-      return;
-    }
-
-    try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/verify-otp`, { email, otp });
-      setOtpError('');
-      setOpenOtpModal(false);
-      alert('OTP verified successfully! You can now log in.');
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/signup`, { email, password });
+      setError(null);
       history.push('/login');
-    } catch (error) {
-      console.error('OTP verification error:', error.response?.data?.error || error.message);
-      setOtpError(error.response?.data?.error || 'OTP verification failed. Please try again or resend OTP.');
-    }
-  };
-
-  const handleResendOtp = async () => {
-    if (!email) {
-      setOtpError('Please enter your email to resend OTP.');
-      return;
-    }
-
-    try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/resend-otp`, { email });
-      setOtpError('');
-      alert('New OTP sent to ZvertexAI. Please contact ZvertexAI at zvertex.247@gmail.com to receive it.');
-    } catch (error) {
-      console.error('Resend OTP error:', error.response?.data?.error || error.message);
-      setOtpError(error.response?.data?.error || 'Failed to resend OTP. Please try again.');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Signup failed');
     }
   };
 
   return (
-    <Container maxWidth="sm" sx={{ py: 5 }}>
-      <Box sx={{ bgcolor: '#fff', p: 4, borderRadius: 2, boxShadow: 3 }}>
-        <Button
-          onClick={() => history.push('/')}
-          sx={{ mb: 3, color: '#fff', bgcolor: '#00e676', '&:hover': { bgcolor: '#00c853' } }}
-        >
-          Back
+    <Container maxWidth="sm" sx={{ py: 5, background: '#fff', borderRadius: 2, boxShadow: 3 }}>
+      <Typography variant="h4" gutterBottom align="center" sx={{ color: '#1976d2' }}>
+        Create Your Account
+      </Typography>
+      <Box component="form" sx={{ mt: 3 }}>
+        <TextField
+          label="Email"
+          fullWidth
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          sx={{ mb: 3 }}
+          variant="outlined"
+        />
+        <TextField
+          label="Password"
+          type="password"
+          fullWidth
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          sx={{ mb: 3 }}
+          variant="outlined"
+        />
+        <Button variant="contained" color="primary" onClick={handleSignup} fullWidth sx={{ py: 1.5 }}>
+          Sign Up
         </Button>
-        <Typography variant="h4" gutterBottom align="center">
-          Create Your Account
-        </Typography>
-        <Box component="form" sx={{ mt: 3 }}>
-          <TextField
-            label="Email"
-            fullWidth
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            sx={{ mb: 3 }}
-            variant="outlined"
-          />
-          <TextField
-            label="Password"
-            type="password"
-            fullWidth
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            sx={{ mb: 3 }}
-            variant="outlined"
-          />
-          <FormControl fullWidth sx={{ mb: 3 }}>
-            <InputLabel>Subscription Type</InputLabel>
-            <Select
-              value={subscriptionType}
-              onChange={(e) => setSubscriptionType(e.target.value)}
-            >
-              <MenuItem value="Free">Free</MenuItem>
-              <MenuItem value="Premium">Premium</MenuItem>
-            </Select>
-          </FormControl>
-          <FormControl fullWidth sx={{ mb: 3 }}>
-            <InputLabel>Time Zone</InputLabel>
-            <Select
-              value={timeZone}
-              onChange={(e) => setTimeZone(e.target.value)}
-            >
-              <MenuItem value="UTC">UTC</MenuItem>
-              <MenuItem value="America/New_York">America/New York</MenuItem>
-              <MenuItem value="America/Los_Angeles">America/Los Angeles</MenuItem>
-              <MenuItem value="Europe/London">Europe/London</MenuItem>
-              <MenuItem value="Asia/Tokyo">Asia/Tokyo</MenuItem>
-              <MenuItem value="Australia/Sydney">Australia/Sydney</MenuItem>
-            </Select>
-          </FormControl>
-          {error && (
-            <Typography color="error" sx={{ mb: 2 }}>
-              {error}
-            </Typography>
-          )}
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleSignup}
-            fullWidth
-            sx={{ py: 1.5 }}
-          >
-            Sign Up
-          </Button>
-        </Box>
-        <Typography sx={{ mt: 2, textAlign: 'center' }}>
-          Already have an account? <Link to="/login">Login</Link>
-        </Typography>
+        {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
       </Box>
-
-      <Dialog open={openOtpModal} onClose={() => setOpenOtpModal(false)}>
-        <DialogTitle>Verify OTP</DialogTitle>
-        <DialogContent>
-          <Typography sx={{ mb: 2, fontWeight: 'bold', color: '#007BFF' }}>
-            Reach out to ZvertexAI to approve your OTP
-          </Typography>
-          <Typography sx={{ mb: 2 }}>
-            An OTP has been sent to ZvertexAI (zvertex.247@gmail.com) for approval. Please contact ZvertexAI to receive your one-time verification OTP.
-          </Typography>
-          <TextField
-            label="OTP"
-            fullWidth
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-            sx={{ mb: 3 }}
-            variant="outlined"
-          />
-          {otpError && (
-            <Typography color="error" sx={{ mb: 2 }}>
-              {otpError}
-            </Typography>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleResendOtp} color="primary">
-            Resend OTP
-          </Button>
-          <Button onClick={handleOtpVerification} color="primary" variant="contained">
-            Verify OTP
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <Typography sx={{ mt: 2, textAlign: 'center' }}>
+        Already have an account? <a href="/login">Login</a>
+      </Typography>
     </Container>
   );
 }

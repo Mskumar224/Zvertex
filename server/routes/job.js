@@ -1,142 +1,102 @@
 const express = require('express');
 const router = express.Router();
-const { parseResume } = require('../utils/resumeParser');
-const { fetchJobs } = require('../utils/jobFetcher');
-const { autoApplyJobs } = require('../utils/jobMatcher');
-const { sendEmail } = require('../utils/email');
-const Job = require('../models/Job');
 const User = require('../models/User');
-const verifyToken = require('../middleware/auth');
+const Job = require('../models/Job');
+const jwt = require('jsonwebtoken');
+const { parseResume } = require('../utils/resumeParser');
+const { v4: uuidv4 } = require('uuid'); // Added for unique jobId generation
 
-router.post('/set-preferences', verifyToken, async (req, res) => {
-  const { jobType, locationZip, jobPosition } = req.body;
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
-  if (!jobType || !locationZip || !jobPosition) {
-    console.error('Set preferences failed: Missing required fields', { userId: req.userId });
-    return res.status(400).json({ error: 'Job type, location zip code, and job position are required' });
-  }
+router.post('/upload-resume', async (req, res) => {
+  const token = req.headers.authorization?.split('Bearer ')[1];
+  if (!token) return res.status(401).json({ error: 'No token provided' });
 
   try {
-    const user = await User.findById(req.userId);
-    if (!user) {
-      console.error('Set preferences failed: User not found', { userId: req.userId });
-      return res.status(404).json({ error: 'User not found' });
-    }
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!req.files || !req.files.resume) return res.status(400).json({ error: 'No resume file uploaded' });
 
-    user.jobPreferences = { jobType, locationZip, jobPosition };
-    await user.save();
-
-    res.json({ message: 'Job preferences saved successfully.' });
+    const resume = req.files.resume;
+    const keywords = await parseResume(resume);
+    res.json({ keywords });
   } catch (error) {
-    console.error('Set preferences error:', error.message);
-    res.status(500).json({ error: 'Server error during setting preferences' });
+    console.error('Resume Upload Error:', error.message);
+    res.status(500).json({ error: 'Failed to upload resume' });
   }
 });
 
-router.post('/upload-resume', verifyToken, async (req, res) => {
-  console.log('Upload resume request:', { userId: req.userId });
-  if (!req.files || !req.files.resume) {
-    console.error('Resume upload failed: No file uploaded');
-    return res.status(400).json({ error: 'No resume file uploaded' });
-  }
-
-  const resume = req.files.resume;
-  console.log('Resume file received:', { name: resume.name, size: resume.size });
+router.get('/tracker', async (req, res) => {
+  const token = req.headers.authorization?.split('Bearer ')[1];
+  if (!token) return res.status(401).json({ error: 'No token provided' });
 
   try {
-    const user = await User.findById(req.userId);
-    if (!user) {
-      console.error('Resume upload failed: User not found', { userId: req.userId });
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    if (!user.jobPreferences?.jobType || !user.jobPreferences?.locationZip || !user.jobPreferences?.jobPosition) {
-      console.error('Resume upload failed: Job preferences not set', { userId: req.userId });
-      return res.status(400).json({ error: 'Please set job preferences before uploading a resume.', redirect: '/job-preferences' });
-    }
-
-    const parsedData = await parseResume(resume);
-    user.resumeText = parsedData.text;
-    await user.save();
-
-    if (user.firstResumeUpload) {
-      try {
-        await sendEmail(
-          user.email,
-          'ZvertexAI Resume Upload Confirmation',
-          `
-            <p>Dear ${user.email},</p>
-            <p>Your resume has been successfully uploaded to ZvertexAI for the first time.</p>
-            <p><span class="highlight">Upload Details:</span></p>
-            <p>File Name: ${resume.name}</p>
-            <p>Time: {{formattedDate}}</p>
-            <p>We will now process your resume to find and apply to suitable job opportunities based on your preferences.</p>
-            <p>Best regards,<br>ZvertexAI Team</p>
-          `,
-          user.timeZone
-        );
-        user.firstResumeUpload = false;
-        await user.save();
-      } catch (emailError) {
-        console.error('Failed to send resume upload email:', emailError.message);
-      }
-    }
-
-    const jobs = await fetchJobs(user.jobPreferences);
-    const appliedJobs = await autoApplyJobs(parsedData.text, jobs, user);
-
-    if (appliedJobs.length > 0) {
-      try {
-        await sendEmail(
-          user.email,
-          'ZvertexAI Job Application Confirmation',
-          `
-            <p>Dear ${user.email},</p>
-            <p>We have successfully applied to ${appliedJobs.length} job opportunities on your behalf based on your resume.</p>
-            <p><span class="highlight">Applied Jobs:</span></p>
-            ${appliedJobs.map(job => `
-              <p>Job ID: ${job.jobId}</p>
-              <p>Job Title: ${job.title}</p>
-              <p>Company: ${job.company}</p>
-              <p>Location: ${job.location}</p>
-              <p>Applied On: {{formattedDate}}</p>
-              <hr>
-            `).join('')}
-            <p>You can track the status of these applications in your ZvertexAI dashboard.</p>
-            <p>Best regards,<br>ZvertexAI Team</p>
-            <a href="https://zvertexai.com/student-dashboard" class="button">View Dashboard</a>
-          `,
-          user.timeZone
-        );
-      } catch (emailError) {
-        console.error('Failed to send job application email:', emailError.message);
-      }
-    }
-
-    console.log('Resume uploaded and processed:', { userId: req.userId, appliedJobs: appliedJobs.length });
-    res.json({ 
-      message: 'Resume uploaded successfully. Applied to ' + appliedJobs.length + ' jobs.', 
-      data: parsedData,
-      appliedJobs 
-    });
-  } catch (error) {
-    console.error('Resume upload error:', error.message);
-    if (error.code === 11000) {
-      res.status(500).json({ error: 'Failed to process resume due to duplicate job entry. Please try again or contact support.' });
-    } else {
-      res.status(500).json({ error: 'Failed to process resume. Please try again.' });
-    }
-  }
-});
-
-router.get('/tracker', verifyToken, async (req, res) => {
-  console.log('Job tracker request:', { userId: req.userId });
-  try {
-    const jobs = await Job.find({ userId: req.userId });
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.id).populate('jobsApplied');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const jobs = user.jobsApplied || [];
     res.json(jobs);
   } catch (error) {
-    console.error('Job tracker error:', error.message);
-    res.status(500).json({ error: 'Failed to load job applications. Please try again.' });
+    console.error('Job Tracker Error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch job tracker data' });
+  }
+});
+
+router.post('/fetch-jobs', async (req, res) => {
+  const { company, keywords, jobType, locationZip, jobPosition } = req.body;
+  // Mock jobs based on preferences
+  const mockJobs = [
+    {
+      id: uuidv4(),
+      title: `${jobPosition || 'Software Engineer'} - ${jobType || 'Full Time'}`,
+      company: company || 'Tech Corp',
+      link: `https://${(company || 'techcorp').toLowerCase()}.com/jobs/1`,
+      applied: false,
+      location: locationZip ? `Near ${locationZip}` : 'Remote',
+    },
+    {
+      id: uuidv4(),
+      title: `${jobPosition || 'Backend Developer'} - ${jobType || 'Contract'}`,
+      company: company || 'Innovate Inc',
+      link: `https://${(company || 'innovate').toLowerCase()}.com/jobs/2`,
+      applied: false,
+      location: locationZip ? `Near ${locationZip}` : 'Hybrid',
+    },
+  ];
+  res.json({ jobs: mockJobs });
+});
+
+router.post('/apply', async (req, res) => {
+  let { jobId } = req.body;
+  const token = req.headers.authorization?.split('Bearer ')[1];
+  if (!token) return res.status(401).json({ error: 'No token provided' });
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Generate a unique jobId if none is provided
+    if (!jobId) {
+      jobId = uuidv4();
+    }
+
+    const job = new Job({
+      jobId,
+      title: req.body.title || `Job ${jobId}`,
+      company: req.body.company || 'Detected Company',
+      link: req.body.link || `https://example.com/job${jobId}`,
+      applied: true,
+      user: user._id,
+    });
+    await job.save();
+    user.jobsApplied.push(job._id);
+    await user.save();
+    res.json({ message: `Applied to job ${jobId}`, job });
+  } catch (error) {
+    console.error('Job Apply Error:', error.message);
+    res.status(500).json({ error: 'Failed to apply to job', details: error.message });
   }
 });
 

@@ -1,37 +1,19 @@
 import React, { useState } from 'react';
-import { Container, Typography, Box, Button } from '@mui/material';
-import { useHistory } from 'react-router-dom';
+import { Container, Typography, Box } from '@mui/material';
 import ResumeUpload from '../components/ResumeUpload';
 import JobApply from './JobApply';
 import JobTracker from '../components/JobTracker';
 
 function RecruiterDashboard() {
   const [keywords, setKeywords] = useState([]);
-  const history = useHistory();
 
   return (
-    <Container sx={{ py: 5 }} className="zgpt-container">
-      <div className="card">
-        <Button
-          onClick={() => history.push('/')}
-          className="back-button"
-          sx={{
-            mb: 3,
-            color: 'white',
-            backgroundColor: '#00e676',
-            '&:hover': { backgroundColor: '#00c853' },
-          }}
-        >
-          Back
-        </Button>
-        <Typography variant="h4" gutterBottom>
-          ZvertexAI Recruiter Dashboard
-        </Typography>
-        <Typography sx={{ mb: 3 }}>Max 5 Resumes | 45 Submissions/Day</Typography>
-        <ResumeUpload onResumeParsed={setKeywords} />
-        {keywords.length > 0 && <JobApply keywords={keywords} maxResumes={5} maxSubmissions={45} />}
-        <JobTracker />
-      </div>
+    <Container sx={{ py: 5 }}>
+      <Typography variant="h4" gutterBottom sx={{ color: '#1976d2' }}>Recruiter Dashboard</Typography>
+      <Typography sx={{ mb: 3 }}>Max 5 Resumes | 45 Submissions/Day</Typography>
+      <ResumeUpload onResumeParsed={setKeywords} />
+      {keywords.length > 0 && <JobApply keywords={keywords} maxResumes={5} maxSubmissions={45} />}
+      <JobTracker />
     </Container>
   );
 }

@@ -1,169 +1,65 @@
 import React, { useState } from 'react';
-import { Container, TextField, Button, Typography, Box, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import axios from 'axios';
-import { useHistory, Link } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [otp, setOtp] = useState('');
-  const [error, setError] = useState('');
-  const [otpError, setOtpError] = useState('');
-  const [openOtpModal, setOpenOtpModal] = useState(false);
+  const [error, setError] = useState(null);
   const history = useHistory();
 
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
   const handleLogin = async () => {
-    if (!email || !password) {
-      setError('Please enter both email and password.');
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      setError('Please enter a valid email address.');
-      return;
-    }
-
     try {
-      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, { email, password });
-      localStorage.setItem('token', data.token);
-      setError('');
-      history.push('/student-dashboard');
-    } catch (error) {
-      console.error('Login error:', error.response?.data?.error || error.message);
-      if (error.response?.data?.code === 'pending_otp') {
-        setError('Your account is pending OTP approval. Please verify the OTP sent to ZvertexAI.');
-        setOpenOtpModal(true);
-      } else {
-        setError(error.response?.data?.error || 'Login failed. Please check your email and password.');
-      }
-    }
-  };
-
-  const handleOtpVerification = async () => {
-    if (!otp) {
-      setOtpError('Please enter the OTP.');
-      return;
-    }
-
-    try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/verify-otp`, { email, otp });
-      setOtpError('');
-      setOpenOtpModal(false);
-      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, { email, password });
-      localStorage.setItem('token', data.token);
-      history.push('/student-dashboard');
-    } catch (error) {
-      console.error('OTP verification error:', error.response?.data?.error || error.message);
-      setOtpError(error.response?.data?.error || 'OTP verification failed. Please try again or resend OTP.');
-    }
-  };
-
-  const handleResendOtp = async () => {
-    if (!email) {
-      setOtpError('Please enter your email to resend OTP.');
-      return;
-    }
-
-    try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/resend-otp`, { email });
-      setOtpError('');
-      alert('New OTP sent to ZvertexAI. Please contact ZvertexAI at zvertex.247@gmail.com to receive it.');
-    } catch (error) {
-      console.error('Resend OTP error:', error.response?.data?.error || error.message);
-      setOtpError(error.response?.data?.error || 'Failed to resend OTP. Please try again.');
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/auth/login`,
+        { email, password }
+      );
+      localStorage.setItem('token', response.data.token);
+      setError(null);
+      history.push('/subscription');
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 'Network Error';
+      console.error('Login Error:', errorMessage);
+      setError(errorMessage);
     }
   };
 
   return (
-    <Container maxWidth="sm" sx={{ py: 5 }}>
-      <Box sx={{ bgcolor: '#fff', p: 4, borderRadius: 2, boxShadow: 3 }}>
-        <Button
-          onClick={() => history.push('/')}
-          sx={{ mb: 3, color: '#fff', bgcolor: '#00e676', '&:hover': { bgcolor: '#00c853' } }}
-        >
-          Back
+    <Container maxWidth="sm" sx={{ py: 5, background: '#fff', borderRadius: 2, boxShadow: 3 }}>
+      <Typography variant="h4" gutterBottom align="center" sx={{ color: '#1976d2' }}>
+        Login
+      </Typography>
+      <Box component="form" sx={{ mt: 3 }}>
+        <TextField
+          label="Email"
+          fullWidth
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          sx={{ mb: 3 }}
+          variant="outlined"
+        />
+        <TextField
+          label="Password"
+          type="password"
+          fullWidth
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          sx={{ mb: 3 }}
+          variant="outlined"
+        />
+        <Button variant="contained" color="primary" onClick={handleLogin} fullWidth sx={{ py: 1.5 }}>
+          Login
         </Button>
-        <Typography variant="h4" gutterBottom align="center">
-          Login to Your Account
-        </Typography>
-        <Box component="form" sx={{ mt: 3 }}>
-          <TextField
-            label="Email"
-            fullWidth
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            sx={{ mb: 3 }}
-            variant="outlined"
-          />
-          <TextField
-            label="Password"
-            type="password"
-            fullWidth
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            sx={{ mb: 3 }}
-            variant="outlined"
-          />
-          {error && (
-            <Typography color="error" sx={{ mb: 2 }}>
-              {error}
-            </Typography>
-          )}
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleLogin}
-            fullWidth
-            sx={{ py: 1.5 }}
-          >
-            Login
-          </Button>
-        </Box>
-        <Typography sx={{ mt: 2, textAlign: 'center' }}>
-          Don't have an account? <Link to="/signup">Sign Up</Link>
-        </Typography>
-        <Typography sx={{ mt: 1, textAlign: 'center' }}>
-          Forgot your password? <Link to="/forgot-password">Reset Password</Link>
-        </Typography>
+        {error && (
+          <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>
+            {error}
+          </Typography>
+        )}
       </Box>
-
-      <Dialog open={openOtpModal} onClose={() => setOpenOtpModal(false)}>
-        <DialogTitle>Verify OTP</DialogTitle>
-        <DialogContent>
-          <Typography sx={{ mb: 2, fontWeight: 'bold', color: '#007BFF' }}>
-            Reach out to ZvertexAI to approve your OTP
-          </Typography>
-          <Typography sx={{ mb: 2 }}>
-            An OTP has been sent to ZvertexAI (zvertex.247@gmail.com) for approval. Please contact ZvertexAI to receive your one-time verification OTP.
-          </Typography>
-          <TextField
-            label="OTP"
-            fullWidth
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-            sx={{ mb: 3 }}
-            variant="outlined"
-          />
-          {otpError && (
-            <Typography color="error" sx={{ mb: 2 }}>
-              {otpError}
-            </Typography>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleResendOtp} color="primary">
-            Resend OTP
-          </Button>
-          <Button onClick={handleOtpVerification} color="primary" variant="contained">
-            Verify OTP
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <Typography sx={{ mt: 2, textAlign: 'center' }}>
+        Don’t have an account? <a href="/signup">Sign Up</a>
+      </Typography>
     </Container>
   );
 }

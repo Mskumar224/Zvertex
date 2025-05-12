@@ -1,39 +1,21 @@
-import React, { useState } from 'react';
-import { Container, Typography, Box, Button } from '@mui/material';
-import { useHistory } from 'react-router-dom';
-import ResumeUpload from '../components/ResumeUpload';
-import JobApply from './JobApply';
-import JobTracker from '../components/JobTracker';
+import React from 'react';
+import { Card, CardContent, Typography, Button } from '@mui/material';
 
-function StudentDashboard() {
-  const [keywords, setKeywords] = useState([]);
-  const history = useHistory();
-
+function SubscriptionCard({ title, price, resumes, submissions, description, onSelect, disabled }) {
   return (
-    <Container sx={{ py: 5 }} className="zgpt-container">
-      <div className="card">
-        <Button
-          onClick={() => history.push('/')}
-          className="back-button"
-          sx={{
-            mb: 3,
-            color: 'white',
-            backgroundColor: '#00e676',
-            '&:hover': { backgroundColor: '#00c853' },
-          }}
-        >
-          Back
+    <Card sx={{ maxWidth: 300, boxShadow: 3, borderRadius: 2, '&:hover': { transform: 'scale(1.05)' } }}>
+      <CardContent sx={{ textAlign: 'center' }}>
+        <Typography variant="h5" sx={{ color: '#1976d2' }}>{title}</Typography>
+        <Typography variant="h4" sx={{ my: 2 }}>${price}<span style={{ fontSize: '1rem' }}>/month</span></Typography>
+        <Typography>{resumes} Resume(s)</Typography>
+        <Typography>{submissions} Submissions/Day</Typography>
+        <Typography sx={{ mt: 2, color: '#757575' }}>{description}</Typography>
+        <Button variant="contained" color="primary" onClick={onSelect} sx={{ mt: 3 }} disabled={disabled}>
+          Choose Plan
         </Button>
-        <Typography variant="h4" gutterBottom>
-          ZvertexAI Student Dashboard
-        </Typography>
-        <Typography sx={{ mb: 3 }}>Max 1 Resume | 45 Submissions/Day</Typography>
-        <ResumeUpload onResumeParsed={setKeywords} />
-        {keywords.length > 0 && <JobApply keywords={keywords} maxResumes={1} maxSubmissions={45} />}
-        <JobTracker />
-      </div>
-    </Container>
+      </CardContent>
+    </Card>
   );
 }
 
-export default StudentDashboard;
+export default SubscriptionCard;
