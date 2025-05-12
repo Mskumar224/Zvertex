@@ -8,4 +8,7 @@ const jobSchema = new mongoose.Schema({
   appliedAt: { type: Date, default: Date.now },
 });
 
+// Create unique compound index to prevent duplicate applications
+jobSchema.index({ userId: 1, title: 1, company: 1 }, { unique: true });
+
 module.exports = mongoose.model('Job', jobSchema);

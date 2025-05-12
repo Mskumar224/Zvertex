@@ -89,7 +89,11 @@ router.post('/upload-resume', verifyToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Resume upload error:', error.message);
-    res.status(500).json({ error: 'Failed to process resume. Please try again.' });
+    if (error.code === 11000) {
+      res.status(500).json({ error: 'Failed to process resume due to duplicate job entry. Please try again or contact support.' });
+    } else {
+      res.status(500).json({ error: 'Failed to process resume. Please try again.' });
+    }
   }
 });
 

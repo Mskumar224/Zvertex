@@ -3,18 +3,20 @@ const Job = require('../models/Job');
 const autoApplyJobs = async (resumeText, jobs, user) => {
   const appliedJobs = [];
 
-  // Get previously applied jobs to avoid duplicates
-  const existingJobs = await Job.find({ userId: user._id });
-  const appliedJobKeys = existingJobs.map(job => `${job.title}:${job.company}`);
-
   for (const job of jobs) {
-    const jobKey = `${job.title}:${job.company}`;
-    if (appliedJobKeys.includes(jobKey)) {
+    // Check if job already applied
+    const existingJob = await Job.findOne({
+      userId: user._id,
+      title: job.title,
+      company: job.company,
+    });
+
+    if (existingJob) {
       console.log('Skipping already applied job:', { title: job.title, company: job.company });
       continue;
     }
 
-    // Simple keyword matching
+    // Keyword matching
     const resumeLower = resumeText.toLowerCase();
     const jobDescLower = job.description.toLowerCase();
     const keywords = ['javascript', 'python', 'react', 'node.js', 'sql', 'product management'];
@@ -23,16 +25,23 @@ const autoApplyJobs = async (resumeText, jobs, user) => {
     }, 0);
 
     if (matchScore > 0) {
-      const newJob = new Job({
-        userId: user._id,
-        title: job.title,
-        company: job.company,
-        status: 'Applied',
-        appliedAt: new Date(),
-      });
-      await newJob.save();
-      appliedJobs.push({ ...job, appliedAt: newJob.appliedAt });
-      console.log('Auto-applied to job:', { title: job.title, company: job.company, userId: user._id });
+      try {
+        const newJob = await Job.findOneAndUpdate(
+          { userId: user._id, title: job.title, company: job.company },
+          {
+            userId: user._id,
+            title: job.title,
+            company: job.company,
+            status: 'Applied',
+            appliedAt: new Date(),
+          },
+          { upsert: true, new: true }
+        );
+        appliedJobs.push({ ...job, appliedAt: newJob.appliedAt });
+        console.log('Auto-applied to job:', { title: job.title, company: job.company, userId: user._id });
+      } catch (error) {
+        console.error('Error applying to job:', { title: job.title, company: job.company, error: error.message });
+      }
     }
   }
 
