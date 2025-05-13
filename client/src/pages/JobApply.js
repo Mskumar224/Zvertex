@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, TextField, Button, Typography, Box, Select, MenuItem, FormControl, InputLabel, useMediaQuery } from '@mui/material';
+import { Container, Button, Typography, Box, Select, MenuItem, FormControl, InputLabel, useMediaQuery } from '@mui/material';
 import axios from 'axios';
 import { useHistory } from 'react-router-dom';
 
@@ -17,11 +17,11 @@ function JobApply() {
       try {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('No token found');
-        const { data } = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/user`, {
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/user`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setSelectedTechnology(data.selectedTechnology || '');
-        setSelectedCompanies(data.selectedCompanies || []);
+        setSelectedTechnology(response.data.selectedTechnology || '');
+        setSelectedCompanies(response.data.selectedCompanies || []);
       } catch (err) {
         setError('Failed to load user preferences');
         console.error('Fetch user error:', err.message);
@@ -58,7 +58,7 @@ function JobApply() {
       if (!token) throw new Error('No token found');
       const formData = new FormData();
       formData.append('resume', resume);
-      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/job/upload`, formData, {
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/job/upload`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
