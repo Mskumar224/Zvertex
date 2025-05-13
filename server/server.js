@@ -11,23 +11,25 @@ require('dotenv').config();
 
 const app = express();
 
-// Configure CORS with preflight handling
-app.use(cors({
-  origin: 'https://zvertexai.com',
-  methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-}));
-
-// Explicitly handle OPTIONS for all routes
-app.options('*', (req, res) => {
+// Configure CORS with explicit headers
+app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', 'https://zvertexai.com');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.header('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
-  res.status(204).send();
+  res.header('Access-Control-Max-Age', '86400');
+  if (req.method === 'OPTIONS') {
+    return res.status(204).send();
+  }
+  next();
+});
+
+// Log requests and responses
+app.use((req, res, next) => {
+  console.log(`[${req.method}] ${req.url} - Headers: ${JSON.stringify(req.headers)}`);
+  res.on('finish', () => {
+    console.log(`Response [${res.statusCode}] Headers: ${JSON.stringify(res.getHeaders())}`);
+  });
+  next();
 });
 
 app.use(express.json());
@@ -38,16 +40,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 app.use('/api/job', upload.single('resume'), jobRoutes);
 app.use('/api/auth', authRoutes);
 
-// Log requests and responses for debugging
-app.use((req, res, next) => {
-  console.log(`[${req.method}] ${req.url} - Headers: ${JSON.stringify(req.headers)}`);
-  res.on('finish', () => {
-    console.log(`Response [${res.statusCode}] Headers: ${JSON.stringify(res.getHeaders())}`);
-  });
-  next();
-});
-
-// Health check endpoint to keep service alive
+// Health check endpoint
 app.get('/ping', (req, res) => res.json({ status: 'alive' }));
 
 mongoose.connect(process.env.MONGO_URI, {

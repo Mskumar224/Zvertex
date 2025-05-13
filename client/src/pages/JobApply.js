@@ -34,9 +34,9 @@ function JobApply() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      if (!token) throw new Error('No token found');
-      if (!formData.resume) throw new Error('Please upload a resume');
-      if (!formData.selectedTechnology) throw new Error('Please select or enter a preferred technology');
+      if (!token) throw new Error('Authentication required. Please log in.');
+      if (!formData.resume) throw new Error('Please upload a resume.');
+      if (!formData.selectedTechnology) throw new Error('Please select or enter a preferred technology.');
 
       const { selectedTechnology, selectedCompanies } = formData;
       console.log('Sending PATCH to /api/auth/user:', { selectedTechnology, selectedCompanies });
@@ -56,11 +56,12 @@ function JobApply() {
         }
       });
 
-      setMessage(response.data.message || 'Preferences saved and job application submitted successfully!');
+      const jobIds = response.data.jobIds || [];
+      setMessage(`Job application submitted successfully! Applied to ${jobIds.length} job(s) with ID(s): ${jobIds.join(', ') || 'N/A'}.`);
       setError('');
-      setTimeout(() => history.push('/student-dashboard'), 2000);
+      setTimeout(() => history.push('/student-dashboard'), 3000);
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to save preferences or apply for job';
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to save preferences or apply for jobs. Please try again.';
       setError(errorMessage);
       setMessage('');
       console.error('Auto apply error:', errorMessage, {
