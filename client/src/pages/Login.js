@@ -12,7 +12,7 @@ function Login() {
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      setError('Please enter a valid email and password');
+      setError('Please enter both email and password');
       return;
     }
     if (!/\S+@\S+\.\S+/.test(email)) {
@@ -27,8 +27,9 @@ function Login() {
                            data.subscription === 'BUSINESS' ? '/business-dashboard' : '/subscription';
       history.push(redirectPath);
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
-      console.error('Login error:', err.response?.data); // Added for debugging
+      const message = err.response?.data?.message || 'Login failed. Please check your credentials.';
+      setError(message);
+      console.error('Login error:', err.response?.data); // Enhanced logging
     }
   };
 
@@ -65,6 +66,7 @@ function Login() {
           sx={{ mb: 3 }}
           variant="outlined"
           error={!!error && !email.trim()}
+          helperText={!!error && !email.trim() ? 'Email is required' : ''}
         />
         <TextField
           label="Password"
@@ -75,6 +77,7 @@ function Login() {
           sx={{ mb: 3 }}
           variant="outlined"
           error={!!error && !password.trim()}
+          helperText={!!error && !password.trim() ? 'Password is required' : ''}
         />
         <Button
           variant="contained"

@@ -24,7 +24,7 @@ const corsOptions = {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.error(`CORS blocked for origin: ${origin}`); // Added for debugging
+      console.error(`CORS blocked for origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -44,8 +44,19 @@ app.use((req, res, next) => {
   next();
 });
 
+// Handle uncaught errors to prevent 502s
+app.use((err, req, res, next) => {
+  console.error('Server error:', err.message); // Added for debugging
+  res.status(500).json({ message: 'Internal server error', error: err.message });
+});
+
 app.use(express.json());
 app.use(fileUpload());
+
+// Define root route to avoid 404s
+app.get('/', (req, res) => {
+  res.status(200).json({ message: 'ZvertexAI API Server' });
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/subscription', subscriptionRoutes);
@@ -60,8 +71,11 @@ mongoose
   .then(() => console.log('MongoDB connected'))
   .catch((err) => console.error('MongoDB error:', err.message));
 
-scheduleDailyEmails();
-scheduleRecurringJobs();
+// Optimize Puppeteer by running jobs only if MongoDB is connected
+mongoose.connection.on('connected', () => {
+  scheduleDailyEmails();
+  scheduleRecurringJobs();
+});
 
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));

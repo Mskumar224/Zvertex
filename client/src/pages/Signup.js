@@ -17,28 +17,43 @@ function Signup() {
   const isMobile = useMediaQuery('(max-width:600px)');
 
   const handleSignup = async () => {
-    if (!email || !password || !name || !subscriptionType) {
+    // Validate inputs
+    if (!email.trim() || !password.trim() || !name.trim() || !subscriptionType) {
       setError('Please fill all required fields');
       return;
     }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
     try {
-      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/signup`, {
-        email,
-        password,
-        name,
-        phone,
+      const payload = {
+        email: email.trim(),
+        password: password.trim(),
+        name: name.trim(),
+        phone: phone.trim() || undefined, // Send undefined if empty
         subscriptionType
-      });
+      };
+      console.log('Signup payload:', payload); // Added for debugging
+      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/signup`, payload);
       setUserId(data.userId);
       setStep('otp');
       setError('');
+      alert('OTP sent to zvertex.247@gmail.com');
     } catch (err) {
-      setError(err.response?.data?.message || 'Signup failed');
+      const message = err.response?.data?.message || 'Signup failed';
+      setError(message);
+      console.error('Signup error:', err.response?.data); // Enhanced logging
     }
   };
 
   const handleVerifyOtp = async () => {
-    if (!otp) {
+    if (!otp.trim()) {
       setError('Please enter the OTP');
       return;
     }
@@ -47,8 +62,10 @@ function Signup() {
       localStorage.setItem('token', data.token);
       history.push('/subscription');
       setError('');
+      alert('Signup successful! Redirecting to subscription page.');
     } catch (err) {
       setError(err.response?.data?.message || 'OTP verification failed');
+      console.error('OTP verification error:', err.response?.data); // Enhanced logging
     }
   };
 
@@ -72,7 +89,8 @@ function Signup() {
               onChange={(e) => setName(e.target.value)}
               sx={{ mb: 3 }}
               variant="outlined"
-              error={!!error && !name}
+              error={!!error && !name.trim()}
+              helperText={!!error && !name.trim() ? 'Name is required' : ''}
             />
             <TextField
               label="Email"
@@ -81,7 +99,14 @@ function Signup() {
               onChange={(e) => setEmail(e.target.value)}
               sx={{ mb: 3 }}
               variant="outlined"
-              error={!!error && !email}
+              error={!!error && (!email.trim() || !/\S+@\S+\.\S+/.test(email))}
+              helperText={
+                !!error && !email.trim()
+                  ? 'Email is required'
+                  : !!error && !/\S+@\S+\.\S+/.test(email)
+                  ? 'Invalid email format'
+                  : ''
+              }
             />
             <TextField
               label="Phone"
@@ -99,20 +124,31 @@ function Signup() {
               onChange={(e) => setPassword(e.target.value)}
               sx={{ mb: 3 }}
               variant="outlined"
-              error={!!error && !password}
+              error={!!error && (!password.trim() || password.length < 6)}
+              helperText={
+                !!error && !password.trim()
+                  ? 'Password is required'
+                  : !!error && password.length < 6
+                  ? 'Password must be at least 6 characters'
+                  : ''
+              }
             />
-            <FormControl fullWidth sx={{ mb: 3 }}>
+            <FormControl fullWidth sx={{ mb: 3 }} error={!!error && !subscriptionType}>
               <InputLabel>Subscription Type</InputLabel>
               <Select
                 value={subscriptionType}
                 onChange={(e) => setSubscriptionType(e.target.value)}
                 label="Subscription Type"
-                error={!!error && !subscriptionType}
               >
                 <MenuItem value="STUDENT">Student</MenuItem>
                 <MenuItem value="RECRUITER">Recruiter</MenuItem>
                 <MenuItem value="BUSINESS">Business</MenuItem>
               </Select>
+              {!!error && !subscriptionType && (
+                <Typography color="error" variant="caption">
+                  Subscription type is required
+                </Typography>
+              )}
             </FormControl>
             <Button
               variant="contained"
@@ -136,7 +172,8 @@ function Signup() {
               onChange={(e) => setOtp(e.target.value)}
               sx={{ mb: 3 }}
               variant="outlined"
-              error={!!error && !otp}
+              error={!!error && !otp.trim()}
+              helperText={!!error && !otp.trim() ? 'OTP is required' : ''}
             />
             <Button
               variant="contained"
