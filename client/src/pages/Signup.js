@@ -43,7 +43,7 @@ function Signup() {
       setUserId(data.userId);
       setStep('otp');
       setError('');
-      alert('OTP sent to zvertex.247@gmail.com and your email');
+      alert('Please contact ZvertexAI support to receive your OTP for subscription verification');
     } catch (err) {
       const message = err.response?.data?.message || 'Signup failed';
       setError(message);
@@ -57,11 +57,11 @@ function Signup() {
       return;
     }
     try {
-      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/verify-otp`, { userId, otp });
+      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/verify-subscription-otp`, { userId, otp });
       localStorage.setItem('token', data.token);
-      history.push('/subscription');
+      history.push(data.redirect || '/subscription');
       setError('');
-      alert('Signup successful! Redirecting to subscription page.');
+      alert('Signup and subscription verified successfully! Redirecting...');
     } catch (err) {
       setError(err.response?.data?.message || 'OTP verification failed');
       console.error('OTP verification error:', err.response?.data);
@@ -174,13 +174,13 @@ function Signup() {
         ) : (
           <>
             <Typography sx={{ mb: 3, textAlign: 'center' }}>
-              An OTP has been sent to zvertex.247@gmail.com and your email. Please enter it below.
+              Please contact ZvertexAI support at support@zvertexai.com to receive your OTP for subscription verification.
             </Typography>
             <TextField
               label="OTP"
               fullWidth
               value={otp}
-              onChange={(e) => setOtp(e.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
               sx={{ mb: 3 }}
               variant="outlined"
               error={!!error && !otp.trim()}

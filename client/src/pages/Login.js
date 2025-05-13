@@ -41,7 +41,7 @@ function Login() {
     try {
       await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/forgot-password`, { email });
       setError('');
-      alert('Password reset link sent to your email and zvertex.247@gmail.com');
+      alert('Please contact ZvertexAI support at support@zvertexai.com to receive your password reset link');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to send reset link');
     }
@@ -101,7 +101,7 @@ function Login() {
             ) : error.includes('not verified') ? (
               <span>
                 {' '}
-                Check zvertex.247@gmail.com for your OTP.
+                Contact <a href="mailto:support@zvertexai.com" style={{ color: '#1976d2' }}>support@zvertexai.com</a> for your OTP.
               </span>
             ) : null}
           </Typography>
