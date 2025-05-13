@@ -7,7 +7,6 @@ const path = require('path');
 const fs = require('fs');
 const nodemailer = require('nodemailer');
 
-const JWT_SECRET = process.env.JWT_SECRET;
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
@@ -16,25 +15,17 @@ const transporter = nodemailer.createTransport({
 router.post('/upload', async (req, res) => {
   const token = req.headers.authorization?.split('Bearer ')[1];
   if (!token) return res.status(401).json({ error: 'No token provided' });
-
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
-
-    if (!req.files || !req.files.resume) {
-      return res.status(400).json({ message: 'No file uploaded' });
-    }
+    if (!req.files || !req.files.resume) return res.status(400).json({ message: 'No file uploaded' });
 
     const resume = req.files.resume;
-    if (!['application/pdf'].includes(resume.mimetype)) {
-      return res.status(400).json({ message: 'Only PDF files are allowed' });
-    }
+    if (resume.mimetype !== 'application/pdf') return res.status(400).json({ message: 'Only PDF files allowed' });
 
     const uploadDir = path.join(__dirname, '..', 'Uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
     const fileName = `${user._id}_${Date.now()}.pdf`;
     const filePath = path.join(uploadDir, fileName);
@@ -43,30 +34,27 @@ router.post('/upload', async (req, res) => {
     user.resumes = (user.resumes || 0) + 1;
     await user.save();
 
-    const otpEmail = process.env.OTP_EMAIL || 'zvertex.247@gmail.com';
     await transporter.sendMail({
       from: '"ZvertexAI Team" <zvertexai@honotech.com>',
-      to: otpEmail,
+      to: process.env.OTP_EMAIL || 'zvertex.247@gmail.com',
       subject: 'ZvertexAI - Job Application Confirmation',
       html: `
         <div style="font-family: Roboto, Arial, sans-serif; color: #333; background: #f5f5f5; padding: 20px; border-radius: 8px;">
           <h2 style="color: #1976d2;">Job Application Confirmation</h2>
-          <p>Dear Admin,</p>
-          <p>User (${user.email}) has submitted a job application with the following details:</p>
+          <p>User (${user.email}) submitted an application:</p>
           <p><strong>Technology:</strong> ${user.selectedTechnology}</p>
           <p><strong>Companies:</strong> ${user.selectedCompanies.join(', ')}</p>
-          <p><strong>Resume:</strong> Uploaded as ${fileName}</p>
-          <p>Please review the application and contact the user if needed.</p>
+          <p><strong>Resume:</strong> ${fileName}</p>
           <p>Contact: <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a> or +1(918) 924-5130</p>
           <p style="color: #6B7280;">Best regards,<br>The ZvertexAI Team</p>
         </div>
-      `,
+      `
     });
 
-    res.json({ message: 'File uploaded successfully', filePath });
+    res.json({ message: 'Application submitted', filePath });
   } catch (error) {
     console.error('Upload error:', error.message);
-    res.status(500).json({ message: 'Upload failed', error: error.message });
+    res.status(500).json({ message: 'Application failed', error: error.message });
   }
 });
 
@@ -74,25 +62,15 @@ router.post('/create', async (req, res) => {
   const token = req.headers.authorization?.split('Bearer ')[1];
   if (!token) return res.status(401).json({ error: 'No token provided' });
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
-
     const { title, description, company, location } = req.body;
-    if (!title || !description || !company || !location) {
-      return res.status(400).json({ message: 'Missing required fields' });
-    }
+    if (!title || !description || !company || !location) return res.status(400).json({ message: 'Missing required fields' });
 
-    const job = new Job({
-      title,
-      description,
-      company,
-      location,
-      postedBy: user._id,
-    });
+    const job = new Job({ title, description, company, location, postedBy: user._id });
     await job.save();
-
-    res.status(201).json({ message: 'Job created successfully', job });
+    res.status(201).json({ message: 'Job created', job });
   } catch (error) {
     console.error('Job creation error:', error.message);
     res.status(500).json({ message: 'Job creation failed', error: error.message });

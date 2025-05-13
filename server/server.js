@@ -20,37 +20,28 @@ app.use(cors({
   optionsSuccessStatus: 204
 }));
 
-app.options('*', cors(), (req, res) => {
-  res.status(204).send();
-});
-
+app.options('*', cors(), (req, res) => res.status(204).send());
 app.use((req, res, next) => {
   console.log(`[${req.method}] ${req.url} from ${req.headers.origin || 'no-origin'}`);
   next();
 });
-
+app.use(express.json());
+app.use(fileUpload());
 app.use((err, req, res, next) => {
   console.error('Server error:', err.stack);
   res.status(500).json({ message: 'Internal server error', error: err.message });
 });
 
-app.use(express.json());
-app.use(fileUpload());
-
-app.get('/', (req, res) => {
-  res.status(200).json({ message: 'ZvertexAI API Server' });
-});
+app.get('/', (req, res) => res.status(200).json({ message: 'ZvertexAI API Server' }));
+app.get('/test', (req, res) => res.send('Server is alive'));
+app.get('/health', (req, res) => res.status(200).send('OK'));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/job', jobRoutes);
 app.use('/api/zoha', zohaRoutes);
 
-app.get('/test', (req, res) => res.send('Server is alive'));
-app.get('/health', (req, res) => res.status(200).send('OK'));
-
-mongoose
-  .connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
   .catch((err) => {
     console.error('MongoDB connection error:', err.message);
@@ -64,7 +55,4 @@ mongoose.connection.on('connected', () => {
 
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
-
-setInterval(() => {
-  console.log('Keeping ZvertexAI server alive...');
-}, 300000);
+setInterval(() => console.log('Keeping server alive...'), 300000);

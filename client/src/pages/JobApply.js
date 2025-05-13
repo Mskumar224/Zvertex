@@ -16,14 +16,14 @@ function JobApply() {
     const fetchUser = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (!token) throw new Error('No token found');
+        if (!token) throw new Error('No token');
         const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/user`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setSelectedTechnology(response.data.selectedTechnology || '');
         setSelectedCompanies(response.data.selectedCompanies || []);
       } catch (err) {
-        setError('Failed to load user preferences');
+        setError('Failed to load preferences');
         console.error('Fetch user error:', err.message);
       }
     };
@@ -33,43 +33,38 @@ function JobApply() {
   const handleSavePreferences = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) throw new Error('No token found');
+      if (!token) throw new Error('No token');
       await axios.patch(`${process.env.REACT_APP_API_URL}/api/auth/user`, {
         selectedTechnology,
         selectedCompanies,
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setSuccess('Preferences saved successfully');
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      setSuccess('Preferences saved');
       setError('');
     } catch (err) {
-      setError('Failed to save preferences: ' + (err.response?.data?.message || err.message));
+      setError(err.response?.data?.message || 'Failed to save preferences');
       console.error('Save preferences error:', err.message);
     }
   };
 
-  const handleUploadResume = async () => {
+  const handleAutoApply = async () => {
     if (!resume) {
-      setError('Please select a resume file');
+      setError('Select a resume file');
       return;
     }
     try {
       const token = localStorage.getItem('token');
-      if (!token) throw new Error('No token found');
+      if (!token) throw new Error('No token');
       const formData = new FormData();
       formData.append('resume', resume);
       await axios.post(`${process.env.REACT_APP_API_URL}/api/job/upload`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
       });
-      setSuccess('Resume uploaded successfully! Confirmation sent to zvertex.247@gmail.com');
+      setSuccess('Application submitted! Confirmation sent to zvertex.247@gmail.com');
       setError('');
       setTimeout(() => history.push('/dashboard'), 2000);
     } catch (err) {
-      setError('Upload failed: ' + (err.response?.data?.message || err.message));
-      console.error('Upload error:', err.message);
+      setError(err.response?.data?.message || 'Application failed');
+      console.error('Auto apply error:', err.message);
     }
   };
 
@@ -81,11 +76,7 @@ function JobApply() {
         </Typography>
         <FormControl fullWidth sx={{ mb: 3 }}>
           <InputLabel>Technology</InputLabel>
-          <Select
-            value={selectedTechnology}
-            onChange={(e) => setSelectedTechnology(e.target.value)}
-            label="Technology"
-          >
+          <Select value={selectedTechnology} onChange={(e) => setSelectedTechnology(e.target.value)} label="Technology">
             <MenuItem value="JavaScript">JavaScript</MenuItem>
             <MenuItem value="Python">Python</MenuItem>
             <MenuItem value="Java">Java</MenuItem>
@@ -93,54 +84,22 @@ function JobApply() {
         </FormControl>
         <FormControl fullWidth sx={{ mb: 3 }}>
           <InputLabel>Companies</InputLabel>
-          <Select
-            multiple
-            value={selectedCompanies}
-            onChange={(e) => setSelectedCompanies(e.target.value)}
-            label="Companies"
-          >
+          <Select multiple value={selectedCompanies} onChange={(e) => setSelectedCompanies(e.target.value)} label="Companies">
             <MenuItem value="Indeed">Indeed</MenuItem>
             <MenuItem value="LinkedIn">LinkedIn</MenuItem>
             <MenuItem value="Glassdoor">Glassdoor</MenuItem>
           </Select>
         </FormControl>
-        <Button
-          variant="contained"
-          color="primary"
-          fullWidth
-          onClick={handleSavePreferences}
-          sx={{ py: 1.5, borderRadius: '25px', mb: 3 }}
-        >
+        <Button variant="contained" color="primary" fullWidth onClick={handleSavePreferences} sx={{ py: 1.5, borderRadius: '25px', mb: 3 }}>
           Save Preferences
         </Button>
-        <Typography variant="body1" sx={{ mb: 2 }}>
-          Upload Resume (PDF only)
-        </Typography>
-        <input
-          type="file"
-          accept="application/pdf"
-          onChange={(e) => setResume(e.target.files[0])}
-          style={{ marginBottom: '16px', display: 'block' }}
-        />
-        <Button
-          variant="contained"
-          color="primary"
-          fullWidth
-          onClick={handleUploadResume}
-          sx={{ py: 1.5, borderRadius: '25px' }}
-        >
-          Upload Resume
+        <Typography variant="body1" sx={{ mb: 2 }}>Upload Resume (PDF only)</Typography>
+        <input type="file" accept="application/pdf" onChange={(e) => setResume(e.target.files[0])} style={{ mb: 2, display: 'block' }} />
+        <Button variant="contained" color="primary" fullWidth onClick={handleAutoApply} sx={{ py: 1.5, borderRadius: '25px' }}>
+          Auto Apply
         </Button>
-        {error && (
-          <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>
-            {error}
-          </Typography>
-        )}
-        {success && (
-          <Typography color="success.main" sx={{ mt: 2, textAlign: 'center' }}>
-            {success}
-          </Typography>
-        )}
+        {error && <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>{error}</Typography>}
+        {success && <Typography color="success.main" sx={{ mt: 2, textAlign: 'center' }}>{success}</Typography>}
       </Box>
     </Container>
   );

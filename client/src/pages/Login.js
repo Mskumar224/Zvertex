@@ -1,175 +1,112 @@
 import React, { useState } from 'react';
-import { Container, TextField, Button, Typography, Box, useMediaQuery } from '@mui/material';
+import { Container, Button, Typography, Box, TextField, useMediaQuery } from '@mui/material';
 import axios from 'axios';
 import { useHistory } from 'react-router-dom';
 
 function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [form, setForm] = useState({ email: '', password: '' });
   const [otp, setOtp] = useState('');
   const [userId, setUserId] = useState('');
-  const [showOtpField, setShowOtpField] = useState(false);
+  const [showOtp, setShowOtp] = useState(false);
   const [error, setError] = useState('');
   const history = useHistory();
   const isMobile = useMediaQuery('(max-width:600px)');
 
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
-      setError('Please enter both email and password');
+    const { email, password } = form;
+    if (!email || !password) {
+      setError('Email and password required');
       return;
     }
     if (!/\S+@\S+\.\S+/.test(email)) {
-      setError('Please enter a valid email address');
+      setError('Invalid email format');
       return;
     }
     try {
-      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, { email, password });
+      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, form);
       if (data.needsOtp) {
         setUserId(data.userId);
-        setShowOtpField(true);
+        setShowOtp(true);
         setError('');
-        alert('Your account is not verified. Please check your OTP sent to zvertex.247@gmail.com or contact +1(918) 924-5130.');
       } else {
         localStorage.setItem('token', data.token);
-        const redirectPath = data.redirect || '/subscription';
-        history.push(redirectPath);
-        window.location.reload(); // Ensure dashboard loads correctly
+        history.push(data.redirect);
+        window.location.reload();
       }
     } catch (err) {
-      const message = err.response?.data?.message || 'Login failed. Please try again later.';
-      setError(message);
+      setError(err.response?.data?.message || 'Login failed');
       console.error('Login error:', err.message);
     }
   };
 
   const handleVerifyOtp = async () => {
-    if (!otp.trim()) {
-      setError('Please enter the OTP');
+    if (!otp) {
+      setError('Please enter OTP');
       return;
     }
     try {
       const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/verify-subscription-otp`, { userId, otp });
       localStorage.setItem('token', data.token);
-      const redirectPath = data.redirect || '/subscription';
-      history.push(redirectPath);
+      history.push(data.redirect);
       window.location.reload();
-      setError('');
-      alert('OTP verified successfully! Redirecting...');
     } catch (err) {
-      setError(err.response?.data?.message || 'OTP verification failed. Please try again.');
+      setError(err.response?.data?.message || 'OTP verification failed');
       console.error('OTP verification error:', err.message);
     }
   };
 
   const handleForgotPassword = async () => {
-    if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) {
-      setError('Please enter a valid email to reset password');
+    if (!form.email || !/\S+@\S+\.\S+/.test(form.email)) {
+      setError('Enter a valid email');
       return;
     }
     try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/forgot-password`, { email });
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/forgot-password`, { email: form.email });
       setError('');
-      alert('Please contact zvertex.247@gmail.com or +1(918) 924-5130 to receive your password reset link.');
+      alert('Check zvertex.247@gmail.com or call +1(918) 924-5130 for reset link');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to send reset link. Please try again later.');
+      setError(err.response?.data?.message || 'Reset link failed');
+      console.error('Forgot password error:', err.message);
     }
   };
 
   return (
     <Container maxWidth="sm" sx={{ py: 8 }}>
       <Box sx={{ p: 4, background: '#fff', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <Typography
-          variant={isMobile ? 'h5' : 'h4'}
-          align="center"
-          sx={{ color: '#1976d2', mb: 4, cursor: 'pointer' }}
-          onClick={() => window.location.href = '/'}
-        >
+        <Typography variant={isMobile ? 'h5' : 'h4'} align="center" sx={{ color: '#1976d2', mb: 4 }} onClick={() => history.push('/')}>
           ZvertexAI - Login
         </Typography>
-        <TextField
-          label="Email"
-          fullWidth
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          sx={{ mb: 3 }}
-          variant="outlined"
-          error={!!error && !email.trim()}
-          helperText={!!error && !email.trim() ? 'Email is required' : ''}
-        />
-        <TextField
-          label="Password"
-          type="password"
-          fullWidth
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          sx={{ mb: 3 }}
-          variant="outlined"
-          error={!!error && !password.trim()}
-          helperText={!!error && !password.trim() ? 'Password is required' : ''}
-        />
-        {showOtpField && (
+        <TextField label="Email" name="email" fullWidth value={form.email} onChange={handleChange} sx={{ mb: 3 }} />
+        <TextField label="Password" name="password" type="password" fullWidth value={form.password} onChange={handleChange} sx={{ mb: 3 }} />
+        {showOtp && (
           <>
             <Typography sx={{ mb: 3, textAlign: 'center' }}>
-              Your account is not verified. Please check your OTP sent to{' '}
-              <a href="mailto:zvertex.247@gmail.com" style={{ color: '#1976d2' }}>zvertex.247@gmail.com</a> or contact{' '}
-              <a href="tel:+19189245130" style={{ color: '#1976d2' }}>+1(918) 924-5130</a>.
+              Check OTP at <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a> or call <a href="tel:+19189245130">+1(918) 924-5130</a>
             </Typography>
-            <TextField
-              label="OTP"
-              fullWidth
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              sx={{ mb: 3 }}
-              variant="outlined"
-              error={!!error && !otp.trim()}
-              helperText={!!error && !otp.trim() ? 'OTP is required' : ''}
-            />
-            <Button
-              variant="contained"
-              color="primary"
-              fullWidth
-              onClick={handleVerifyOtp}
-              sx={{ py: 1.5, borderRadius: '25px', mb: 2 }}
-            >
+            <TextField label="OTP" fullWidth value={otp} onChange={(e) => setOtp(e.target.value)} sx={{ mb: 3 }} />
+            <Button variant="contained" color="primary" fullWidth onClick={handleVerifyOtp} sx={{ py: 1.5, borderRadius: '25px', mb: 2 }}>
               Verify OTP
             </Button>
           </>
         )}
-        {!showOtpField && (
-          <Button
-            variant="contained"
-            color="primary"
-            fullWidth
-            onClick={handleLogin}
-            sx={{ py: 1.5, borderRadius: '25px' }}
-          >
+        {!showOtp && (
+          <Button variant="contained" color="primary" fullWidth onClick={handleLogin} sx={{ py: 1.5, borderRadius: '25px' }}>
             Login
           </Button>
         )}
         {error && (
           <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>
             {error}
-            {error.includes('Invalid password') || error.includes('No account found') ? (
-              <span>
-                {' '}
-                <Button color="primary" onClick={handleForgotPassword}>
-                  Reset Password
-                </Button>
-              </span>
-            ) : null}
+            {(error.includes('Invalid password') || error.includes('No account found')) && (
+              <Button color="primary" onClick={handleForgotPassword}>Reset Password</Button>
+            )}
           </Typography>
         )}
         <Typography sx={{ mt: 2, textAlign: 'center', color: '#6B7280' }}>
-          Forgot Password?{' '}
-          <Button color="primary" onClick={handleForgotPassword}>
-            Reset
-          </Button>
-        </Typography>
-        <Typography sx={{ mt: 1, textAlign: 'center', color: '#6B7280' }}>
-          Don’t have an account?{' '}
-          <Button color="primary" onClick={() => history.push('/signup')}>
-            Sign Up
-          </Button>
+          Forgot Password? <Button color="primary" onClick={handleForgotPassword}>Reset</Button>
+          | Don’t have an account? <Button color="primary" onClick={() => history.push('/signup')}>Sign Up</Button>
         </Typography>
       </Box>
     </Container>
