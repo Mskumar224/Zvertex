@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Container, Typography, TextField, Button, Box, useMediaQuery, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { Container, Typography, TextField, Button, Box, useMediaQuery, Select, MenuItem, FormControl, InputLabel, FormControlLabel, Switch } from '@mui/material';
 import axios from 'axios';
 import { useHistory } from 'react-router-dom';
 
@@ -11,6 +11,7 @@ function JobApply() {
   });
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [useManualTech, setUseManualTech] = useState(false); // Toggle for manual tech entry
   const history = useHistory();
   const isMobile = useMediaQuery('(max-width:600px)');
 
@@ -24,12 +25,18 @@ function JobApply() {
     }
   };
 
+  const handleManualTechToggle = (e) => {
+    setUseManualTech(e.target.checked);
+    setFormData({ ...formData, selectedTechnology: '' }); // Reset tech when toggling
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No token found');
       if (!formData.resume) throw new Error('Please upload a resume');
+      if (!formData.selectedTechnology) throw new Error('Please select or enter a preferred technology');
 
       const { selectedTechnology, selectedCompanies } = formData;
       await axios.patch(
@@ -54,7 +61,11 @@ function JobApply() {
       const errorMessage = err.response?.data?.message || err.message || 'Failed to save preferences or apply for job';
       setError(errorMessage);
       setMessage('');
-      console.error('Auto apply error:', errorMessage, err.response?.data);
+      console.error('Auto apply error:', errorMessage, {
+        status: err.response?.status,
+        data: err.response?.data,
+        url: err.config?.url
+      });
     }
   };
 
@@ -75,20 +86,38 @@ function JobApply() {
           </Typography>
         )}
         <form onSubmit={handleSubmit}>
-          <FormControl fullWidth margin="normal">
-            <InputLabel>Preferred Technology</InputLabel>
-            <Select
+          <Box sx={{ mb: 2 }}>
+            <FormControlLabel
+              control={<Switch checked={useManualTech} onChange={handleManualTechToggle} />}
+              label="Enter technology manually"
+            />
+          </Box>
+          {useManualTech ? (
+            <TextField
+              fullWidth
+              label="Preferred Technology"
               name="selectedTechnology"
               value={formData.selectedTechnology}
               onChange={handleChange}
+              margin="normal"
               required
-            >
-              <MenuItem value="JavaScript">JavaScript</MenuItem>
-              <MenuItem value="Python">Python</MenuItem>
-              <MenuItem value="Java">Java</MenuItem>
-              <MenuItem value="C++">C++</MenuItem>
-            </Select>
-          </FormControl>
+            />
+          ) : (
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Preferred Technology</InputLabel>
+              <Select
+                name="selectedTechnology"
+                value={formData.selectedTechnology}
+                onChange={handleChange}
+                required
+              >
+                <MenuItem value="JavaScript">JavaScript</MenuItem>
+                <MenuItem value="Python">Python</MenuItem>
+                <MenuItem value="Java">Java</MenuItem>
+                <MenuItem value="C++">C++</MenuItem>
+              </Select>
+            </FormControl>
+          )}
           <FormControl fullWidth margin="normal">
             <InputLabel>Preferred Companies</InputLabel>
             <Select
