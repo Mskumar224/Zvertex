@@ -3,21 +3,13 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const jobRoutes = require('./routes/job');
+// Explicitly require the Profile model to ensure it's registered
+require('./models/Profile');
 require('dotenv').config();
 
 const app = express();
 
-// Configure CORS to allow specific origins
-app.use(cors({
-  origin: [
-    'http://localhost:3000', // Development
-    'https://zvertexai.netlify.app', // Production
-  ],
-  methods: ['GET', 'POST', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-}));
-
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
