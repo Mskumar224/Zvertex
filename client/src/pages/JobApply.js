@@ -39,6 +39,7 @@ function JobApply() {
       if (!formData.selectedTechnology) throw new Error('Please select or enter a preferred technology');
 
       const { selectedTechnology, selectedCompanies } = formData;
+      console.log('Sending PATCH to /api/auth/user:', { selectedTechnology, selectedCompanies });
       await axios.patch(
         `${process.env.REACT_APP_API_URL}/api/auth/user`,
         { selectedTechnology, selectedCompanies },
@@ -47,6 +48,7 @@ function JobApply() {
 
       const formDataToSend = new FormData();
       formDataToSend.append('resume', formData.resume);
+      console.log('Sending POST to /api/job/apply:', { headers: { Authorization: `Bearer ${token}` } });
       const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/job/apply`, formDataToSend, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -65,7 +67,8 @@ function JobApply() {
         status: err.response?.status,
         data: err.response?.data,
         url: err.config?.url,
-        headers: err.config?.headers
+        headers: err.config?.headers,
+        method: err.config?.method
       });
     }
   };

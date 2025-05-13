@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
 router.post('/apply', async (req, res) => {
   const token = req.headers.authorization?.split('Bearer ')[1];
   if (!token) return res.status(401).json({ message: 'No token provided' });
-  if (!req.files || !req.files.resume) return res.status(400).json({ message: 'No resume uploaded' });
+  if (!req.file) return res.status(400).json({ message: 'No resume uploaded' });
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -25,7 +25,7 @@ router.post('/apply', async (req, res) => {
     const job = new Job({
       title: `Application for ${user.selectedTechnology || 'General'}`,
       company: user.selectedCompanies?.[0] || 'Various',
-      location: 'Remote', // Placeholder, can be enhanced
+      location: 'Remote',
       postedBy: user._id
     });
     await job.save();
