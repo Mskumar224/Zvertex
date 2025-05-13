@@ -48,7 +48,7 @@ function JobApply() {
 
       const formDataToSend = new FormData();
       formDataToSend.append('resume', formData.resume);
-      console.log('Sending POST to /api/job/apply:', { headers: { Authorization: `Bearer ${token}` } });
+      console.log('Sending POST to /api/job/apply:', { headers: { Authorization: `Bearer ${token}` }, file: formData.resume?.name });
       const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/job/apply`, formDataToSend, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -68,7 +68,8 @@ function JobApply() {
         data: err.response?.data,
         url: err.config?.url,
         headers: err.config?.headers,
-        method: err.config?.method
+        method: err.config?.method,
+        responseText: err.response?.data
       });
     }
   };

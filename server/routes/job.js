@@ -56,7 +56,7 @@ router.post('/apply', async (req, res) => {
 
     res.json({ message: 'Job application submitted successfully', jobId: job._id });
   } catch (error) {
-    console.error('Job apply error:', error.message);
+    console.error('Job apply error:', error.message, error);
     res.status(500).json({ message: 'Job application failed', error: error.message });
   }
 });
