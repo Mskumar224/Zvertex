@@ -11,7 +11,7 @@ function Signup() {
   const [subscriptionType, setSubscriptionType] = useState('');
   const [otp, setOtp] = useState('');
   const [userId, setUserId] = useState('');
-  const [showOtpField, setShowOtpField] = useState(false); // Track OTP field visibility
+  const [showOtpField, setShowOtpField] = useState(false);
   const [error, setError] = useState('');
   const history = useHistory();
   const isMobile = useMediaQuery('(max-width:600px)');
@@ -45,13 +45,13 @@ function Signup() {
       console.log('Signup payload:', payload);
       const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/signup`, payload);
       setUserId(data.userId);
-      setShowOtpField(true); // Show OTP field on the same page
+      setShowOtpField(true);
       setError('');
       alert('Please contact ZvertexAI support at support@zvertexai.com to receive your OTP for subscription verification');
     } catch (err) {
-      const message = err.response?.data?.message || 'Signup failed';
+      const message = err.response?.data?.message || 'Signup failed. Please try again later.';
       setError(message);
-      console.error('Signup error:', err.response?.data);
+      console.error('Signup error:', err.message);
     }
   };
 
@@ -67,8 +67,8 @@ function Signup() {
       setError('');
       alert('Signup and subscription verified successfully! Redirecting...');
     } catch (err) {
-      setError(err.response?.data?.message || 'OTP verification failed');
-      console.error('OTP verification error:', err.response?.data);
+      setError(err.response?.data?.message || 'OTP verification failed. Please try again later.');
+      console.error('OTP verification error:', err.message);
     }
   };
 

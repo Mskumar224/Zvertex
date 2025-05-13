@@ -12,48 +12,27 @@ const { scheduleRecurringJobs } = require('./utils/recurringJobs');
 
 const app = express();
 
-const corsOptions = {
-  origin: (origin, callback) => {
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'https://zvertexai.netlify.app',
-      'https://67e8bc6ae03cdd0008a0a23d--zvertexagi.netlify.app',
-      'http://zvertexai.com',
-      'https://zvertexai.com',
-    ];
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.error(`CORS blocked for origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+app.use(cors({
+  origin: ['http://localhost:3000', 'https://zvertexai.netlify.app', 'https://67e8bc6ae03cdd0008a0a23d--zvertexagi.netlify.app', 'https://zvertexai.com'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
-  preflightContinue: false,
   optionsSuccessStatus: 204,
-};
+}));
 
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
-
-// Log all requests for debugging
 app.use((req, res, next) => {
   console.log(`[${req.method}] ${req.url} from ${req.headers.origin || 'no-origin'}`);
   next();
 });
 
-// Handle uncaught errors to prevent 502s
 app.use((err, req, res, next) => {
-  console.error('Server error:', err.message); // Added for debugging
+  console.error('Server error:', err.stack);
   res.status(500).json({ message: 'Internal server error', error: err.message });
 });
 
 app.use(express.json());
 app.use(fileUpload());
 
-// Define root route to avoid 404s
 app.get('/', (req, res) => {
   res.status(200).json({ message: 'ZvertexAI API Server' });
 });
@@ -67,11 +46,13 @@ app.get('/test', (req, res) => res.send('Server is alive'));
 app.get('/health', (req, res) => res.status(200).send('OK'));
 
 mongoose
-  .connect(process.env.MONGO_URI)
+  .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.error('MongoDB error:', err.message));
+  .catch((err) => {
+    console.error('MongoDB connection error:', err.message);
+    process.exit(1);
+  });
 
-// Optimize Puppeteer by running jobs only if MongoDB is connected
 mongoose.connection.on('connected', () => {
   scheduleDailyEmails();
   scheduleRecurringJobs();
@@ -80,7 +61,6 @@ mongoose.connection.on('connected', () => {
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
 
-// Keep server alive on Render
 setInterval(() => {
   console.log('Keeping ZvertexAI server alive...');
-}, 300000); // Ping every 5 minutes
+}, 300000);

@@ -27,9 +27,9 @@ function Login() {
                            data.subscription === 'BUSINESS' ? '/business-dashboard' : '/subscription';
       history.push(redirectPath);
     } catch (err) {
-      const message = err.response?.data?.message || 'Login failed. Please check your credentials.';
+      const message = err.response?.data?.message || 'Login failed. Please check your connection or try again later.';
       setError(message);
-      console.error('Login error:', err.response?.data);
+      console.error('Login error:', err.message);
     }
   };
 
@@ -43,7 +43,7 @@ function Login() {
       setError('');
       alert('Please contact ZvertexAI support at support@zvertexai.com to receive your password reset link');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to send reset link');
+      setError(err.response?.data?.message || 'Failed to send reset link. Please try again later.');
     }
   };
 
