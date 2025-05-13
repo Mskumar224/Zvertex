@@ -6,20 +6,28 @@ const fileUpload = require('express-fileupload');
 const authRoutes = require('./routes/auth');
 const subscriptionRoutes = require('./routes/subscription');
 const jobRoutes = require('./routes/job');
-const zohaRoutes = require('./routes/zoha');   
+const zohaRoutes = require('./routes/zoha');
 const { scheduleDailyEmails } = require('./utils/dailyEmail');
 const { scheduleRecurringJobs } = require('./utils/recurringJobs');
 
 const app = express();
 
 const corsOptions = {
-  origin: [
-    'http://localhost:3000',
-    'https://zvertexai.netlify.app',
-    'https://67e8bc6ae03cdd0008a0a23d--zvertexagi.netlify.app',
-    'http://zvertexai.com',
-    'https://zvertexai.com',
-  ],
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://zvertexai.netlify.app',
+      'https://67e8bc6ae03cdd0008a0a23d--zvertexagi.netlify.app',
+      'http://zvertexai.com',
+      'https://zvertexai.com',
+    ];
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.error(`CORS blocked for origin: ${origin}`); // Added for debugging
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
@@ -30,13 +38,19 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
+// Log all requests for debugging
+app.use((req, res, next) => {
+  console.log(`[${req.method}] ${req.url} from ${req.headers.origin || 'no-origin'}`);
+  next();
+});
+
 app.use(express.json());
 app.use(fileUpload());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/job', jobRoutes);
-app.use('/api/zoha', zohaRoutes);  
+app.use('/api/zoha', zohaRoutes);
 
 app.get('/test', (req, res) => res.send('Server is alive'));
 app.get('/health', (req, res) => res.status(200).send('OK'));

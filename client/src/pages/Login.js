@@ -11,8 +11,12 @@ function Login() {
   const isMobile = useMediaQuery('(max-width:600px)');
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      setError('Please enter both email and password');
+    if (!email.trim() || !password.trim()) {
+      setError('Please enter a valid email and password');
+      return;
+    }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setError('Please enter a valid email address');
       return;
     }
     try {
@@ -23,13 +27,14 @@ function Login() {
                            data.subscription === 'BUSINESS' ? '/business-dashboard' : '/subscription';
       history.push(redirectPath);
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
+      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      console.error('Login error:', err.response?.data); // Added for debugging
     }
   };
 
   const handleForgotPassword = async () => {
-    if (!email) {
-      setError('Please enter your email to reset password');
+    if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) {
+      setError('Please enter a valid email to reset password');
       return;
     }
     try {
@@ -59,7 +64,7 @@ function Login() {
           onChange={(e) => setEmail(e.target.value)}
           sx={{ mb: 3 }}
           variant="outlined"
-          error={!!error && !email}
+          error={!!error && !email.trim()}
         />
         <TextField
           label="Password"
@@ -69,7 +74,7 @@ function Login() {
           onChange={(e) => setPassword(e.target.value)}
           sx={{ mb: 3 }}
           variant="outlined"
-          error={!!error && !password}
+          error={!!error && !password.trim()}
         />
         <Button
           variant="contained"

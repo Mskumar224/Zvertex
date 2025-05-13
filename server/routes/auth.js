@@ -16,6 +16,7 @@ router.post('/signup', async (req, res) => {
   const { email, password, name, phone, subscriptionType } = req.body;
   try {
     if (!email || !password || !name || !subscriptionType) {
+      console.log('Signup missing fields:', { email, name, subscriptionType }); // Added for debugging
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
@@ -82,11 +83,13 @@ router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
     if (!email || !password) {
+      console.log('Login missing fields:', { email, password }); // Added for debugging
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
     const user = await User.findOne({ email });
     if (!user || user.password !== password) {
+      console.log('Login failed: Invalid credentials for', email); // Added for debugging
       return res.status(400).json({ message: 'Invalid credentials' });
     }
     const token = jwt.sign({ id: user._id }, JWT_SECRET);
