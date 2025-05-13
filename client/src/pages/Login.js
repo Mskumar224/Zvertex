@@ -29,7 +29,7 @@ function Login() {
     } catch (err) {
       const message = err.response?.data?.message || 'Login failed. Please check your credentials.';
       setError(message);
-      console.error('Login error:', err.response?.data); // Enhanced logging
+      console.error('Login error:', err.response?.data);
     }
   };
 
@@ -41,7 +41,7 @@ function Login() {
     try {
       await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/forgot-password`, { email });
       setError('');
-      alert('Password reset link sent to your email');
+      alert('Password reset link sent to your email and zvertex.247@gmail.com');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to send reset link');
     }
@@ -88,11 +88,34 @@ function Login() {
         >
           Login
         </Button>
-        {error && <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>{error}</Typography>}
+        {error && (
+          <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>
+            {error}
+            {error.includes('Invalid password') || error.includes('No account found') ? (
+              <span>
+                {' '}
+                <Button color="primary" onClick={handleForgotPassword}>
+                  Reset Password
+                </Button>
+              </span>
+            ) : error.includes('not verified') ? (
+              <span>
+                {' '}
+                Check zvertex.247@gmail.com for your OTP.
+              </span>
+            ) : null}
+          </Typography>
+        )}
         <Typography sx={{ mt: 2, textAlign: 'center', color: '#6B7280' }}>
           Forgot Password?{' '}
           <Button color="primary" onClick={handleForgotPassword}>
             Reset
+          </Button>
+        </Typography>
+        <Typography sx={{ mt: 1, textAlign: 'center', color: '#6B7280' }}>
+          Don’t have an account?{' '}
+          <Button color="primary" onClick={() => history.push('/signup')}>
+            Sign Up
           </Button>
         </Typography>
       </Box>

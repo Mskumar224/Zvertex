@@ -25,6 +25,7 @@ const userSchema = new mongoose.Schema({
   otp: String,
   otpExpires: Date,
   pendingSubscription: String,
+  isVerified: { type: Boolean, default: false }, // Added to track verification
 });
 
 module.exports = mongoose.model('User', userSchema);

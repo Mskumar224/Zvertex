@@ -17,7 +17,6 @@ function Signup() {
   const isMobile = useMediaQuery('(max-width:600px)');
 
   const handleSignup = async () => {
-    // Validate inputs
     if (!email.trim() || !password.trim() || !name.trim() || !subscriptionType) {
       setError('Please fill all required fields');
       return;
@@ -36,19 +35,19 @@ function Signup() {
         email: email.trim(),
         password: password.trim(),
         name: name.trim(),
-        phone: phone.trim() || undefined, // Send undefined if empty
+        phone: phone.trim() || undefined,
         subscriptionType
       };
-      console.log('Signup payload:', payload); // Added for debugging
+      console.log('Signup payload:', payload);
       const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/signup`, payload);
       setUserId(data.userId);
       setStep('otp');
       setError('');
-      alert('OTP sent to zvertex.247@gmail.com');
+      alert('OTP sent to zvertex.247@gmail.com and your email');
     } catch (err) {
       const message = err.response?.data?.message || 'Signup failed';
       setError(message);
-      console.error('Signup error:', err.response?.data); // Enhanced logging
+      console.error('Signup error:', err.response?.data);
     }
   };
 
@@ -65,7 +64,7 @@ function Signup() {
       alert('Signup successful! Redirecting to subscription page.');
     } catch (err) {
       setError(err.response?.data?.message || 'OTP verification failed');
-      console.error('OTP verification error:', err.response?.data); // Enhanced logging
+      console.error('OTP verification error:', err.response?.data);
     }
   };
 
@@ -159,11 +158,23 @@ function Signup() {
             >
               Sign Up
             </Button>
+            {error && (
+              <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>
+                {error}
+                {error.includes('Account already exists') ? (
+                  <span>
+                    {' '}
+                    Try <Button color="primary" onClick={() => history.push('/login')}>logging in</Button> or{' '}
+                    <Button color="primary" onClick={() => history.push('/login')}>resetting your password</Button>.
+                  </span>
+                ) : null}
+              </Typography>
+            )}
           </>
         ) : (
           <>
             <Typography sx={{ mb: 3, textAlign: 'center' }}>
-              An OTP has been sent to zvertex.247@gmail.com. Please enter it below.
+              An OTP has been sent to zvertex.247@gmail.com and your email. Please enter it below.
             </Typography>
             <TextField
               label="OTP"
@@ -184,9 +195,9 @@ function Signup() {
             >
               Verify OTP
             </Button>
+            {error && <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>{error}</Typography>}
           </>
         )}
-        {error && <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>{error}</Typography>}
         <Typography sx={{ mt: 2, textAlign: 'center', color: '#6B7280' }}>
           Already have an account?{' '}
           <Button color="primary" onClick={() => history.push('/login')}>
