@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const jobSchema = new mongoose.Schema({
+  jobId: { type: String, unique: true }, // Ensure unique jobId
   title: String,
   company: String,
   location: String,

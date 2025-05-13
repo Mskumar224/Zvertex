@@ -5,6 +5,7 @@ const Job = require('../models/Job');
 const Profile = require('../models/Profile');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+const { v4: uuidv4 } = require('uuid');
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -50,7 +51,9 @@ router.post('/apply', async (req, res) => {
         title: jobData.title,
         company: jobData.company,
         location: jobData.location,
-        postedBy: user._id
+        technology: jobData.technology,
+        postedBy: user._id,
+        jobId: uuidv4() // Generate unique jobId
       });
       await job.save();
       user.jobsApplied.push(job._id);
