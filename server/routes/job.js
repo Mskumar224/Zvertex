@@ -1,102 +1,149 @@
 const express = require('express');
 const router = express.Router();
+const Profile = require('../models/Profile');
 const User = require('../models/User');
 const Job = require('../models/Job');
 const jwt = require('jsonwebtoken');
-const { parseResume } = require('../utils/resumeParser');
-const { v4: uuidv4 } = require('uuid'); // Added for unique jobId generation
+const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
+const XLSX = require('xlsx');
+const natural = require('natural');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
+router.post('/upload', async (req, res) => {
+  if (!req.files || !req.files.file) return res.status(400).json({ message: 'No file uploaded' });
 
-router.post('/upload-resume', async (req, res) => {
   const token = req.headers.authorization?.split('Bearer ')[1];
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+  if (!token) return res.status(401).json({ message: 'No token provided' });
+
+  const { file } = req.files;
+  const { description, userId } = req.body;
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(decoded.id);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    if (!req.files || !req.files.resume) return res.status(400).json({ error: 'No resume file uploaded' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(userId || decoded.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const resume = req.files.resume;
-    const keywords = await parseResume(resume);
-    res.json({ keywords });
+    let extractedText = '';
+    if (file.mimetype === 'application/pdf') {
+      const pdfData = await pdfParse(file.data);
+      extractedText = pdfData.text;
+    } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      const result = await mammoth.extractRawText({ buffer: file.data });
+      extractedText = result.value;
+    } else {
+      return res.status(400).json({ message: 'Unsupported file format' });
+    }
+
+    const technologies = [
+      'JavaScript', 'Python', 'Java', 'C++', 'Ruby', 'Go', 'PHP', 'TypeScript',
+      'React', 'Node.js', 'SQL', 'AWS', 'Angular', 'Vue.js', 'Django', 'Flask',
+      'Spring', 'Kotlin', 'Swift', 'Rust', 'Scala', 'Perl', 'MATLAB', 'R',
+      'HTML', 'CSS', 'MongoDB', 'PostgreSQL', 'MySQL', 'GraphQL', 'Docker', 'Kubernetes'
+    ];
+    const roles = [
+      'Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'DevOps Engineer',
+      'Data Scientist', 'Machine Learning Engineer', 'Mobile Developer', 'Software Engineer',
+      'Cloud Architect', 'Database Administrator'
+    ];
+
+    const tokenizer = new natural.WordTokenizer();
+    const tokens = tokenizer.tokenize(extractedText.toLowerCase());
+    const detectedTechs = technologies.filter(tech => tokens.includes(tech.toLowerCase()));
+    const detectedRoles = roles.filter(role => extractedText.toLowerCase().includes(role.toLowerCase()));
+    const detectedTech = detectedTechs.length > 0 ? detectedTechs.join(', ') : 'Unknown';
+    const detectedRole = detectedRoles.length > 0 ? detectedRoles[0] : 'Unknown';
+
+    const profile = new Profile({
+      filename: file.name,
+      data: file.data,
+      mimetype: file.mimetype,
+      description,
+      user: user._id,
+      extractedTech: detectedTech,
+      extractedRole: detectedRole,
+      extractedText,
+    });
+    await profile.save();
+
+    user.profiles.push(profile._id);
+    await user.save();
+
+    res.json({ message: 'File uploaded successfully', profileId: profile._id, detectedTech, detectedRole });
   } catch (error) {
-    console.error('Resume Upload Error:', error.message);
-    res.status(500).json({ error: 'Failed to upload resume' });
+    res.status(500).json({ message: 'Upload failed', error: error.message });
   }
-});
-
-router.get('/tracker', async (req, res) => {
-  const token = req.headers.authorization?.split('Bearer ')[1];
-  if (!token) return res.status(401).json({ error: 'No token provided' });
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(decoded.id).populate('jobsApplied');
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    const jobs = user.jobsApplied || [];
-    res.json(jobs);
-  } catch (error) {
-    console.error('Job Tracker Error:', error.message);
-    res.status(500).json({ error: 'Failed to fetch job tracker data' });
-  }
-});
-
-router.post('/fetch-jobs', async (req, res) => {
-  const { company, keywords, jobType, locationZip, jobPosition } = req.body;
-  // Mock jobs based on preferences
-  const mockJobs = [
-    {
-      id: uuidv4(),
-      title: `${jobPosition || 'Software Engineer'} - ${jobType || 'Full Time'}`,
-      company: company || 'Tech Corp',
-      link: `https://${(company || 'techcorp').toLowerCase()}.com/jobs/1`,
-      applied: false,
-      location: locationZip ? `Near ${locationZip}` : 'Remote',
-    },
-    {
-      id: uuidv4(),
-      title: `${jobPosition || 'Backend Developer'} - ${jobType || 'Contract'}`,
-      company: company || 'Innovate Inc',
-      link: `https://${(company || 'innovate').toLowerCase()}.com/jobs/2`,
-      applied: false,
-      location: locationZip ? `Near ${locationZip}` : 'Hybrid',
-    },
-  ];
-  res.json({ jobs: mockJobs });
 });
 
 router.post('/apply', async (req, res) => {
-  let { jobId } = req.body;
+  const { technology, companies, profileId } = req.body;
   const token = req.headers.authorization?.split('Bearer ')[1];
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+  if (!token) return res.status(401).json({ message: 'No token provided' });
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id);
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Generate a unique jobId if none is provided
-    if (!jobId) {
-      jobId = uuidv4();
+    if (!technology || !companies || !Array.isArray(companies)) {
+      return res.status(400).json({ message: 'Invalid technology or companies data' });
     }
 
-    const job = new Job({
-      jobId,
-      title: req.body.title || `Job ${jobId}`,
-      company: req.body.company || 'Detected Company',
-      link: req.body.link || `https://example.com/job${jobId}`,
-      applied: true,
-      user: user._id,
-    });
-    await job.save();
-    user.jobsApplied.push(job._id);
+    user.selectedTechnology = technology;
+    user.selectedCompanies = companies;
+    if (profileId) user.selectedProfile = profileId;
     await user.save();
-    res.json({ message: `Applied to job ${jobId}`, job });
+
+    res.json({ message: 'Job preferences saved successfully' });
   } catch (error) {
-    console.error('Job Apply Error:', error.message);
-    res.status(500).json({ error: 'Failed to apply to job', details: error.message });
+    res.status(500).json({ message: 'Failed to save preferences', error: error.message });
+  }
+});
+
+router.get('/export-dashboard/:userId', async (req, res) => {
+  const { userId } = req.params;
+  const token = req.headers.authorization?.split('Bearer ')[1];
+  if (!token) return res.status(401).json({ message: 'No token provided' });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(userId || decoded.id).populate('jobsApplied profiles');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const worksheetData = [
+      [
+        'Name', 'Email', 'Phone', 'Subscription', 'Technology', 'Companies',
+        'Jobs Applied', 'Job ID', 'Job Title', 'Company', 'Link',
+        'Profile Tech', 'Profile Role', 'Contact Email', 'Contact Phone'
+      ],
+      ...user.jobsApplied.map(job => [
+        user.name,
+        user.email,
+        user.phone,
+        user.subscription,
+        user.selectedTechnology,
+        user.selectedCompanies.join(', '),
+        user.jobsApplied.length,
+        job.jobId,
+        job.title,
+        job.company,
+        job.link,
+        user.profiles.find(p => p._id.equals(job.profile))?.extractedTech || '',
+        user.profiles.find(p => p._id.equals(job.profile))?.extractedRole || '',
+        job.contactEmail || 'N/A',
+        job.contactPhone || 'N/A',
+      ]),
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Dashboard');
+    const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
+
+    res.setHeader('Content-Disposition', `attachment; filename="dashboard_${userId}.xlsx"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+  } catch (error) {
+    res.status(500).json({ message: 'Export failed', error: error.message });
   }
 });
 

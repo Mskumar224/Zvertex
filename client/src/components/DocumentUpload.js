@@ -1,41 +1,67 @@
 import React, { useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from '@mui/material';
+import { Button, TextField, Box, Typography } from '@mui/material';
 import axios from 'axios';
 
-function DocumentUpload({ job, onClose }) {
+function DocumentUpload({ userId, onUploadSuccess }) {
   const [file, setFile] = useState(null);
+  const [description, setDescription] = useState('');
+  const [error, setError] = useState('');
+
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
 
   const handleUpload = async () => {
+    if (!file) {
+      setError('Please select a file');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('Please log in to upload');
+      return;
+    }
+
     const formData = new FormData();
-    formData.append('document', file);
-    formData.append('jobId', job.id);
+    formData.append('file', file);
+    formData.append('description', description);
+    formData.append('userId', userId);
 
     try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/api/job/apply`, formData, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'multipart/form-data' },
+      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/job/upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
       });
-      alert('Application submitted with documents!');
-      onClose();
-    } catch (error) {
-      console.error('Document Upload Error:', error);
+      setError('');
+      onUploadSuccess(data);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Upload failed');
+      console.error('Upload error:', err);
     }
   };
 
   return (
-    <Dialog open={true} onClose={onClose}>
-      <DialogTitle>Upload Additional Documents for {job.title}</DialogTitle>
-      <DialogContent>
-        <Typography>Upload required documents or apply manually:</Typography>
-        <input type="file" onChange={(e) => setFile(e.target.files[0])} style={{ marginTop: '16px' }} />
-        <Typography sx={{ mt: 2 }}>
-          Alternatively, <a href={job.link} target="_blank" rel="noopener noreferrer">apply manually here</a>.
-        </Typography>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={handleUpload} disabled={!file}>Submit</Button>
-      </DialogActions>
-    </Dialog>
+    <Box sx={{ p: 2, width: '100%', maxWidth: 400, background: '#fff', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+      <Typography variant="h6" sx={{ mb: 2 }}>Upload Resume</Typography>
+      <TextField
+        label="Description"
+        fullWidth
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        sx={{ mb: 2 }}
+        variant="outlined"
+      />
+      <Box sx={{ mb: 2 }}>
+        <input type="file" onChange={handleFileChange} accept=".pdf,.docx" />
+      </Box>
+      <Button variant="contained" color="primary" onClick={handleUpload} fullWidth sx={{ borderRadius: '25px' }}>
+        Upload
+      </Button>
+      {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
+    </Box>
   );
 }
 

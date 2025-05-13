@@ -9,23 +9,21 @@ const transporter = nodemailer.createTransport({
 
 function scheduleDailyEmails() {
   cron.schedule('0 8 * * *', async () => {
-    const users = await User.find().populate('jobsApplied');
+    const users = await User.find();
     for (const user of users) {
-      const todayJobs = user.jobsApplied.filter(job => {
-        const jobDate = new Date(job.createdAt);
-        const now = new Date();
-        return jobDate.getDate() === now.getDate() - 1;
+      await transporter.sendMail({
+        from: '"ZvertexAI Team" <zvertexai@honotech.com>',
+        to: user.email,
+        subject: 'ZvertexAI Daily Update',
+        html: `
+          <div style="font-family: Roboto, Arial, sans-serif; color: #333;">
+            <h2 style="color: #1976d2;">Daily Update</h2>
+            <p>Dear ${user.name || user.email},</p>
+            <p>Here’s your daily update from ZvertexAI. Check your dashboard for job application details!</p>
+            <p>Best regards,<br>The ZvertexAI Team</p>
+          </div>
+        `,
       });
-      if (todayJobs.length > 0) {
-        const message = `Daily Summary: You applied to ${todayJobs.length} jobs yesterday:\n` +
-          todayJobs.map(job => `${job.title} at ${job.company} - ${job.link}`).join('\n');
-        await transporter.sendMail({
-          from: process.env.EMAIL_USER,
-          to: user.email,
-          subject: 'Daily Job Application Summary',
-          text: message,
-        });
-      }
     }
   });
 }

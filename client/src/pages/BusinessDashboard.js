@@ -1,27 +1,114 @@
-import React, { useState } from 'react';
-import { Container, Typography, Box, Button } from '@mui/material';
-import ResumeUpload from '../components/ResumeUpload';
-import JobApply from './JobApply';
-import JobTracker from '../components/JobTracker';
-import { useHistory } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Container, Typography, Button, Box, Grid } from '@mui/material';
+import axios from 'axios';
+import DocumentUpload from '../components/DocumentUpload';
 
 function BusinessDashboard() {
-  const [keywords, setKeywords] = useState([]);
-  const history = useHistory();
+  const [user, setUser] = useState(null);
+  const [recruiters, setRecruiters] = useState([{}, {}, {}]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data } = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/user`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setUser(data);
+        setRecruiters(data.recruiters?.slice(0, 3).map(r => ({ id: r._id })) || [{}, {}, {}]);
+      } catch (err) {
+        console.error('Failed to fetch user:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const handleUploadSuccess = (data) => {
+    setUser(prev => ({
+      ...prev,
+      profiles: [...(prev?.profiles || []), { _id: data.profileId, extractedTech: data.detectedTech, extractedRole: data.detectedRole }],
+    }));
+    setRecruiters(prev => {
+      const newRecruiters = [...prev];
+      const emptyIndex = newRecruiters.findIndex(r => !r.id);
+      if (emptyIndex !== -1) newRecruiters[emptyIndex] = { id: data.profileId };
+      return newRecruiters;
+    });
+  };
+
+  const handleExport = () => {
+    if (user?._id) {
+      window.location.href = `${process.env.REACT_APP_API_URL}/api/job/export-dashboard/${user._id}`;
+    }
+  };
+
+  if (loading) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 6 }}>
+        <Typography variant="h4" sx={{ color: '#1976d2', mb: 4, cursor: 'pointer' }} onClick={() => window.location.href = '/'}>
+          ZvertexAI - Business Dashboard
+        </Typography>
+        <Typography>Loading...</Typography>
+      </Container>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 6 }}>
+        <Typography variant="h4" sx={{ color: '#1976d2', mb: 4, cursor: 'pointer' }} onClick={() => window.location.href = '/'}>
+          ZvertexAI - Business Dashboard
+        </Typography>
+        <Typography>Please log in to view your dashboard.</Typography>
+        <Button variant="contained" color="primary" sx={{ mt: 2, borderRadius: '25px' }} onClick={() => window.location.href = '/login'}>
+          Login
+        </Button>
+      </Container>
+    );
+  }
 
   return (
-    <Container sx={{ py: 5 }}>
-      <Button
-        variant="outlined"
-        onClick={() => history.goBack()}
-        sx={{ mb: 2 }}
-      >
-        Back
-      </Button>
-      <Typography variant="h4" gutterBottom sx={{ color: '#1976d2' }}>Business Dashboard</Typography>
-      <ResumeUpload onResumeParsed={setKeywords} />
-      {keywords.length > 0 && <JobApply keywords={keywords} />}
-      <JobTracker />
+    <Container maxWidth="lg" sx={{ py: 6 }}>
+      <Typography variant="h4" sx={{ color: '#1976d2', mb: 4, cursor: 'pointer' }} onClick={() => window.location.href = '/'}>
+        ZvertexAI - Business Dashboard
+      </Typography>
+      <Typography variant="h6">Welcome, {user.name || user.email}</Typography>
+      <Typography>Subscription: {user.subscription}</Typography>
+      <Typography>Jobs Applied: {user.jobsApplied?.length || 0}</Typography>
+      <Box sx={{ mt: 2, mb: 4 }}>
+        <Button
+          variant="contained"
+          color="primary"
+          sx={{ mr: 2, borderRadius: '25px' }}
+          onClick={() => window.location.href = '/job-apply'}
+        >
+          Manage Job Applications
+        </Button>
+        <Button variant="contained" color="secondary" sx={{ borderRadius: '25px' }} onClick={handleExport}>
+          Export Dashboard
+        </Button>
+      </Box>
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h5" sx={{ mb: 2 }}>Manage Recruiters (3 Slots)</Typography>
+        <Grid container spacing={4}>
+          {recruiters.map((recruiter, index) => (
+            <Grid item xs={12} md={4} key={index}>
+              <Box sx={{ p: 2, border: '1px solid #1976d2', borderRadius: 2, background: '#fff' }}>
+                <Typography variant="h6">Recruiter {index + 1} {recruiter.id ? '(Active)' : ''}</Typography>
+                {!recruiter.id && <DocumentUpload userId={user._id} onUploadSuccess={handleUploadSuccess} />}
+              </Box>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
     </Container>
   );
 }

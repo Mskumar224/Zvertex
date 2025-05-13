@@ -1,97 +1,217 @@
-import React, { useState } from 'react';
-import { Container, Typography, TextField, Button, MenuItem, Select, Box } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Container, Typography, Button, FormControlLabel, Checkbox, MenuItem, Select, InputLabel, FormControl, Box, TextField, useMediaQuery } from '@mui/material';
 import axios from 'axios';
-import DocumentUpload from '../components/DocumentUpload';
-import { useHistory } from 'react-router-dom';
 
-function JobApply({ keywords }) {
-  const [company, setCompany] = useState('');
-  const [manualCompany, setManualCompany] = useState('');
-  const [jobs, setJobs] = useState([]);
-  const [selectedJob, setSelectedJob] = useState(null);
-  const history = useHistory();
-  const companies = ['Google', 'Microsoft', 'Amazon', 'Apple', 'Facebook'];
+function JobApply() {
+  const [technology, setTechnology] = useState('');
+  const [customTech, setCustomTech] = useState('');
+  const [companies, setCompanies] = useState({
+    Indeed: false,
+    LinkedIn: false,
+    Glassdoor: false,
+    Monster: false,
+    CareerBuilder: false,
+  });
+  const [profiles, setProfiles] = useState([]);
+  const [selectedProfile, setSelectedProfile] = useState('');
+  const [additionalDetails, setAdditionalDetails] = useState({
+    address: '',
+    linkedin: '',
+    github: '',
+    portfolio: '',
+    experience: '',
+    education: '',
+  });
+  const isMobile = useMediaQuery('(max-width:600px)');
 
-  const fetchJobs = async (companyName) => {
-    try {
-      const { data } = await axios.post(
-        `${process.env.REACT_APP_API_URL}/api/job/fetch-jobs`,
-        { company: companyName, keywords },
-        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
-      );
-      setJobs(data.jobs);
-    } catch (error) {
-      console.error('Fetch Jobs Error:', error);
-    }
+  const techOptions = [
+    'JavaScript', 'Python', 'Java', 'C++', 'Ruby', 'Go', 'PHP', 'TypeScript',
+    'React', 'Node.js', 'SQL', 'AWS', 'Angular', 'Vue.js', 'Django', 'Flask',
+    'Spring', 'Kotlin', 'Swift', 'Rust', 'Scala', 'Perl', 'MATLAB', 'R',
+    'HTML', 'CSS', 'MongoDB', 'PostgreSQL', 'MySQL', 'GraphQL', 'Docker', 'Kubernetes',
+    'Other'
+  ];
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        const { data } = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/user`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setProfiles(data.profiles || []);
+        setTechnology(data.selectedTechnology || '');
+        setSelectedProfile(data.selectedProfile || '');
+        setAdditionalDetails(data.additionalDetails || {});
+        setCompanies(prev => ({
+          ...prev,
+          ...Object.fromEntries(data.selectedCompanies.map(c => [c, true])),
+        }));
+      } catch (err) {
+        console.error('Failed to fetch user:', err);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const handleCompanyChange = (event) => {
+    setCompanies({ ...companies, [event.target.name]: event.target.checked });
   };
 
-  const handleApply = async (job) => {
-    if (job.applied) return alert('Already applied!');
+  const handleAdditionalDetailsChange = (field) => (event) => {
+    setAdditionalDetails({ ...additionalDetails, [field]: event.target.value });
+  };
+
+  const handleSubmit = async () => {
+    const selectedCompanies = Object.keys(companies).filter((key) => companies[key]);
+    const finalTech = technology === 'Other' ? customTech : technology;
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = '/login';
+      return;
+    }
+
+    if (!finalTech || selectedCompanies.length === 0) {
+      alert('Please select a technology and at least one company');
+      return;
+    }
+
     try {
       await axios.post(
         `${process.env.REACT_APP_API_URL}/api/job/apply`,
-        { jobId: job.id },
-        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+        { technology: finalTech, companies: selectedCompanies, profileId: selectedProfile },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      setJobs(jobs.map(j => j.id === job.id ? { ...j, applied: true } : j));
-      alert('Applied successfully!');
-    } catch (error) {
-      console.error('Apply Error:', error);
+
+      await axios.patch(
+        `${process.env.REACT_APP_API_URL}/api/auth/user`,
+        { additionalDetails },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      alert('Preferences and details saved! Auto-apply will begin.');
+    } catch (err) {
+      console.error('Failed to save preferences:', err);
+      alert('Failed to save preferences: ' + (err.response?.data?.message || 'Unknown error'));
     }
   };
 
   return (
-    <Container sx={{ py: 5 }}>
-      <Button
-        variant="outlined"
-        onClick={() => history.goBack()}
-        sx={{ mb: 2 }}
+    <Container maxWidth="sm" sx={{ py: 6 }}>
+      <Typography
+        variant={isMobile ? 'h5' : 'h4'}
+        sx={{ color: '#1976d2', mb: 4, cursor: 'pointer' }}
+        onClick={() => window.location.href = '/'}
       >
-        Back
-      </Button>
-      <Typography variant="h5" gutterBottom>Select a Company</Typography>
-      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-        <Select
-          value={company}
-          onChange={(e) => setCompany(e.target.value)}
-          displayEmpty
-          fullWidth
-          sx={{ maxWidth: 300 }}
-        >
-          <MenuItem value="">Select from list</MenuItem>
-          {companies.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-        </Select>
-        <TextField
-          label="Or Enter Manually"
-          value={manualCompany}
-          onChange={(e) => setManualCompany(e.target.value)}
-          sx={{ flexGrow: 1 }}
-        />
-        <Button variant="contained" onClick={() => fetchJobs(manualCompany || company)}>
-          Fetch Jobs
-        </Button>
-      </Box>
-      {jobs.length > 0 && (
-        <Box>
-          <Typography variant="h6" gutterBottom>Available Jobs</Typography>
-          {jobs.map(job => (
-            <Box key={job.id} sx={{ p: 2, border: '1px solid #e0e0e0', mb: 2, borderRadius: 2 }}>
-              <Typography>{job.title} - {job.company}</Typography>
-              <Typography variant="body2"><a href={job.link} target="_blank" rel="noopener noreferrer">{job.link}</a></Typography>
-              <Button
-                variant="contained"
-                color={job.applied ? 'secondary' : 'primary'}
-                onClick={() => handleApply(job)}
-                disabled={job.applied}
-                sx={{ mt: 1 }}
-              >
-                {job.applied ? 'Applied' : 'Apply Now'}
-              </Button>
-            </Box>
+        ZvertexAI - Job Apply Settings
+      </Typography>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, background: '#fff', p: 3, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <FormControl fullWidth>
+          <InputLabel>Technology</InputLabel>
+          <Select
+            value={technology}
+            onChange={(e) => setTechnology(e.target.value)}
+            label="Technology"
+          >
+            {techOptions.map((tech) => (
+              <MenuItem key={tech} value={tech}>{tech}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        {technology === 'Other' && (
+          <TextField
+            label="Custom Technology"
+            fullWidth
+            value={customTech}
+            onChange={(e) => setCustomTech(e.target.value)}
+            variant="outlined"
+          />
+        )}
+        {profiles.length > 0 && (
+          <FormControl fullWidth>
+            <InputLabel>Select Profile</InputLabel>
+            <Select
+              value={selectedProfile}
+              onChange={(e) => setSelectedProfile(e.target.value)}
+              label="Select Profile"
+            >
+              {profiles.map((profile) => (
+                <MenuItem key={profile._id} value={profile._id}>
+                  {profile.filename} ({profile.extractedTech})
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
+        <Typography variant="h6">Select Companies</Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+          {Object.keys(companies).map((company) => (
+            <FormControlLabel
+              key={company}
+              control={
+                <Checkbox
+                  checked={companies[company]}
+                  onChange={handleCompanyChange}
+                  name={company}
+                />
+              }
+              label={company}
+            />
           ))}
         </Box>
-      )}
-      {selectedJob && <DocumentUpload job={selectedJob} onClose={() => setSelectedJob(null)} />}
+        <Typography variant="h6">Additional Details</Typography>
+        <TextField
+          label="Address"
+          fullWidth
+          value={additionalDetails.address}
+          onChange={handleAdditionalDetailsChange('address')}
+          variant="outlined"
+        />
+        <TextField
+          label="LinkedIn Profile"
+          fullWidth
+          value={additionalDetails.linkedin}
+          onChange={handleAdditionalDetailsChange('linkedin')}
+          variant="outlined"
+        />
+        <TextField
+          label="GitHub Profile"
+          fullWidth
+          value={additionalDetails.github}
+          onChange={handleAdditionalDetailsChange('github')}
+          variant="outlined"
+        />
+        <TextField
+          label="Portfolio"
+          fullWidth
+          value={additionalDetails.portfolio}
+          onChange={handleAdditionalDetailsChange('portfolio')}
+          variant="outlined"
+        />
+        <TextField
+          label="Experience"
+          fullWidth
+          multiline
+          rows={3}
+          value={additionalDetails.experience}
+          onChange={handleAdditionalDetailsChange('experience')}
+          variant="outlined"
+        />
+        <TextField
+          label="Education"
+          fullWidth
+          multiline
+          rows={3}
+          value={additionalDetails.education}
+          onChange={handleAdditionalDetailsChange('education')}
+          variant="outlined"
+        />
+        <Button variant="contained" color="primary" fullWidth onClick={handleSubmit} sx={{ py: 1.5, borderRadius: '25px' }}>
+          Save Preferences
+        </Button>
+      </Box>
     </Container>
   );
 }
