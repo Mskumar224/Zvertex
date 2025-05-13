@@ -9,7 +9,7 @@ function Signup() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [subscriptionType, setSubscriptionType] = useState('');
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState(''); // Fixed: setOtp is used
   const [userId, setUserId] = useState('');
   const [step, setStep] = useState('form'); // form, otp
   const [error, setError] = useState('');
@@ -43,7 +43,7 @@ function Signup() {
       setUserId(data.userId);
       setStep('otp');
       setError('');
-      alert('Please contact ZvertexAI support to receive your OTP for subscription verification');
+      alert('Please contact ZvertexAI support at support@zvertexai.com to receive your OTP for subscription verification');
     } catch (err) {
       const message = err.response?.data?.message || 'Signup failed';
       setError(message);
@@ -180,7 +180,7 @@ function Signup() {
               label="OTP"
               fullWidth
               value={otp}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => setOtp(e.target.value)} // Fixed: Use setOtp instead of setEmail
               sx={{ mb: 3 }}
               variant="outlined"
               error={!!error && !otp.trim()}
