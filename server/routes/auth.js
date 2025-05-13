@@ -190,6 +190,30 @@ router.get('/user', async (req, res) => {
   }
 });
 
+router.patch('/user', async (req, res) => {
+  const token = req.headers.authorization?.split('Bearer ')[1];
+  if (!token) return res.status(401).json({ error: 'No token provided' });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const { selectedTechnology, selectedCompanies } = req.body;
+    if (selectedTechnology) user.selectedTechnology = selectedTechnology;
+    if (selectedCompanies) user.selectedCompanies = selectedCompanies;
+    await user.save();
+
+    res.json({ message: 'Preferences updated successfully', user: {
+      email: user.email,
+      selectedTechnology: user.selectedTechnology,
+      selectedCompanies: user.selectedCompanies,
+    }});
+  } catch (error) {
+    console.error('User patch error:', error.message);
+    res.status(500).json({ message: 'Failed to update preferences', error: error.message });
+  }
+});
+
 router.post('/forgot-password', async (req, res) => {
   const { email } = req.body;
   try {
@@ -226,7 +250,7 @@ router.post('/reset-password', async (req, res) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.id);
-    if (!user) return res.status(400).json({ message: 'User not found' });
+    if (!user) return res.status(404).json({ message: 'User not found' });
     if (newPassword.length < 6) {
       return res.status(400).json({ message: 'Password must be at least 6 characters' });
     }

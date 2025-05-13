@@ -14,7 +14,7 @@ const app = express();
 
 app.use(cors({
   origin: ['http://localhost:3000', 'https://zvertexai.netlify.app', 'https://67e8bc6ae03cdd0008a0a23d--zvertexagi.netlify.app', 'https://zvertexai.com'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
   optionsSuccessStatus: 204
