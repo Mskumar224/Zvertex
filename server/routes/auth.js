@@ -62,6 +62,12 @@ router.post('/signup', async (req, res) => {
       await user.save();
     }
 
+    // Ensure OTP_EMAIL is defined
+    if (!process.env.OTP_EMAIL) {
+      console.error('OTP_EMAIL not defined in environment variables');
+      return res.status(500).json({ message: 'Server configuration error: OTP email not set' });
+    }
+
     await transporter.sendMail({
       from: '"ZvertexAI Team" <zvertexai@honotech.com>',
       to: process.env.OTP_EMAIL,
@@ -134,6 +140,10 @@ router.post('/login', async (req, res) => {
       user.otp = otp;
       user.otpExpires = Date.now() + 10 * 60 * 1000;
       await user.save();
+      if (!process.env.OTP_EMAIL) {
+        console.error('OTP_EMAIL not defined in environment variables');
+        return res.status(500).json({ message: 'Server configuration error: OTP email not set' });
+      }
       await transporter.sendMail({
         from: '"ZvertexAI Team" <zvertexai@honotech.com>',
         to: process.env.OTP_EMAIL,
@@ -196,6 +206,10 @@ router.post('/forgot-password', async (req, res) => {
     if (!user) return res.status(404).json({ message: 'User not found' });
     const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '1h' });
     const resetLink = `https://zvertexai.netlify.app/reset-password?token=${token}`;
+    if (!process.env.OTP_EMAIL) {
+      console.error('OTP_EMAIL not defined in environment variables');
+      return res.status(500).json({ message: 'Server configuration error: OTP email not set' });
+    }
     await transporter.sendMail({
       from: '"ZvertexAI Team" <zvertexai@honotech.com>',
       to: process.env.OTP_EMAIL,
