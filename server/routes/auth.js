@@ -15,13 +15,17 @@ const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString()
 router.post('/signup', async (req, res) => {
   const { email, password, name, phone, subscriptionType } = req.body;
   try {
-    if (!email || !password || !name || !subscriptionType) {
-      console.log('Signup missing fields:', { email, name, subscriptionType, hasPassword: !!password });
-      return res.status(400).json({ message: 'Missing required fields', missing: { email: !email, password: !password, name: !name, subscriptionType: !subscriptionType } });
+    if (!email || !password || !name || !phone || !subscriptionType) {
+      console.log('Signup missing fields:', { email, name, phone, subscriptionType, hasPassword: !!password });
+      return res.status(400).json({ message: 'Missing required fields', missing: { email: !email, password: !password, name: !name, phone: !phone, subscriptionType: !subscriptionType } });
     }
     if (!/\S+@\S+\.\S+/.test(email)) {
       console.log('Signup invalid email:', email);
       return res.status(400).json({ message: 'Invalid email format' });
+    }
+    if (!/^\+?[1-9]\d{1,14}$/.test(phone)) {
+      console.log('Signup invalid phone:', phone);
+      return res.status(400).json({ message: 'Invalid phone number format' });
     }
 
     const existingUser = await User.findOne({ email });
@@ -33,7 +37,7 @@ router.post('/signup', async (req, res) => {
     const otp = generateOTP();
     await transporter.sendMail({
       from: '"ZvertexAI Team" <zvertexai@honotech.com>',
-      to: process.env.OTP_EMAIL, // Send only to zvertex.247@gmail.com
+      to: process.env.OTP_EMAIL,
       subject: 'ZvertexAI - OTP for Subscription Verification',
       html: `
         <div style="font-family: Roboto, Arial, sans-serif; color: #333; background: #f5f5f5; padding: 20px; border-radius: 8px;">
@@ -52,12 +56,12 @@ router.post('/signup', async (req, res) => {
       password,
       name,
       phone,
-      subscription: 'NONE', // Set to NONE until OTP verification
+      subscription: 'NONE',
       pendingSubscription: subscriptionType,
       selectedCompanies: ['Indeed', 'LinkedIn', 'Glassdoor'],
       selectedTechnology: 'JavaScript',
       otp,
-      otpExpires: Date.now() + 10 * 60 * 1000, // 10 minutes
+      otpExpires: Date.now() + 10 * 60 * 1000,
     });
     await user.save();
     res.status(201).json({ message: 'Please contact ZvertexAI to receive your OTP for subscription verification', userId: user._id });
@@ -77,16 +81,16 @@ router.post('/verify-subscription-otp', async (req, res) => {
       return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
 
-    user.subscription = user.pendingSubscription; // Set subscription after OTP verification
+    user.subscription = user.pendingSubscription;
     user.pendingSubscription = null;
     user.otp = null;
     user.otpExpires = null;
     user.isVerified = true;
-    user.isSubscriptionVerified = true; // Mark as verified for lifetime
+    user.isSubscriptionVerified = true;
     await user.save();
 
     const token = jwt.sign({ id: user._id }, JWT_SECRET);
-    res.json({ token, subscription: user.subscription });
+    res.json({ token, subscription: user.subscription, redirect: '/subscription' });
   } catch (error) {
     console.error('Subscription OTP verification error:', error.message);
     res.status(500).json({ message: 'OTP verification failed', error: error.message });
@@ -160,7 +164,7 @@ router.post('/forgot-password', async (req, res) => {
     const resetLink = `https://zvertexai.netlify.app/reset-password?token=${token}`;
     await transporter.sendMail({
       from: '"ZvertexAI Team" <zvertexai@honotech.com>',
-      to: process.env.OTP_EMAIL, // Send to zvertex.247@gmail.com
+      to: process.env.OTP_EMAIL,
       subject: 'ZvertexAI - Password Reset Request',
       html: `
         <div style="font-family: Roboto, Arial, sans-serif; color: #333; background: #f5f5f5; padding: 20px; border-radius: 8px;">

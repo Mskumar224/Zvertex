@@ -9,15 +9,15 @@ function Signup() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [subscriptionType, setSubscriptionType] = useState('');
-  const [otp, setOtp] = useState(''); // Fixed: setOtp is used
+  const [otp, setOtp] = useState('');
   const [userId, setUserId] = useState('');
-  const [step, setStep] = useState('form'); // form, otp
+  const [showOtpField, setShowOtpField] = useState(false); // Track OTP field visibility
   const [error, setError] = useState('');
   const history = useHistory();
   const isMobile = useMediaQuery('(max-width:600px)');
 
   const handleSignup = async () => {
-    if (!email.trim() || !password.trim() || !name.trim() || !subscriptionType) {
+    if (!email.trim() || !password.trim() || !name.trim() || !phone.trim() || !subscriptionType) {
       setError('Please fill all required fields');
       return;
     }
@@ -29,19 +29,23 @@ function Signup() {
       setError('Password must be at least 6 characters');
       return;
     }
+    if (!/^\+?[1-9]\d{1,14}$/.test(phone.trim())) {
+      setError('Please enter a valid phone number');
+      return;
+    }
 
     try {
       const payload = {
         email: email.trim(),
         password: password.trim(),
         name: name.trim(),
-        phone: phone.trim() || undefined,
+        phone: phone.trim(),
         subscriptionType
       };
       console.log('Signup payload:', payload);
       const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/signup`, payload);
       setUserId(data.userId);
-      setStep('otp');
+      setShowOtpField(true); // Show OTP field on the same page
       setError('');
       alert('Please contact ZvertexAI support at support@zvertexai.com to receive your OTP for subscription verification');
     } catch (err) {
@@ -79,99 +83,83 @@ function Signup() {
         >
           ZvertexAI - Create Your Account
         </Typography>
-        {step === 'form' ? (
-          <>
-            <TextField
-              label="Name"
-              fullWidth
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              sx={{ mb: 3 }}
-              variant="outlined"
-              error={!!error && !name.trim()}
-              helperText={!!error && !name.trim() ? 'Name is required' : ''}
-            />
-            <TextField
-              label="Email"
-              fullWidth
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              sx={{ mb: 3 }}
-              variant="outlined"
-              error={!!error && (!email.trim() || !/\S+@\S+\.\S+/.test(email))}
-              helperText={
-                !!error && !email.trim()
-                  ? 'Email is required'
-                  : !!error && !/\S+@\S+\.\S+/.test(email)
-                  ? 'Invalid email format'
-                  : ''
-              }
-            />
-            <TextField
-              label="Phone"
-              fullWidth
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              sx={{ mb: 3 }}
-              variant="outlined"
-            />
-            <TextField
-              label="Password"
-              type="password"
-              fullWidth
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              sx={{ mb: 3 }}
-              variant="outlined"
-              error={!!error && (!password.trim() || password.length < 6)}
-              helperText={
-                !!error && !password.trim()
-                  ? 'Password is required'
-                  : !!error && password.length < 6
-                  ? 'Password must be at least 6 characters'
-                  : ''
-              }
-            />
-            <FormControl fullWidth sx={{ mb: 3 }} error={!!error && !subscriptionType}>
-              <InputLabel>Subscription Type</InputLabel>
-              <Select
-                value={subscriptionType}
-                onChange={(e) => setSubscriptionType(e.target.value)}
-                label="Subscription Type"
-              >
-                <MenuItem value="STUDENT">Student</MenuItem>
-                <MenuItem value="RECRUITER">Recruiter</MenuItem>
-                <MenuItem value="BUSINESS">Business</MenuItem>
-              </Select>
-              {!!error && !subscriptionType && (
-                <Typography color="error" variant="caption">
-                  Subscription type is required
-                </Typography>
-              )}
-            </FormControl>
-            <Button
-              variant="contained"
-              color="primary"
-              fullWidth
-              onClick={handleSignup}
-              sx={{ py: 1.5, borderRadius: '25px' }}
-            >
-              Sign Up
-            </Button>
-            {error && (
-              <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>
-                {error}
-                {error.includes('Account already exists') ? (
-                  <span>
-                    {' '}
-                    Try <Button color="primary" onClick={() => history.push('/login')}>logging in</Button> or{' '}
-                    <Button color="primary" onClick={() => history.push('/login')}>resetting your password</Button>.
-                  </span>
-                ) : null}
-              </Typography>
-            )}
-          </>
-        ) : (
+        <TextField
+          label="Name"
+          fullWidth
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          sx={{ mb: 3 }}
+          variant="outlined"
+          error={!!error && !name.trim()}
+          helperText={!!error && !name.trim() ? 'Name is required' : ''}
+        />
+        <TextField
+          label="Email"
+          fullWidth
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          sx={{ mb: 3 }}
+          variant="outlined"
+          error={!!error && (!email.trim() || !/\S+@\S+\.\S+/.test(email))}
+          helperText={
+            !!error && !email.trim()
+              ? 'Email is required'
+              : !!error && !/\S+@\S+\.\S+/.test(email)
+              ? 'Invalid email format'
+              : ''
+          }
+        />
+        <TextField
+          label="Phone"
+          fullWidth
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          sx={{ mb: 3 }}
+          variant="outlined"
+          error={!!error && (!phone.trim() || !/^\+?[1-9]\d{1,14}$/.test(phone.trim()))}
+          helperText={
+            !!error && !phone.trim()
+              ? 'Phone is required'
+              : !!error && !/^\+?[1-9]\d{1,14}$/.test(phone.trim())
+              ? 'Invalid phone number'
+              : ''
+          }
+        />
+        <TextField
+          label="Password"
+          type="password"
+          fullWidth
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          sx={{ mb: 3 }}
+          variant="outlined"
+          error={!!error && (!password.trim() || password.length < 6)}
+          helperText={
+            !!error && !password.trim()
+              ? 'Password is required'
+              : !!error && password.length < 6
+              ? 'Password must be at least 6 characters'
+              : ''
+          }
+        />
+        <FormControl fullWidth sx={{ mb: 3 }} error={!!error && !subscriptionType}>
+          <InputLabel>Subscription Type</InputLabel>
+          <Select
+            value={subscriptionType}
+            onChange={(e) => setSubscriptionType(e.target.value)}
+            label="Subscription Type"
+          >
+            <MenuItem value="STUDENT">Student</MenuItem>
+            <MenuItem value="RECRUITER">Recruiter</MenuItem>
+            <MenuItem value="BUSINESS">Business</MenuItem>
+          </Select>
+          {!!error && !subscriptionType && (
+            <Typography color="error" variant="caption">
+              Subscription type is required
+            </Typography>
+          )}
+        </FormControl>
+        {showOtpField && (
           <>
             <Typography sx={{ mb: 3, textAlign: 'center' }}>
               Please contact ZvertexAI support at support@zvertexai.com to receive your OTP for subscription verification.
@@ -180,7 +168,7 @@ function Signup() {
               label="OTP"
               fullWidth
               value={otp}
-              onChange={(e) => setOtp(e.target.value)} // Fixed: Use setOtp instead of setEmail
+              onChange={(e) => setOtp(e.target.value)}
               sx={{ mb: 3 }}
               variant="outlined"
               error={!!error && !otp.trim()}
@@ -191,12 +179,34 @@ function Signup() {
               color="primary"
               fullWidth
               onClick={handleVerifyOtp}
-              sx={{ py: 1.5, borderRadius: '25px' }}
+              sx={{ py: 1.5, borderRadius: '25px', mb: 2 }}
             >
               Verify OTP
             </Button>
-            {error && <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>{error}</Typography>}
           </>
+        )}
+        {!showOtpField && (
+          <Button
+            variant="contained"
+            color="primary"
+            fullWidth
+            onClick={handleSignup}
+            sx={{ py: 1.5, borderRadius: '25px' }}
+          >
+            Sign Up
+          </Button>
+        )}
+        {error && (
+          <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>
+            {error}
+            {error.includes('Account already exists') ? (
+              <span>
+                {' '}
+                Try <Button color="primary" onClick={() => history.push('/login')}>logging in</Button> or{' '}
+                <Button color="primary" onClick={() => history.push('/login')}>resetting your password</Button>.
+              </span>
+            ) : null}
+          </Typography>
         )}
         <Typography sx={{ mt: 2, textAlign: 'center', color: '#6B7280' }}>
           Already have an account?{' '}

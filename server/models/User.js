@@ -4,7 +4,7 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true }, // Unique user email
   password: { type: String, required: true }, // User password (plain-text, consider bcrypt for production)
   name: { type: String }, // User full name
-  phone: { type: String }, // Optional phone number
+  phone: { type: String, required: true }, // Mandatory phone number
   subscription: { type: String, default: 'NONE' }, // Subscription type (STUDENT, RECRUITER, BUSINESS, NONE)
   resumes: { type: Number, default: 0 }, // Count of uploaded resumes
   submissions: { type: Number, default: 0 }, // Count of job submissions
