@@ -28,13 +28,38 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ message: 'Invalid phone number format' });
     }
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    let user = await User.findOne({ email });
+    if (user && !user.isSubscriptionVerified) {
+      // Treat unverified users as new: update details and resend OTP
+      user.password = password;
+      user.name = name;
+      user.phone = phone;
+      user.pendingSubscription = subscriptionType;
+      user.selectedCompanies = ['Indeed', 'LinkedIn', 'Glassdoor'];
+      user.selectedTechnology = 'JavaScript';
+      user.otp = generateOTP();
+      user.otpExpires = Date.now() + 10 * 60 * 1000;
+      await user.save();
+    } else if (user) {
       console.log('Signup duplicate email:', email);
       return res.status(400).json({ message: 'Account already exists. Please login or reset your password.' });
+    } else {
+      const otp = generateOTP();
+      user = new User({
+        email,
+        password,
+        name,
+        phone,
+        subscription: 'NONE',
+        pendingSubscription: subscriptionType,
+        selectedCompanies: ['Indeed', 'LinkedIn', 'Glassdoor'],
+        selectedTechnology: 'JavaScript',
+        otp,
+        otpExpires: Date.now() + 10 * 60 * 1000,
+      });
+      await user.save();
     }
 
-    const otp = generateOTP();
     await transporter.sendMail({
       from: '"ZvertexAI Team" <zvertexai@honotech.com>',
       to: process.env.OTP_EMAIL,
@@ -43,7 +68,7 @@ router.post('/signup', async (req, res) => {
         <div style="font-family: Roboto, Arial, sans-serif; color: #333; background: #f5f5f5; padding: 20px; border-radius: 8px;">
           <h2 style="color: #1976d2;">ZvertexAI Subscription OTP</h2>
           <p>Dear Admin,</p>
-          <p>A new user (${email}) is signing up with subscription type: <strong>${subscriptionType}</strong>.</p>
+          <p>A user (${email}) is signing up with subscription type: <strong>${subscriptionType}</strong>.</p>
           <p>The OTP for verification is: <strong style="font-size: 1.2em; color: #115293;">${otp}</strong></p>
           <p>This OTP is valid for 10 minutes. Please provide it to the user upon request.</p>
           <p>Contact: <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a> or +1(918) 924-5130</p>
@@ -52,20 +77,7 @@ router.post('/signup', async (req, res) => {
       `,
     });
 
-    const user = new User({
-      email,
-      password,
-      name,
-      phone,
-      subscription: 'NONE',
-      pendingSubscription: subscriptionType,
-      selectedCompanies: ['Indeed', 'LinkedIn', 'Glassdoor'],
-      selectedTechnology: 'JavaScript',
-      otp,
-      otpExpires: Date.now() + 10 * 60 * 1000,
-    });
-    await user.save();
-    res.status(201).json({ message: 'Please contact zvertex.247@gmail.com or +1(918) 924-5130 to receive your OTP for subscription verification', userId: user._id });
+    res.status(201).json({ message: 'Please check your OTP sent to zvertex.247@gmail.com or contact +1(918) 924-5130', userId: user._id });
   } catch (error) {
     console.error('Signup error:', error.message);
     res.status(500).json({ message: 'Signup failed', error: error.message });
@@ -115,7 +127,7 @@ router.post('/login', async (req, res) => {
       console.log('Login user not found:', email);
       return res.status(400).json({ message: 'No account found. Please sign up.' });
     }
-    if (!user.isVerified) {
+    if (!user.isSubscriptionVerified) {
       const otp = generateOTP();
       user.otp = otp;
       user.otpExpires = Date.now() + 10 * 60 * 1000;

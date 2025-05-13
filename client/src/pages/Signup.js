@@ -47,9 +47,9 @@ function Signup() {
       setUserId(data.userId);
       setShowOtpField(true);
       setError('');
-      alert('Please contact ZvertexAI support at support@zvertexai.com to receive your OTP for subscription verification');
+      alert('Please check your OTP sent to zvertex.247@gmail.com or contact +1(918) 924-5130.');
     } catch (err) {
-      const message = err.response?.data?.message || 'Signup failed due to a network error. Please check your connection and try again.';
+      const message = err.response?.data?.message || 'Signup failed due to a network error. Please try again.';
       setError(message);
       console.error('Signup error:', err.message);
     }
@@ -67,7 +67,7 @@ function Signup() {
       setError('');
       alert('Signup and subscription verified successfully! Redirecting...');
     } catch (err) {
-      setError(err.response?.data?.message || 'OTP verification failed due to a network error. Please try again.');
+      setError(err.response?.data?.message || 'OTP verification failed. Please try again.');
       console.error('OTP verification error:', err.message);
     }
   };
@@ -162,7 +162,9 @@ function Signup() {
         {showOtpField && (
           <>
             <Typography sx={{ mb: 3, textAlign: 'center' }}>
-              Please contact ZvertexAI support at support@zvertexai.com to receive your OTP for subscription verification.
+              Please check your OTP sent to{' '}
+              <a href="mailto:zvertex.247@gmail.com" style={{ color: '#1976d2' }}>zvertex.247@gmail.com</a> or contact{' '}
+              <a href="tel:+19189245130" style={{ color: '#1976d2' }}>+1(918) 924-5130</a>.
             </Typography>
             <TextField
               label="OTP"
