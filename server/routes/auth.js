@@ -46,6 +46,7 @@ router.post('/signup', async (req, res) => {
           <p>A new user (${email}) is signing up with subscription type: <strong>${subscriptionType}</strong>.</p>
           <p>The OTP for verification is: <strong style="font-size: 1.2em; color: #115293;">${otp}</strong></p>
           <p>This OTP is valid for 10 minutes. Please provide it to the user upon request.</p>
+          <p>Contact: <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a> or +1(918) 924-5130</p>
           <p style="color: #6B7280;">Best regards,<br>The ZvertexAI Team</p>
         </div>
       `,
@@ -64,7 +65,7 @@ router.post('/signup', async (req, res) => {
       otpExpires: Date.now() + 10 * 60 * 1000,
     });
     await user.save();
-    res.status(201).json({ message: 'Please contact ZvertexAI to receive your OTP for subscription verification', userId: user._id });
+    res.status(201).json({ message: 'Please contact zvertex.247@gmail.com or +1(918) 924-5130 to receive your OTP for subscription verification', userId: user._id });
   } catch (error) {
     console.error('Signup error:', error.message);
     res.status(500).json({ message: 'Signup failed', error: error.message });
@@ -115,8 +116,27 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'No account found. Please sign up.' });
     }
     if (!user.isVerified) {
-      console.log('Login unverified user:', email);
-      return res.status(403).json({ message: 'Account not verified. Please contact ZvertexAI for your OTP.' });
+      const otp = generateOTP();
+      user.otp = otp;
+      user.otpExpires = Date.now() + 10 * 60 * 1000;
+      await user.save();
+      await transporter.sendMail({
+        from: '"ZvertexAI Team" <zvertexai@honotech.com>',
+        to: process.env.OTP_EMAIL,
+        subject: 'ZvertexAI - OTP for Account Verification',
+        html: `
+          <div style="font-family: Roboto, Arial, sans-serif; color: #333; background: #f5f5f5; padding: 20px; border-radius: 8px;">
+            <h2 style="color: #1976d2;">ZvertexAI Account Verification OTP</h2>
+            <p>Dear Admin,</p>
+            <p>User (${email}) is attempting to log in but their account is not verified.</p>
+            <p>The OTP for verification is: <strong style="font-size: 1.2em; color: #115293;">${otp}</strong></p>
+            <p>This OTP is valid for 10 minutes. Please provide it to the user upon request.</p>
+            <p>Contact: <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a> or +1(918) 924-5130</p>
+            <p style="color: #6B7280;">Best regards,<br>The ZvertexAI Team</p>
+          </div>
+        `,
+      });
+      return res.status(403).json({ message: 'Account not verified. Please check your OTP.', needsOtp: true, userId: user._id });
     }
     if (user.password !== password) {
       console.log('Login password mismatch for:', email);
@@ -173,11 +193,12 @@ router.post('/forgot-password', async (req, res) => {
           <p>User (${email}) has requested a password reset.</p>
           <p>The reset link is: <a href="${resetLink}" style="color: #115293; text-decoration: none; font-weight: bold;">Reset Password</a></p>
           <p>This link is valid for 1 hour. Please provide it to the user upon request.</p>
+          <p>Contact: <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a> or +1(918) 924-5130</p>
           <p style="color: #6B7280;">Best regards,<br>The ZvertexAI Team</p>
         </div>
       `,
     });
-    res.json({ message: 'Please contact ZvertexAI to receive your password reset link' });
+    res.json({ message: 'Please contact zvertex.247@gmail.com or +1(918) 924-5130 to receive your password reset link' });
   } catch (error) {
     console.error('Forgot password error:', error.message);
     res.status(500).json({ message: 'Failed to send reset link', error: error.message });

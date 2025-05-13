@@ -6,6 +6,9 @@ import { useHistory } from 'react-router-dom';
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [userId, setUserId] = useState('');
+  const [showOtpField, setShowOtpField] = useState(false);
   const [error, setError] = useState('');
   const history = useHistory();
   const isMobile = useMediaQuery('(max-width:600px)');
@@ -21,15 +24,42 @@ function Login() {
     }
     try {
       const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, { email, password });
+      if (data.needsOtp) {
+        setUserId(data.userId);
+        setShowOtpField(true);
+        setError('');
+        alert('Your account is not verified. Please check your OTP sent to zvertex.247@gmail.com or contact +1(918) 924-5130.');
+      } else {
+        localStorage.setItem('token', data.token);
+        const redirectPath = data.subscription === 'STUDENT' ? '/student-dashboard' :
+                             data.subscription === 'RECRUITER' ? '/recruiter-dashboard' :
+                             data.subscription === 'BUSINESS' ? '/business-dashboard' : '/subscription';
+        history.push(redirectPath);
+      }
+    } catch (err) {
+      const message = err.response?.data?.message || 'Login failed. Please check your connection or try again later.';
+      setError(message);
+      console.error('Login error:', err.message);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp.trim()) {
+      setError('Please enter the OTP');
+      return;
+    }
+    try {
+      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/verify-subscription-otp`, { userId, otp });
       localStorage.setItem('token', data.token);
       const redirectPath = data.subscription === 'STUDENT' ? '/student-dashboard' :
                            data.subscription === 'RECRUITER' ? '/recruiter-dashboard' :
                            data.subscription === 'BUSINESS' ? '/business-dashboard' : '/subscription';
       history.push(redirectPath);
+      setError('');
+      alert('OTP verified successfully! Redirecting...');
     } catch (err) {
-      const message = err.response?.data?.message || 'Login failed. Please check your connection or try again later.';
-      setError(message);
-      console.error('Login error:', err.message);
+      setError(err.response?.data?.message || 'OTP verification failed. Please try again.');
+      console.error('OTP verification error:', err.message);
     }
   };
 
@@ -41,7 +71,7 @@ function Login() {
     try {
       await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/forgot-password`, { email });
       setError('');
-      alert('Please contact ZvertexAI support at support@zvertexai.com to receive your password reset link');
+      alert('Please contact zvertex.247@gmail.com or +1(918) 924-5130 to receive your password reset link.');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to send reset link. Please try again later.');
     }
@@ -79,15 +109,45 @@ function Login() {
           error={!!error && !password.trim()}
           helperText={!!error && !password.trim() ? 'Password is required' : ''}
         />
-        <Button
-          variant="contained"
-          color="primary"
-          fullWidth
-          onClick={handleLogin}
-          sx={{ py: 1.5, borderRadius: '25px' }}
-        >
-          Login
-        </Button>
+        {showOtpField && (
+          <>
+            <Typography sx={{ mb: 3, textAlign: 'center' }}>
+              Your account is not verified. Please check your OTP sent to{' '}
+              <a href="mailto:zvertex.247@gmail.com" style={{ color: '#1976d2' }}>zvertex.247@gmail.com</a> or contact{' '}
+              <a href="tel:+19189245130" style={{ color: '#1976d2' }}>+1(918) 924-5130</a>.
+            </Typography>
+            <TextField
+              label="OTP"
+              fullWidth
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              sx={{ mb: 3 }}
+              variant="outlined"
+              error={!!error && !otp.trim()}
+              helperText={!!error && !otp.trim() ? 'OTP is required' : ''}
+            />
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
+              onClick={handleVerifyOtp}
+              sx={{ py: 1.5, borderRadius: '25px', mb: 2 }}
+            >
+              Verify OTP
+            </Button>
+          </>
+        )}
+        {!showOtpField && (
+          <Button
+            variant="contained"
+            color="primary"
+            fullWidth
+            onClick={handleLogin}
+            sx={{ py: 1.5, borderRadius: '25px' }}
+          >
+            Login
+          </Button>
+        )}
         {error && (
           <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>
             {error}
@@ -97,11 +157,6 @@ function Login() {
                 <Button color="primary" onClick={handleForgotPassword}>
                   Reset Password
                 </Button>
-              </span>
-            ) : error.includes('not verified') ? (
-              <span>
-                {' '}
-                Contact <a href="mailto:support@zvertexai.com" style={{ color: '#1976d2' }}>support@zvertexai.com</a> for your OTP.
               </span>
             ) : null}
           </Typography>
