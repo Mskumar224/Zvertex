@@ -12,7 +12,6 @@ const { scheduleRecurringJobs } = require('./utils/recurringJobs');
 
 const app = express();
 
-// Simplified CORS configuration
 app.use(cors({
   origin: ['http://localhost:3000', 'https://zvertexai.netlify.app', 'https://67e8bc6ae03cdd0008a0a23d--zvertexagi.netlify.app', 'https://zvertexai.com'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -21,7 +20,6 @@ app.use(cors({
   optionsSuccessStatus: 204
 }));
 
-// Explicitly handle all OPTIONS preflight requests
 app.options('*', cors(), (req, res) => {
   res.status(204).send();
 });
@@ -31,7 +29,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Enhanced error handling
 app.use((err, req, res, next) => {
   console.error('Server error:', err.stack);
   res.status(500).json({ message: 'Internal server error', error: err.message });
@@ -68,7 +65,6 @@ mongoose.connection.on('connected', () => {
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
 
-// Keep-alive to prevent Render free tier timeout
 setInterval(() => {
   console.log('Keeping ZvertexAI server alive...');
 }, 300000);
