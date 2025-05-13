@@ -13,14 +13,18 @@ function Login() {
   const isMobile = useMediaQuery('(max-width:600px)');
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData({ ...(formData), [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       console.log('Sending POST to /api/auth/login:', { email: formData.email });
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, formData);
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, formData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       if (response.data.needsOtp) {
         setUserId(response.data.userId);
         setMessage(response.data.message);
@@ -38,7 +42,8 @@ function Login() {
         data: err.response?.data,
         url: err.config?.url,
         headers: err.config?.headers,
-        method: err.config?.method
+        method: err.config?.method,
+        responseText: err.response?.data
       });
     }
   };
@@ -59,7 +64,8 @@ function Login() {
         data: err.response?.data,
         url: err.config?.url,
         headers: err.config?.headers,
-        method: err.config?.method
+        method: err.config?.method,
+        responseText: err.response?.data
       });
     }
   };
