@@ -3,11 +3,17 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const jobRoutes = require('./routes/job');
-// Explicitly require the Profile model to ensure it's registered
+// Explicitly require all models to ensure they're registered
+require('./models/User');
 require('./models/Profile');
+require('./models/Job');
+require('./models/Recruiter');
 require('dotenv').config();
 
 const app = express();
+
+// Log to confirm models are loaded
+console.log('Models registered:', mongoose.modelNames());
 
 app.use(cors());
 app.use(express.json());
@@ -19,6 +25,8 @@ mongoose.connect(process.env.MONGO_URI, {
 }).then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB connection error:', err));
 
+// Log to confirm routes are being set up
+console.log('Setting up routes...');
 app.use('/api/auth', authRoutes);
 app.use('/api/job', jobRoutes);
 
