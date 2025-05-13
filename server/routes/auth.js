@@ -143,12 +143,16 @@ router.get('/user', async (req, res) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (!decoded.id) throw new Error('Invalid token payload');
-    const user = await User.findById(decoded.id).populate('profiles jobsApplied recruiters').lean();
+    const user = await User.findById(decoded.id)
+      .populate('profiles', 'firstName lastName resume linkedIn github')
+      .populate('jobsApplied', 'title company location')
+      .populate('recruiters', 'name email')
+      .lean();
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({
       email: user.email, subscription: user.subscription, name: user.name, phone: user.phone,
-      profiles: user.profiles, jobsApplied: user.jobsApplied, selectedTechnology: user.selectedTechnology,
-      selectedCompanies: user.selectedCompanies, recruiters: user.recruiters, additionalDetails: user.additionalDetails
+      profiles: user.profiles || [], jobsApplied: user.jobsApplied || [], selectedTechnology: user.selectedTechnology,
+      selectedCompanies: user.selectedCompanies || [], recruiters: user.recruiters || [], additionalDetails: user.additionalDetails
     });
   } catch (error) {
     console.error('User fetch error:', error.message);
