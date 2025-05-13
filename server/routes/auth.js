@@ -91,7 +91,7 @@ router.post('/verify-subscription-otp', async (req, res) => {
   try {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
-    if (user.otp !== otp || Date.now() >  user.otpExpires) {
+    if (user.otp !== otp || Date.now() > user.otpExpires) {
       console.log('Invalid OTP for user:', userId, { otp, expires: user.otpExpires });
       return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
@@ -226,7 +226,7 @@ router.post('/reset-password', async (req, res) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user) return res.status(400).json({ message: 'User not found' });
     if (newPassword.length < 6) {
       return res.status(400).json({ message: 'Password must be at least 6 characters' });
     }
