@@ -11,21 +11,24 @@ require('dotenv').config();
 
 const app = express();
 
-// Configure CORS
+// Configure CORS with preflight handling
 app.use(cors({
   origin: 'https://zvertexai.com',
   methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 
 // Explicitly handle OPTIONS for all routes
-app.options('*', cors({
-  origin: 'https://zvertexai.com',
-  methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', 'https://zvertexai.com');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
+  res.status(204).send();
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -35,7 +38,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 app.use('/api/job', upload.single('resume'), jobRoutes);
 app.use('/api/auth', authRoutes);
 
-// Log requests for debugging
+// Log requests and responses for debugging
 app.use((req, res, next) => {
   console.log(`[${req.method}] ${req.url} - Headers: ${JSON.stringify(req.headers)}`);
   res.on('finish', () => {
@@ -43,6 +46,9 @@ app.use((req, res, next) => {
   });
   next();
 });
+
+// Health check endpoint to keep service alive
+app.get('/ping', (req, res) => res.json({ status: 'alive' }));
 
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
