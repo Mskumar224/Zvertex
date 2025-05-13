@@ -9,7 +9,22 @@ require('dotenv').config();
 
 const app = express();
 
-app.use(cors());
+// Configure CORS with explicit options
+app.use(cors({
+  origin: 'https://zvertexai.com', // Allow only the client origin
+  methods: ['GET', 'POST', 'PATCH', 'OPTIONS'], // Explicitly allow methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allow necessary headers
+  credentials: true // Support cookies if needed
+}));
+
+// Handle preflight OPTIONS requests explicitly
+app.options('*', cors({
+  origin: 'https://zvertexai.com',
+  methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
