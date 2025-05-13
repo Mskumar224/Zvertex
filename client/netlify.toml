@@ -2,9 +2,9 @@
   base = "client"
   command = "CI=false npm run build"
   publish = "client/build"
-  environment = { 
-    NODE_VERSION = "16", 
-    REACT_APP_API_URL = "https://zvertexai-orzv.onrender.com",
-    REACT_APP_HF_TOKEN = "",
-    REACT_APP_STRIPE_PUBLIC_KEY = ""
-  }
+
+[build.environment]
+  NODE_VERSION = "16"
+  REACT_APP_API_URL = "https://zvertexai-orzv.onrender.com"
+  REACT_APP_HF_TOKEN = ""
+  REACT_APP_STRIPE_PUBLIC_KEY = ""
