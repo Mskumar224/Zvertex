@@ -4,6 +4,7 @@ const cors = require('cors');
 const multer = require('multer');
 const authRoutes = require('./routes/auth');
 const jobRoutes = require('./routes/job');
+// Ensure models are registered before routes
 require('./models/User');
 require('./models/Profile');
 require('./models/Recruiter');
