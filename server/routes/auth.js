@@ -105,7 +105,10 @@ router.post('/verify-subscription-otp', async (req, res) => {
     await user.save();
 
     const token = jwt.sign({ id: user._id }, JWT_SECRET);
-    res.json({ token, subscription: user.subscription, redirect: '/subscription' });
+    const redirect = user.subscription === 'STUDENT' ? '/student-dashboard' :
+                     user.subscription === 'RECRUITER' ? '/recruiter-dashboard' :
+                     user.subscription === 'BUSINESS' ? '/business-dashboard' : '/subscription';
+    res.json({ token, subscription: user.subscription, redirect });
   } catch (error) {
     console.error('Subscription OTP verification error:', error.message);
     res.status(500).json({ message: 'OTP verification failed', error: error.message });
@@ -158,7 +161,10 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid password. Try resetting your password.' });
     }
     const token = jwt.sign({ id: user._id }, JWT_SECRET);
-    res.json({ token, subscription: user.subscription });
+    const redirect = user.subscription === 'STUDENT' ? '/student-dashboard' :
+                     user.subscription === 'RECRUITER' ? '/recruiter-dashboard' :
+                     user.subscription === 'BUSINESS' ? '/business-dashboard' : '/subscription';
+    res.json({ token, subscription: user.subscription, redirect });
   } catch (error) {
     console.error('Login error:', error.message);
     res.status(500).json({ message: 'Login failed', error: error.message });

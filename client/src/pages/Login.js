@@ -31,13 +31,12 @@ function Login() {
         alert('Your account is not verified. Please check your OTP sent to zvertex.247@gmail.com or contact +1(918) 924-5130.');
       } else {
         localStorage.setItem('token', data.token);
-        const redirectPath = data.subscription === 'STUDENT' ? '/student-dashboard' :
-                             data.subscription === 'RECRUITER' ? '/recruiter-dashboard' :
-                             data.subscription === 'BUSINESS' ? '/business-dashboard' : '/subscription';
+        const redirectPath = data.redirect || '/subscription';
         history.push(redirectPath);
+        window.location.reload(); // Ensure dashboard loads correctly
       }
     } catch (err) {
-      const message = err.response?.data?.message || 'Login failed. Please check your connection or try again later.';
+      const message = err.response?.data?.message || 'Login failed. Please try again later.';
       setError(message);
       console.error('Login error:', err.message);
     }
@@ -51,10 +50,9 @@ function Login() {
     try {
       const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/verify-subscription-otp`, { userId, otp });
       localStorage.setItem('token', data.token);
-      const redirectPath = data.subscription === 'STUDENT' ? '/student-dashboard' :
-                           data.subscription === 'RECRUITER' ? '/recruiter-dashboard' :
-                           data.subscription === 'BUSINESS' ? '/business-dashboard' : '/subscription';
+      const redirectPath = data.redirect || '/subscription';
       history.push(redirectPath);
+      window.location.reload();
       setError('');
       alert('OTP verified successfully! Redirecting...');
     } catch (err) {
