@@ -3,8 +3,9 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const jobRoutes = require('./routes/job');
-// Explicitly require the Profile model to ensure it's registered
+// Explicitly require models to ensure they're registered
 require('./models/Profile');
+require('./models/Recruiter');
 require('dotenv').config();
 
 const app = express();
