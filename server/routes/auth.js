@@ -3,221 +3,253 @@ const router = express.Router();
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
-const crypto = require('crypto');
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
-  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
 });
 
-router.get('/user', async (req, res) => {
-  const token = req.headers.authorization?.split('Bearer ')[1];
-  if (!token) {
-    return res.status(401).json({ message: 'No token provided' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (!decoded.id) {
-      throw new Error('Invalid token payload');
-    }
-    const user = await User.findById(decoded.id)
-      .populate('profiles', 'name email extractedTech extractedRole')
-      .populate('recruiters', 'name email')
-      .populate('jobsApplied', 'title company location jobLink');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      address: user.address,
-      linkedin: user.linkedin,
-      github: user.github,
-      portfolio: user.portfolio,
-      skills: user.skills,
-      subscription: user.subscription,
-      selectedTechnology: user.selectedTechnology,
-      selectedCompanies: user.selectedCompanies,
-      jobsApplied: user.jobsApplied,
-      profiles: user.profiles,
-      recruiters: user.recruiters,
-      resumes: user.resumes
-    });
-  } catch (error) {
-    console.error('Fetch user error:', error.message, error);
-    res.status(500).json({ message: 'Failed to fetch user data', error: error.message });
-  }
-});
+const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 router.post('/signup', async (req, res) => {
+  const { email, password, name, phone, subscriptionType } = req.body;
   try {
-    const { name, email, phone, password, subscription } = req.body;
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Email already exists' });
+    if (!email || !password || !name || !phone || !subscriptionType) {
+      return res.status(400).json({ message: 'Missing required fields' });
     }
-    const user = new User({
-      name,
-      email,
-      phone,
-      password,
-      subscription,
-      isVerified: false,
-      role: subscription.toLowerCase()
-    });
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    user.otp = otp;
-    await user.save();
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      return res.status(400).json({ message: 'Invalid email format' });
+    }
+    if (!/^\+?[1-9]\d{1,14}$/.test(phone)) {
+      return res.status(400).json({ message: 'Invalid phone number format' });
+    }
+
+    let user = await User.findOne({ email });
+    let otp;
+    if (user && !user.isSubscriptionVerified) {
+      otp = generateOTP();
+      Object.assign(user, {
+        password,
+        name,
+        phone,
+        pendingSubscription: subscriptionType,
+        selectedCompanies: ['Indeed', 'LinkedIn', 'Glassdoor'],
+        selectedTechnology: 'JavaScript',
+        otp,
+        otpExpires: Date.now() + 10 * 60 * 1000
+      });
+      await user.save();
+    } else if (user) {
+      return res.status(400).json({ message: 'Account exists. Please login.' });
+    } else {
+      otp = generateOTP();
+      user = new User({
+        email,
+        password,
+        name,
+        phone,
+        subscription: 'NONE',
+        pendingSubscription: subscriptionType,
+        selectedCompanies: ['Indeed', 'LinkedIn', 'Glassdoor'],
+        selectedTechnology: 'JavaScript',
+        otp,
+        otpExpires: Date.now() + 10 * 60 * 1000
+      });
+      await user.save();
+    }
 
     await transporter.sendMail({
       from: '"ZvertexAI Team" <zvertexai@honotech.com>',
-      to: user.email,
-      subject: 'ZvertexAI - OTP Verification',
+      to: process.env.OTP_EMAIL || 'zvertex.247@gmail.com',
+      subject: 'ZvertexAI - OTP for Subscription Verification',
       html: `
-        <div style="font-family: Roboto, Arial, sans-serif; color: #333;">
-          <h2 style="color: #1976d2;">Verify Your Account</h2>
-          <p>Your OTP is <strong>${otp}</strong>. Please use it to verify your account.</p>
-          <p>Contact: <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a></p>
+        <div style="font-family: Roboto, Arial, sans-serif; color: #333; background: #f5f5f5; padding: 20px; borderRadius: 8px;">
+          <h2 style="color: #1976d2;">ZvertexAI Subscription OTP</h2>
+          <p>User (${email}) is signing up with subscription: <strong>${subscriptionType}</strong>.</p>
+          <p>OTP: <strong style="font-size: 1.2em; color: #115293;">${otp}</strong> (valid for 10 minutes).</p>
+          <p>Contact: <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a> or +1(918) 924-5130</p>
+          <p style="color: #6B7280;">Best regards,<br>The ZvertexAI Team</p>
         </div>
       `
     });
 
-    res.json({ message: 'OTP sent to your email', userId: user._id });
+    res.status(201).json({ message: 'Check OTP at zvertex.247@gmail.com or call +1(918) 924-5130', userId: user._id });
   } catch (error) {
     console.error('Signup error:', error.message);
     res.status(500).json({ message: 'Signup failed', error: error.message });
   }
 });
 
-router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (!user || user.password !== password) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-    if (!user.isVerified) {
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      user.otp = otp;
-      await user.save();
-      await transporter.sendMail({
-        from: '"ZvertexAI Team" <zvertexai@honotech.com>',
-        to: user.email,
-        subject: 'ZvertexAI - OTP Verification',
-        html: `
-          <div style="font-family: Roboto, Arial, sans-serif; color: #333;">
-            <h2 style="color: #1976d2;">Verify Your Account</h2>
-            <p>Your OTP is <strong>${otp}</strong>. Please use it to verify your account.</p>
-            <p>Contact: <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a></p>
-          </div>
-        `
-      });
-      return res.json({ needsOtp: true, userId: user._id, message: 'OTP sent to your email' });
-    }
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.json({ token, redirect: user.role === 'recruiter' ? '/recruiter-dashboard' : user.role === 'business' ? '/business-dashboard' : '/student-dashboard' });
-  } catch (error) {
-    console.error('Login error:', error.message);
-    res.status(500).json({ message: 'Login failed', error: error.message });
-  }
-});
-
 router.post('/verify-subscription-otp', async (req, res) => {
+  const { userId, otp } = req.body;
   try {
-    const { userId, otp } = req.body;
     const user = await User.findById(userId);
-    if (!user || user.otp !== otp) {
-      return res.status(401).json({ message: 'Invalid OTP' });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.otp !== otp || Date.now() > user.otpExpires) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
-    user.isVerified = true;
+
+    user.subscription = user.pendingSubscription;
+    user.pendingSubscription = null;
     user.otp = null;
+    user.otpExpires = null;
+    user.isVerified = true;
+    user.isSubscriptionVerified = true;
     await user.save();
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.json({ token, redirect: user.role === 'recruiter' ? '/recruiter-dashboard' : user.role === 'business' ? '/business-dashboard' : '/student-dashboard' });
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+    const redirect = user.subscription === 'STUDENT' ? '/student-dashboard' :
+                     user.subscription === 'RECRUITER' ? '/student-dashboard' :
+                     user.subscription === 'BUSINESS' ? '/student-dashboard' : '/subscription';
+    console.log('Redirecting user ' + user.email + ' to ' + redirect);
+    res.json({ token, subscription: user.subscription, redirect });
   } catch (error) {
     console.error('OTP verification error:', error.message);
     res.status(500).json({ message: 'OTP verification failed', error: error.message });
   }
 });
 
-router.post('/forgot-password', async (req, res) => {
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
   try {
-    const { email } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    const resetToken = crypto.randomBytes(20).toString('hex');
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
-    await user.save();
+    if (!email || !password) return res.status(400).json({ message: 'Email and password required' });
+    if (!/\S+@\S+\.\S+/.test(email)) return res.status(400).json({ message: 'Invalid email format' });
 
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ message: 'No account found. Please sign up.' });
+    if (!user.isSubscriptionVerified) {
+      const otp = generateOTP();
+      user.otp = otp;
+      user.otpExpires = Date.now() + 10 * 60 * 1000;
+      await user.save();
+      await transporter.sendMail({
+        from: '"ZvertexAI Team" <zvertexai@honotech.com>',
+        to: process.env.OTP_EMAIL || 'zvertex.247@gmail.com',
+        subject: 'ZvertexAI - OTP for Account Verification',
+        html: `
+          <div style="font-family: Roboto, Arial, sans-serif; color: #333; background: #f5f5f5; padding: 20px; borderRadius: 8px;">
+            <h2 style="color: #1976d2;">ZvertexAI Account Verification OTP</h2>
+            <p>User (${email}) is attempting to log in but not verified.</p>
+            <p>OTP: <strong style="font-size: 1.2em; color: #115293;">${otp}</strong> (valid for 10 minutes).</p>
+            <p>Contact: <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a> or +1(918) 924-5130</p>
+            <p style="color: #6B7280;">Best regards,<br>The ZvertexAI Team</p>
+          </div>
+        `
+      });
+      return res.status(403).json({ message: 'Check OTP at zvertex.247@gmail.com or call +1(918) 924-5130', needsOtp: true, userId: user._id });
+    }
+    if (user.password !== password) return res.status(400).json({ message: 'Invalid password' });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+    const redirect = user.subscription === 'STUDENT' ? '/student-dashboard' :
+                     user.subscription === 'RECRUITER' ? '/student-dashboard' :
+                     user.subscription === 'BUSINESS' ? '/student-dashboard' : '/subscription';
+    console.log('Redirecting user ' + user.email + ' to ' + redirect);
+    res.json({ token, subscription: user.subscription, redirect });
+  } catch (error) {
+    console.error('Login error:', error.message);
+    res.status(500).json({ message: 'Login failed', error: error.message });
+  }
+});
+
+router.get('/user', async (req, res) => {
+  const token = req.headers.authorization?.split('Bearer ')[1];
+  if (!token) return res.status(401).json({ error: 'No token provided' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded.id) throw new Error('Invalid token payload');
+    const user = await User.findById(decoded.id)
+      .populate('profiles', 'firstName lastName resume linkedIn github')
+      .populate('jobsApplied', 'title company location')
+      .populate('recruiters', 'name email')
+      .lean();
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({
+      email: user.email,
+      subscription: user.subscription,
+      name: user.name,
+      phone: user.phone,
+      profiles: user.profiles || [],
+      jobsApplied: user.jobsApplied || [],
+      selectedTechnology: user.selectedTechnology,
+      selectedCompanies: user.selectedCompanies || [],
+      recruiters: user.recruiters || [],
+      additionalDetails: user.additionalDetails
+    });
+  } catch (error) {
+    console.error('User fetch error:', error.message);
+    res.status(500).json({ message: 'User fetch failed', error: error.message });
+  }
+});
+
+router.patch('/user', async (req, res) => {
+  const token = req.headers.authorization?.split('Bearer ')[1];
+  if (!token) return res.status(401).json({ error: 'No token provided' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded.id) throw new Error('Invalid token payload');
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const { selectedTechnology, selectedCompanies } = req.body;
+    if (selectedTechnology) user.selectedTechnology = selectedTechnology;
+    if (selectedCompanies) user.selectedCompanies = selectedCompanies;
+    await user.save();
+    res.json({
+      message: 'Preferences updated',
+      user: {
+        email: user.email,
+        selectedTechnology: user.selectedTechnology,
+        selectedCompanies: user.selectedCompanies
+      }
+    });
+  } catch (error) {
+    console.error('User patch error:', error.message);
+    res.status(500).json({ message: 'Failed to update preferences', error: error.message });
+  }
+});
+
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const resetLink = `https://zvertexai.netlify.app/reset-password?token=${token}`;
     await transporter.sendMail({
       from: '"ZvertexAI Team" <zvertexai@honotech.com>',
-      to: user.email,
-      subject: 'ZvertexAI - Password Reset',
+      to: process.env.OTP_EMAIL || 'zvertex.247@gmail.com',
+      subject: 'ZvertexAI - Password Reset Request',
       html: `
-        <div style="font-family: Roboto, Arial, sans-serif; color: #333;">
-          <h2 style="color: #1976d2;">Reset Your Password</h2>
-          <p>Click <a href="https://zvertexai.com/reset-password/${resetToken}">here</a> to reset your password. This link expires in 1 hour.</p>
-          <p>Contact: <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a></p>
+        <div style="font-family: Roboto, Arial, sans-serif; color: #333; background: #f5f5f5; padding: 20px; borderRadius: 8px;">
+          <h2 style="color: #1976d2;">Password Reset Request</h2>
+          <p>User (${email}) requested a password reset.</p>
+          <p>Reset link: <a href="${resetLink}" style="color: #115293;">Reset Password</a> (valid for 1 hour).</p>
+          <p>Contact: <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a> or +1(918) 924-5130</p>
+          <p style="color: #6B7280;">Best regards,<br>The ZvertexAI Team</p>
         </div>
       `
     });
-
-    res.json({ message: 'Password reset link sent to your email' });
+    res.json({ message: 'Check zvertex.247@gmail.com or call +1(918) 924-5130 for reset link' });
   } catch (error) {
     console.error('Forgot password error:', error.message);
     res.status(500).json({ message: 'Failed to send reset link', error: error.message });
   }
 });
 
-router.post('/reset-password/:token', async (req, res) => {
+router.post('/reset-password', async (req, res) => {
+  const { token, newPassword } = req.body;
   try {
-    const { password } = req.body;
-    const user = await User.findOne({
-      resetPasswordToken: req.params.token,
-      resetPasswordExpires: { $gt: Date.now() }
-    });
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired reset token' });
-    }
-    user.password = password;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-    await user.save();
-    res.json({ message: 'Password reset successfully' });
-  } catch (error) {
-    console.error('Reset password error:', error.message);
-    res.status(500).json({ message: 'Failed to reset password', error: error.message });
-  }
-});
-
-router.patch('/user', async (req, res) => {
-  try {
-    const token = req.headers.authorization?.split('Bearer ')[1];
-    if (!token) return res.status(401).json({ message: 'No token provided' });
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (!decoded.id) throw new Error('Invalid token payload');
     const user = await User.findById(decoded.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
-    const { selectedTechnology, selectedCompanies, phone, address, linkedin, github, portfolio, skills } = req.body;
-    if (selectedTechnology) user.selectedTechnology = selectedTechnology;
-    if (selectedCompanies) user.selectedCompanies = selectedCompanies;
-    if (phone) user.phone = phone;
-    if (address) user.address = address;
-    if (linkedin) user.linkedin = linkedin;
-    if (github) user.github = github;
-    if (portfolio) user.portfolio = portfolio;
-    if (skills) user.skills = skills;
+    if (newPassword.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    user.password = newPassword;
+    user.isVerified = true;
     await user.save();
-    res.json({ message: 'User preferences updated successfully' });
+    res.json({ message: 'Password reset successfully' });
   } catch (error) {
-    console.error('Update user error:', error.message);
-    res.status(500).json({ message: 'Failed to update user preferences', error: error.message });
+    console.error('Reset password error:', error.message);
+    res.status(500).json({ message: 'Reset failed', error: error.message });
   }
 });
 

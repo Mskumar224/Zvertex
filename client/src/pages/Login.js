@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Container, Typography, TextField, Button, Box, Link } from '@mui/material';
+import { Container, Typography, TextField, Button, Box, useMediaQuery, CircularProgress } from '@mui/material';
 import axios from 'axios';
 import { useHistory } from 'react-router-dom';
 
@@ -9,7 +9,9 @@ function Login() {
   const [userId, setUserId] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false); // Added loading state
   const history = useHistory();
+  const isMobile = useMediaQuery('(max-width:600px)');
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -17,93 +19,71 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      console.log('Sending POST to /api/auth/login:', { email: formData.email });
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, formData, {
-        headers: { 'Content-Type': 'application/json' },
-      });
+      console.log('Sending POST to /api/auth/login:', formData); // Debug log
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, formData);
       if (response.data.needsOtp) {
         setUserId(response.data.userId);
         setMessage(response.data.message);
         setError('');
       } else {
         localStorage.setItem('token', response.data.token);
+        console.log('Redirecting to:', response.data.redirect); // Debug log
         history.push(response.data.redirect);
       }
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Login failed';
-      setError(errorMessage);
+      console.error('Login error:', err); // Debug log
+      setError(err.response?.data?.message || 'Login failed');
       setMessage('');
-      console.error('Login error:', errorMessage, {
-        status: err.response?.status,
-        data: err.response?.data,
-        url: err.config?.url,
-        headers: err.config?.headers,
-        method: err.config?.method,
-        responseText: err.response?.data
-      });
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleOtpSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      console.log('Sending POST to /api/auth/verify-subscription-otp:', { userId, otp });
+      console.log('Sending OTP verification:', { userId, otp }); // Debug log
       const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/verify-subscription-otp`, { userId, otp });
       localStorage.setItem('token', response.data.token);
+      console.log('Redirecting to:', response.data.redirect); // Debug log
       history.push(response.data.redirect);
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'OTP verification failed';
-      setError(errorMessage);
+      console.error('OTP verification error:', err); // Debug log
+      setError(err.response?.data?.message || 'OTP verification failed');
       setMessage('');
-      console.error('OTP verification error:', errorMessage, {
-        status: err.response?.status,
-        data: err.response?.data,
-        url: err.config?.url,
-        headers: err.config?.headers,
-        method: err.config?.method,
-        responseText: err.response?.data
-      });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Container
-      maxWidth="sm"
-      sx={{
-        py: 4,
-        ml: { xs: 0, md: '260px' },
-        display: 'flex',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        alignItems: 'center',
-      }}
-    >
+    <Container maxWidth={isMobile ? 'xs' : 'sm'} sx={{ py: isMobile ? 4 : 8 }}>
       <Box
         sx={{
-          p: { xs: 3, sm: 4 },
+          p: isMobile ? 2 : 4,
           background: '#fff',
-          borderRadius: '16px',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-          width: '100%',
-          maxWidth: 400,
+          borderRadius: 2,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
           transition: 'all 0.3s ease',
         }}
       >
         <Typography
-          variant="h4"
+          variant={isMobile ? 'h5' : 'h4'}
           align="center"
-          sx={{ color: '#1976d2', mb: 3, fontWeight: 600 }}
+          sx={{ color: '#1976d2', mb: 4, fontWeight: 600 }}
         >
           ZvertexAI - Login
         </Typography>
         {message && (
-          <Typography sx={{ color: '#115293', mb: 2, textAlign: 'center', fontSize: '0.9rem' }}>
+          <Typography sx={{ color: '#115293', mb: 2, textAlign: 'center', fontSize: isMobile ? '0.9rem' : '1rem' }}>
             {message}
           </Typography>
         )}
         {error && (
-          <Typography sx={{ color: 'error.main', mb: 2, textAlign: 'center', fontSize: '0.9rem' }}>
+          <Typography color="error" sx={{ mb: 2, textAlign: 'center', fontSize: isMobile ? '0.9rem' : '1rem' }}>
             {error}
           </Typography>
         )}
@@ -119,7 +99,8 @@ function Login() {
               margin="normal"
               required
               variant="outlined"
-              sx={{ mb: 2 }}
+              size={isMobile ? 'small' : 'medium'}
+              sx={{ '& .MuiInputBase-root': { borderRadius: '8px' } }}
             />
             <TextField
               fullWidth
@@ -131,45 +112,28 @@ function Login() {
               margin="normal"
               required
               variant="outlined"
-              sx={{ mb: 2 }}
+              size={isMobile ? 'small' : 'medium'}
+              sx={{ '& .MuiInputBase-root': { borderRadius: '8px' } }}
             />
             <Button
               type="submit"
               variant="contained"
               color="primary"
               fullWidth
-              sx={{ mt: 2, py: 1.2, fontSize: '1rem' }}
+              disabled={loading}
+              sx={{
+                mt: 3,
+                py: isMobile ? 1 : 1.5,
+                borderRadius: '25px',
+                background: 'linear-gradient(45deg, #1976d2, #42a5f5)',
+                '&:hover': { background: 'linear-gradient(45deg, #1565c0, #2196f3)' },
+                textTransform: 'none',
+                fontSize: isMobile ? '0.9rem' : '1rem',
+                fontWeight: 500,
+              }}
             >
-              Log In
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'Log In'}
             </Button>
-            <Link
-              href="/forgot-password"
-              sx={{
-                display: 'block',
-                textAlign: 'center',
-                mt: 2,
-                color: '#1976d2',
-                textDecoration: 'none',
-                fontSize: '0.9rem',
-                '&:hover': { textDecoration: 'underline' },
-              }}
-            >
-              Forgot Password?
-            </Link>
-            <Link
-              href="/signup"
-              sx={{
-                display: 'block',
-                textAlign: 'center',
-                mt: 1,
-                color: '#1976d2',
-                textDecoration: 'none',
-                fontSize: '0.9rem',
-                '&:hover': { textDecoration: 'underline' },
-              }}
-            >
-              Don't have an account? Sign Up
-            </Link>
           </form>
         ) : (
           <form onSubmit={handleOtpSubmit}>
@@ -181,16 +145,27 @@ function Login() {
               margin="normal"
               required
               variant="outlined"
-              sx={{ mb: 2 }}
+              size={isMobile ? 'small' : 'medium'}
+              sx={{ '& .MuiInputBase-root': { borderRadius: '8px' } }}
             />
             <Button
               type="submit"
               variant="contained"
               color="primary"
               fullWidth
-              sx={{ mt: 2, py: 1.2, fontSize: '1rem' }}
+              disabled={loading}
+              sx={{
+                mt: 3,
+                py: isMobile ? 1 : 1.5,
+                borderRadius: '25px',
+                background: 'linear-gradient(45deg, #1976d2, #42a5f5)',
+                '&:hover': { background: 'linear-gradient(45deg, #1565c0, #2196f3)' },
+                textTransform: 'none',
+                fontSize: isMobile ? '0.9rem' : '1rem',
+                fontWeight: 500,
+              }}
             >
-              Verify OTP
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'Verify OTP'}
             </Button>
           </form>
         )}
