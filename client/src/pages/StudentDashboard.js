@@ -1,33 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Box, Button, useMediaQuery } from '@mui/material';
+import { Container, Typography, Box, useMediaQuery } from '@mui/material';
 import axios from 'axios';
-import { useHistory } from 'react-router-dom';
 
 function StudentDashboard() {
-  const [user, setUser] = useState(null);
+  const [userData, setUserData] = useState(null);
   const [error, setError] = useState('');
-  const history = useHistory();
   const isMobile = useMediaQuery('(max-width:600px)');
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUserData = async () => {
       try {
+        console.log('Sending GET to /api/auth/user');
         const token = localStorage.getItem('token');
         if (!token) throw new Error('No token found');
         const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/user`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}` }
         });
-        setUser(response.data);
+        setUserData(response.data);
         setError('');
       } catch (err) {
-        setError('Failed to fetch user data. Please try again.');
-        console.error('Fetch user error:', err.message);
+        const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch user data';
+        setError(errorMessage);
+        console.error('Fetch user error:', errorMessage, {
+          status: err.response?.status,
+          data: err.response?.data,
+          url: err.config?.url,
+          headers: err.config?.headers,
+          method: err.config?.method,
+          responseText: err.response?.data
+        });
       }
     };
-    fetchUser();
+    fetchUserData();
   }, []);
-
-  const handleJobApply = () => history.push('/job-apply');
 
   return (
     <Container maxWidth="md" sx={{ py: 8 }}>
@@ -40,37 +45,18 @@ function StudentDashboard() {
             {error}
           </Typography>
         )}
-        {user ? (
-          <>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Welcome, {user.name}!
-            </Typography>
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              Email: {user.email}
-            </Typography>
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              Subscription: {user.subscription}
-            </Typography>
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              Preferred Technology: {user.selectedTechnology || 'Not set'}
-            </Typography>
-            <Typography variant="body1" sx={{ mb: 4 }}>
-              Preferred Companies: {user.selectedCompanies?.join(', ') || 'Not set'}
-            </Typography>
-            <Button
-              variant="contained"
-              color="primary"
-              fullWidth
-              onClick={handleJobApply}
-              sx={{ py: 1.5, borderRadius: '25px' }}
-            >
-              Apply for Jobs
-            </Button>
-          </>
+        {userData ? (
+          <Box>
+            <Typography variant="h6">Welcome, {userData.name}</Typography>
+            <Typography>Email: {userData.email}</Typography>
+            <Typography>Subscription: {userData.subscription}</Typography>
+            <Typography>Selected Technology: {userData.selectedTechnology || 'Not set'}</Typography>
+            <Typography>Preferred Companies: {userData.selectedCompanies?.join(', ') || 'Not set'}</Typography>
+            <Typography>Jobs Applied: {userData.jobsApplied?.length || 0}</Typography>
+            <Typography>Resumes Uploaded: {userData.resumes || 0}</Typography>
+          </Box>
         ) : (
-          <Typography variant="body1" sx={{ textAlign: 'center' }}>
-            Loading user data...
-          </Typography>
+          <Typography>Loading user data...</Typography>
         )}
       </Box>
     </Container>
