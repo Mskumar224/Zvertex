@@ -49,7 +49,7 @@ function Signup() {
       setError('');
       alert('Please contact ZvertexAI support at support@zvertexai.com to receive your OTP for subscription verification');
     } catch (err) {
-      const message = err.response?.data?.message || 'Signup failed. Please try again later.';
+      const message = err.response?.data?.message || 'Signup failed due to a network error. Please check your connection and try again.';
       setError(message);
       console.error('Signup error:', err.message);
     }
@@ -67,7 +67,7 @@ function Signup() {
       setError('');
       alert('Signup and subscription verified successfully! Redirecting...');
     } catch (err) {
-      setError(err.response?.data?.message || 'OTP verification failed. Please try again later.');
+      setError(err.response?.data?.message || 'OTP verification failed due to a network error. Please try again.');
       console.error('OTP verification error:', err.message);
     }
   };

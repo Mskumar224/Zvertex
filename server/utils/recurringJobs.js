@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 
 const scheduleRecurringJobs = async () => {
   console.log('Recurring jobs scheduler placeholder');
-  // Puppeteer disabled temporarily to prevent server crashes
+  // Puppeteer disabled to prevent server crashes
   /*
   const browser = await puppeteer.launch({
     headless: true,

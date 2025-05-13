@@ -12,7 +12,7 @@ const { scheduleRecurringJobs } = require('./utils/recurringJobs');
 
 const app = express();
 
-// Simplified CORS configuration to handle preflight requests
+// Simplified CORS configuration
 app.use(cors({
   origin: ['http://localhost:3000', 'https://zvertexai.netlify.app', 'https://67e8bc6ae03cdd0008a0a23d--zvertexagi.netlify.app', 'https://zvertexai.com'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -21,8 +21,10 @@ app.use(cors({
   optionsSuccessStatus: 204
 }));
 
-// Handle preflight OPTIONS requests explicitly
-app.options('*', cors());
+// Explicitly handle OPTIONS preflight requests
+app.options('*', (req, res) => {
+  res.status(204).send();
+});
 
 app.use((req, res, next) => {
   console.log(`[${req.method}] ${req.url} from ${req.headers.origin || 'no-origin'}`);
