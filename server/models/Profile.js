@@ -1,12 +1,11 @@
 const mongoose = require('mongoose');
 
 const profileSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  firstName: { type: String, required: true },
-  lastName: { type: String, required: true },
-  resume: { type: String },
-  linkedIn: { type: String },
-  github: { type: String },
+  name: String,
+  email: String,
+  extractedTech: String,
+  extractedRole: String,
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now }
 });
 

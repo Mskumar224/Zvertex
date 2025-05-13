@@ -1,66 +1,69 @@
 import React, { useState } from 'react';
-import { Button, TextField, Box, Typography } from '@mui/material';
+import { Box, Button, TextField, Typography } from '@mui/material';
 import axios from 'axios';
 
 function DocumentUpload({ userId, onUploadSuccess }) {
   const [file, setFile] = useState(null);
-  const [description, setDescription] = useState('');
   const [error, setError] = useState('');
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
+    setError('');
   };
 
-  const handleUpload = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     if (!file) {
-      setError('Please select a file');
-      return;
-    }
-
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setError('Please log in to upload');
+      setError('Please select a file to upload');
       return;
     }
 
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('description', description);
-    formData.append('userId', userId);
-
+    formData.append('document', file);
     try {
-      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/job/upload`, formData, {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Authentication required');
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/job/upload-profile`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${token}`,
-        },
+          'Content-Type': 'multipart/form-data'
+        }
       });
+      onUploadSuccess(response.data);
       setError('');
-      onUploadSuccess(data);
     } catch (err) {
-      setError(err.response?.data?.message || 'Upload failed');
-      console.error('Upload error:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to upload document';
+      setError(errorMessage);
+      console.error('Document upload error:', errorMessage, {
+        status: err.response?.status,
+        data: err.response?.data
+      });
     }
   };
 
   return (
-    <Box sx={{ p: 2, width: '100%', maxWidth: 400, background: '#fff', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-      <Typography variant="h6" sx={{ mb: 2 }}>Upload Resume</Typography>
+    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+      {error && (
+        <Typography color="error" sx={{ mb: 2 }}>
+          {error}
+        </Typography>
+      )}
       <TextField
-        label="Description"
+        type="file"
+        onChange={handleFileChange}
         fullWidth
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        sx={{ mb: 2 }}
-        variant="outlined"
+        margin="normal"
+        inputProps={{ accept: '.pdf,.doc,.docx' }}
       />
-      <Box sx={{ mb: 2 }}>
-        <input type="file" onChange={handleFileChange} accept=".pdf,.docx" />
-      </Box>
-      <Button variant="contained" color="primary" onClick={handleUpload} fullWidth sx={{ borderRadius: '25px' }}>
-        Upload
+      <Button
+        type="submit"
+        variant="contained"
+        color="primary"
+        fullWidth
+        sx={{ mt: 2, borderRadius: '25px' }}
+      >
+        Upload Document
       </Button>
-      {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
     </Box>
   );
 }

@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Box, useMediaQuery } from '@mui/material';
+import { Container, Typography, Button, Box, Grid, useMediaQuery } from '@mui/material';
 import axios from 'axios';
+import DocumentUpload from '../components/DocumentUpload';
 
 function StudentDashboard() {
   const [userData, setUserData] = useState(null);
+  const [recruiters, setRecruiters] = useState([{}, {}, {}]);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
   const isMobile = useMediaQuery('(max-width:600px)');
 
   useEffect(() => {
@@ -17,6 +20,7 @@ function StudentDashboard() {
           headers: { Authorization: `Bearer ${token}` }
         });
         setUserData(response.data);
+        setRecruiters(response.data.recruiters?.slice(0, 3).map(r => ({ id: r._id })) || [{}, {}, {}]);
         setError('');
       } catch (err) {
         const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch user data';
@@ -29,35 +33,99 @@ function StudentDashboard() {
           method: err.config?.method,
           responseText: err.response?.data
         });
+      } finally {
+        setLoading(false);
       }
     };
     fetchUserData();
   }, []);
 
-  return (
-    <Container maxWidth="md" sx={{ py: 8 }}>
-      <Box sx={{ p: 4, background: '#fff', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <Typography variant={isMobile ? 'h5' : 'h4'} align="center" sx={{ color: '#1976d2', mb: 4 }}>
+  const handleUploadSuccess = (data) => {
+    setUserData(prev => ({
+      ...prev,
+      profiles: [...(prev?.profiles || []), { _id: data.profileId, extractedTech: data.detectedTech, extractedRole: data.detectedRole }],
+    }));
+    setRecruiters(prev => {
+      const newRecruiters = [...prev];
+      const emptyIndex = newRecruiters.findIndex(r => !r.id);
+      if (emptyIndex !== -1) newRecruiters[emptyIndex] = { id: data.profileId };
+      return newRecruiters;
+    });
+  };
+
+  const handleExport = () => {
+    if (userData?._id) {
+      window.location.href = `${process.env.REACT_APP_API_URL}/api/job/export-dashboard/${userData._id}`;
+    }
+  };
+
+  if (loading) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 6 }}>
+        <Typography variant="h4" sx={{ color: '#1976d2', mb: 4, cursor: 'pointer' }} onClick={() => window.location.href = '/'}>
           ZvertexAI - Student Dashboard
         </Typography>
-        {error && (
-          <Typography color="error" sx={{ mb: 2, textAlign: 'center' }}>
-            {error}. Please try logging in again or contact support.
-          </Typography>
-        )}
-        {userData ? (
-          <Box>
-            <Typography variant="h6">Welcome, {userData.name}</Typography>
-            <Typography>Email: {userData.email}</Typography>
-            <Typography>Subscription: {userData.subscription || 'None'}</Typography>
-            <Typography>Selected Technology: {userData.selectedTechnology || 'Not set'}</Typography>
-            <Typography>Preferred Companies: {userData.selectedCompanies?.join(', ') || 'Not set'}</Typography>
-            <Typography>Jobs Applied: {userData.jobsApplied?.length || 0}</Typography>
-            <Typography>Resumes Uploaded: {userData.resumes || 0}</Typography>
-          </Box>
-        ) : (
-          <Typography>Loading user data...</Typography>
-        )}
+        <Typography>Loading...</Typography>
+      </Container>
+    );
+  }
+
+  if (!userData) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 6 }}>
+        <Typography variant="h4" sx={{ color: '#1976d2', mb: 4, cursor: 'pointer' }} onClick={() => window.location.href = '/'}>
+          ZvertexAI - Student Dashboard
+        </Typography>
+        <Typography>Please log in to view your dashboard.</Typography>
+        <Button variant="contained" color="primary" sx={{ mt: 2, borderRadius: '25px' }} onClick={() => window.location.href = '/login'}>
+          Login
+        </Button>
+      </Container>
+    );
+  }
+
+  return (
+    <Container maxWidth="lg" sx={{ py: 6 }}>
+      <Typography variant="h4" sx={{ color: '#1976d2', mb: 4, cursor: 'pointer' }} onClick={() => window.location.href = '/'}>
+        ZvertexAI - Student Dashboard
+      </Typography>
+      {error && (
+        <Typography color="error" sx={{ mb: 2, textAlign: 'center' }}>
+          {error}. Please try logging in again or contact support.
+        </Typography>
+      )}
+      <Typography variant="h6">Welcome, {userData.name || userData.email}</Typography>
+      <Typography>Email: {userData.email}</Typography>
+      <Typography>Subscription: {userData.subscription || 'None'}</Typography>
+      <Typography>Selected Technology: {userData.selectedTechnology || 'Not set'}</Typography>
+      <Typography>Preferred Companies: {userData.selectedCompanies?.join(', ') || 'Not set'}</Typography>
+      <Typography>Jobs Applied: {userData.jobsApplied?.length || 0}</Typography>
+      <Typography>Resumes Uploaded: {userData.resumes || 0}</Typography>
+      <Box sx={{ mt: 2, mb: 4 }}>
+        <Button
+          variant="contained"
+          color="primary"
+          sx={{ mr: 2, borderRadius: '25px' }}
+          onClick={() => window.location.href = '/job-apply'}
+        >
+          Manage Job Applications
+        </Button>
+        <Button variant="contained" color="secondary" sx={{ borderRadius: '25px' }} onClick={handleExport}>
+          Export Dashboard
+        </Button>
+      </Box>
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h5" sx={{ mb: 2 }}>Manage Recruiters (3 Slots)</Typography>
+        <Grid container spacing={4}>
+          {recruiters.map((recruiter, index) => (
+            <Grid item xs={12} md={4} key={index}>
+              <Box sx={{ p: 2, border: '1px solid #1976d2', borderRadius: 2, background: '#fff' }}>
+                <Typography variant="h6">Recruiter {index + 1} {recruiter.id ? '(Active)' : ''}</Typography>
+                {!recruiter.id && <DocumentUpload userId={userData._id} onUploadSuccess={handleUploadSuccess} />}
+              </Box>
+            </Grid>
+          ))}
+        </Grid>
       </Box>
     </Container>
   );

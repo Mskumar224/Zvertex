@@ -1,22 +1,18 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  name: { type: String, required: true },
-  phone: { type: String, required: true },
-  subscription: { type: String, default: 'NONE' },
-  pendingSubscription: { type: String },
-  selectedCompanies: [{ type: String }],
-  selectedTechnology: { type: String },
-  otp: { type: String },
-  otpExpires: { type: Date },
-  isVerified: { type: Boolean, default: false },
-  isSubscriptionVerified: { type: Boolean, default: false },
+  name: String,
+  email: String,
+  password: String,
+  subscription: String,
+  otp: String,
+  isVerified: Boolean,
+  role: String,
+  selectedTechnology: String,
+  selectedCompanies: [String],
   profiles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Profile' }],
-  jobsApplied: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Job' }],
   recruiters: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Recruiter' }],
-  additionalDetails: { type: mongoose.Schema.Types.Mixed },
+  jobsApplied: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Job' }],
   resumes: { type: Number, default: 0 }
 });
 

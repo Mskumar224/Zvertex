@@ -21,13 +21,14 @@ router.get('/user', async (req, res) => {
       throw new Error('Invalid token payload');
     }
     const user = await User.findById(decoded.id)
-      .populate('profiles', 'name email')
+      .populate('profiles', 'name email extractedTech extractedRole')
       .populate('recruiters', 'name email')
       .populate('jobsApplied', 'title company location');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
     res.json({
+      _id: user._id,
       name: user.name,
       email: user.email,
       subscription: user.subscription,

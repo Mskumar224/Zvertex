@@ -4,6 +4,7 @@ const cors = require('cors');
 const multer = require('multer');
 const authRoutes = require('./routes/auth');
 const jobRoutes = require('./routes/job');
+const exportRoutes = require('./routes/export');
 // Ensure models are registered before routes
 require('./models/User');
 require('./models/Profile');
@@ -41,6 +42,7 @@ app.use(express.urlencoded({ extended: true }));
 const upload = multer({ storage: multer.memoryStorage() });
 app.use('/api/job', upload.single('resume'), jobRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/job', exportRoutes);
 
 // Health check endpoint
 app.get('/ping', (req, res) => {

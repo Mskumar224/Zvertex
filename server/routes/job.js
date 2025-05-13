@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const Job = require('../models/Job');
+const Profile = require('../models/Profile');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
@@ -9,6 +10,14 @@ const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
 });
+
+// Simulated tech and role extraction
+const extractTechAndRole = (file) => {
+  return {
+    detectedTech: ['JavaScript', 'Python', 'Java'][Math.floor(Math.random() * 3)],
+    detectedRole: ['Developer', 'Engineer', 'Consultant'][Math.floor(Math.random() * 3)]
+  };
+};
 
 // Fetch real-time jobs (simulated)
 const fetchRealTimeJobs = async (technology, companies) => {
@@ -84,6 +93,37 @@ router.post('/apply', async (req, res) => {
   } catch (error) {
     console.error('Job apply error:', error.message, error);
     res.status(500).json({ message: 'Job application failed', error: error.message });
+  }
+});
+
+router.post('/upload-profile', async (req, res) => {
+  const token = req.headers.authorization?.split('Bearer ')[1];
+  if (!token) return res.status(401).json({ message: 'No token provided' });
+  if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded.id) throw new Error('Invalid token payload');
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const { detectedTech, detectedRole } = extractTechAndRole(req.file);
+    const profile = new Profile({
+      name: `Profile_${Date.now()}`,
+      email: user.email,
+      extractedTech: detectedTech,
+      extractedRole: detectedRole,
+      user: user._id
+    });
+    await profile.save();
+
+    user.profiles.push(profile._id);
+    await user.save();
+
+    res.json({ profileId: profile._id, detectedTech, detectedRole });
+  } catch (error) {
+    console.error('Profile upload error:', error.message, error);
+    res.status(500).json({ message: 'Profile upload failed', error: error.message });
   }
 });
 
