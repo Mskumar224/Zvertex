@@ -10,14 +10,14 @@ const transporter = nodemailer.createTransport({
   auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
 });
 
-// Simulate real-time job matching (replace with actual job API or database query)
-const matchJobs = (technology, companies) => {
-  const availableJobs = [
+// Fetch real-time jobs (simulated)
+const fetchRealTimeJobs = async (technology, companies) => {
+  const jobs = [
     { title: `${technology} Developer`, company: companies[0] || 'Indeed', location: 'Remote', technology },
     { title: `Senior ${technology} Engineer`, company: companies[1] || 'LinkedIn', location: 'San Francisco', technology },
     { title: `${technology} Consultant`, company: companies[2] || 'Glassdoor', location: 'New York', technology }
-  ].filter(job => job.company); // Only include jobs with valid companies
-  return availableJobs;
+  ].filter(job => job.company);
+  return jobs;
 };
 
 router.post('/apply', async (req, res) => {
@@ -31,8 +31,8 @@ router.post('/apply', async (req, res) => {
     const user = await User.findById(decoded.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Match real-time jobs based on preferences
-    const jobsToApply = matchJobs(user.selectedTechnology, user.selectedCompanies);
+    // Fetch real-time jobs
+    const jobsToApply = await fetchRealTimeJobs(user.selectedTechnology, user.selectedCompanies);
     if (!jobsToApply.length) throw new Error('No matching jobs found');
 
     const jobIds = [];
@@ -45,7 +45,7 @@ router.post('/apply', async (req, res) => {
       });
       await job.save();
       user.jobsApplied.push(job._id);
-      jobIds.push(job._id);
+      jobIds.push(job._id.toString());
     }
 
     user.resumes += 1;

@@ -4,6 +4,7 @@ const cors = require('cors');
 const multer = require('multer');
 const authRoutes = require('./routes/auth');
 const jobRoutes = require('./routes/job');
+require('./models/User');
 require('./models/Profile');
 require('./models/Recruiter');
 require('./models/Job');

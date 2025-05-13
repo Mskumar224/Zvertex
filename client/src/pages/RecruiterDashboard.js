@@ -1,115 +1,60 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Button, Box, Grid } from '@mui/material';
+import { Container, Typography, Box, useMediaQuery } from '@mui/material';
 import axios from 'axios';
-import DocumentUpload from '../components/DocumentUpload';
 
 function RecruiterDashboard() {
-  const [user, setUser] = useState(null);
-  const [profiles, setProfiles] = useState([{}, {}, {}, {}, {}]);
-  const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState(null);
+  const [error, setError] = useState('');
+  const isMobile = useMediaQuery('(max-width:600px)');
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
+    const fetchUserData = async () => {
       try {
-        const { data } = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/user`, {
-          headers: { Authorization: `Bearer ${token}` },
+        console.log('Sending GET to /api/auth/user');
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('No authentication token found');
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/user`, {
+          headers: { Authorization: `Bearer ${token}` }
         });
-        setUser(data);
-        setProfiles(data.profiles?.slice(0, 5).concat(Array(5 - (data.profiles?.length || 0)).fill({})) || [{}, {}, {}, {}, {}]);
+        setUserData(response.data);
+        setError('');
       } catch (err) {
-        console.error('Failed to fetch user:', err);
-      } finally {
-        setLoading(false);
+        const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch user data';
+        setError(errorMessage);
+        console.error('Fetch user error:', errorMessage, {
+          status: err.response?.status,
+          data: err.response?.data,
+          url: err.config?.url,
+          headers: err.config?.headers,
+          method: err.config?.method,
+          responseText: err.response?.data
+        });
       }
     };
-    fetchUser();
+    fetchUserData();
   }, []);
 
-  const handleUploadSuccess = (data) => {
-    setUser(prev => ({
-      ...prev,
-      profiles: [...(prev?.profiles || []), { _id: data.profileId, extractedTech: data.detectedTech, extractedRole: data.detectedRole }],
-    }));
-    setProfiles(prev => {
-      const newProfiles = [...prev];
-      const emptyIndex = newProfiles.findIndex(p => !p._id);
-      if (emptyIndex !== -1) newProfiles[emptyIndex] = { _id: data.profileId, extractedTech: data.detectedTech, extractedRole: data.detectedRole };
-      return newProfiles;
-    });
-  };
-
-  const handleExport = () => {
-    if (user?._id) {
-      window.location.href = `${process.env.REACT_APP_API_URL}/api/job/export-dashboard/${user._id}`;
-    }
-  };
-
-  if (loading) {
-    return (
-      <Container maxWidth="lg" sx={{ py: 6 }}>
-        <Typography variant="h4" sx={{ color: '#1976d2', mb: 4, cursor: 'pointer' }} onClick={() => window.location.href = '/'}>
-          ZvertexAI - Recruiter Dashboard
-        </Typography>
-        <Typography>Loading...</Typography>
-      </Container>
-    );
-  }
-
-  if (!user) {
-    return (
-      <Container maxWidth="lg" sx={{ py: 6 }}>
-        <Typography variant="h4" sx={{ color: '#1976d2', mb: 4, cursor: 'pointer' }} onClick={() => window.location.href = '/'}>
-          ZvertexAI - Recruiter Dashboard
-        </Typography>
-        <Typography>Please log in to view your dashboard.</Typography>
-        <Button variant="contained" color="primary" sx={{ mt: 2, borderRadius: '25px' }} onClick={() => window.location.href = '/login'}>
-          Login
-        </Button>
-      </Container>
-    );
-  }
-
   return (
-    <Container maxWidth="lg" sx={{ py: 6 }}>
-      <Typography variant="h4" sx={{ color: '#1976d2', mb: 4, cursor: 'pointer' }} onClick={() => window.location.href = '/'}>
-        ZvertexAI - Recruiter Dashboard
-      </Typography>
-      <Typography variant="h6">Welcome, {user.name || user.email}</Typography>
-      <Typography>Subscription: {user.subscription}</Typography>
-      <Typography>Jobs Applied: {user.jobsApplied?.length || 0}</Typography>
-      <Box sx={{ mt: 2, mb: 4 }}>
-        <Button
-          variant="contained"
-          color="primary"
-          sx={{ mr: 2, borderRadius: '25px' }}
-          onClick={() => window.location.href = '/job-apply'}
-        >
-          Manage Job Applications
-        </Button>
-        <Button variant="contained" color="secondary" sx={{ borderRadius: '25px' }} onClick={handleExport}>
-          Export Dashboard
-        </Button>
-      </Box>
-      <Box sx={{ mt: 4 }}>
-        <Typography variant="h5" sx={{ mb: 2 }}>Manage Profiles (5 Slots)</Typography>
-        <Grid container spacing={4}>
-          {profiles.map((profile, index) => (
-            <Grid item xs={12} md={4} key={index}>
-              <Box sx={{ p: 2, border: '1px solid #1976d2', borderRadius: 2, background: '#fff' }}>
-                <Typography variant="h6">
-                  Profile {index + 1} {profile.extractedTech ? `(${profile.extractedTech})` : ''}
-                </Typography>
-                {!profile._id && <DocumentUpload userId={user._id} onUploadSuccess={handleUploadSuccess} />}
-              </Box>
-            </Grid>
-          ))}
-        </Grid>
+    <Container maxWidth="md" sx={{ py: 8 }}>
+      <Box sx={{ p: 4, background: '#fff', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <Typography variant={isMobile ? 'h5' : 'h4'} align="center" sx={{ color: '#1976d2', mb: 4 }}>
+          ZvertexAI - Recruiter Dashboard
+        </Typography>
+        {error && (
+          <Typography color="error" sx={{ mb: 2, textAlign: 'center' }}>
+            {error}. Please try logging in again or contact support.
+          </Typography>
+        )}
+        {userData ? (
+          <Box>
+            <Typography variant="h6">Welcome, {userData.name}</Typography>
+            <Typography>Email: {userData.email}</Typography>
+            <Typography>Subscription: {userData.subscription || 'None'}</Typography>
+            <Typography>Posted Jobs: {userData.jobsApplied?.length || 0}</Typography>
+          </Box>
+        ) : (
+          <Typography>Loading user data...</Typography>
+        )}
       </Box>
     </Container>
   );

@@ -12,7 +12,7 @@ function StudentDashboard() {
       try {
         console.log('Sending GET to /api/auth/user');
         const token = localStorage.getItem('token');
-        if (!token) throw new Error('No token found');
+        if (!token) throw new Error('No authentication token found');
         const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/user`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -42,14 +42,14 @@ function StudentDashboard() {
         </Typography>
         {error && (
           <Typography color="error" sx={{ mb: 2, textAlign: 'center' }}>
-            {error}
+            {error}. Please try logging in again or contact support.
           </Typography>
         )}
         {userData ? (
           <Box>
             <Typography variant="h6">Welcome, {userData.name}</Typography>
             <Typography>Email: {userData.email}</Typography>
-            <Typography>Subscription: {userData.subscription}</Typography>
+            <Typography>Subscription: {userData.subscription || 'None'}</Typography>
             <Typography>Selected Technology: {userData.selectedTechnology || 'Not set'}</Typography>
             <Typography>Preferred Companies: {userData.selectedCompanies?.join(', ') || 'Not set'}</Typography>
             <Typography>Jobs Applied: {userData.jobsApplied?.length || 0}</Typography>
