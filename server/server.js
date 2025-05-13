@@ -43,13 +43,24 @@ app.use('/api/job', upload.single('resume'), jobRoutes);
 app.use('/api/auth', authRoutes);
 
 // Health check endpoint
-app.get('/ping', (req, res) => res.json({ status: 'alive' }));
+app.get('/ping', (req, res) => {
+  res.status(200).json({ status: 'alive' });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Server error:', err.message, err);
+  res.status(500).json({ message: 'Internal server error', error: err.message });
+});
 
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 }).then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1); // Exit on MongoDB connection failure
+  });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
