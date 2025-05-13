@@ -16,7 +16,7 @@ function Sidebar({ drawerWidth, isMobile }) {
     { text: 'Student Plan', path: '/student-dashboard', desc: 'Auto-apply to top jobs' },
     { text: 'Recruiter Tools', path: '/recruiter-dashboard', desc: 'Manage up to 5 profiles' },
     { text: 'Business Growth', path: '/business-dashboard', desc: 'Scale with 3 recruiters' },
-    { text: 'ZGpt Search', path: '/zgpt', desc: 'Instant answers for job seekers' },
+    { text: 'ZOHA Search', path: '/zoha', desc: 'Instant answers for job seekers' },  
   ];
 
   return (

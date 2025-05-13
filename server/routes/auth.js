@@ -10,11 +10,33 @@ const transporter = nodemailer.createTransport({
   auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
 });
 
+const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+
 router.post('/signup', async (req, res) => {
   const { email, password, name, phone, subscriptionType } = req.body;
   try {
+    if (!email || !password || !name || !subscriptionType) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: 'User already exists' });
+
+    const otp = generateOTP();
+    await transporter.sendMail({
+      from: '"ZvertexAI Team" <zvertexai@honotech.com>',
+      to: process.env.OTP_EMAIL,
+      subject: 'ZvertexAI - OTP for Signup',
+      html: `
+        <div style="font-family: Roboto, Arial, sans-serif; color: #333;">
+          <h2 style="color: #1976d2;">Your OTP for Signup</h2>
+          <p>Dear User,</p>
+          <p>Your OTP for signup is: <strong>${otp}</strong></p>
+          <p>This OTP is valid for 10 minutes.</p>
+          <p>Best regards,<br>The ZvertexAI Team</p>
+        </div>
+      `,
+    });
 
     const user = new User({
       email,
@@ -24,23 +46,53 @@ router.post('/signup', async (req, res) => {
       subscription: subscriptionType || 'NONE',
       selectedCompanies: ['Indeed', 'LinkedIn', 'Glassdoor'],
       selectedTechnology: 'JavaScript',
+      otp,
+      otpExpires: Date.now() + 10 * 60 * 1000, // 10 minutes
     });
     await user.save();
-    const token = jwt.sign({ id: user._id }, JWT_SECRET);
-    res.status(201).json({ token, subscription: user.subscription });
+    res.status(201).json({ message: 'OTP sent to zvertex.247@gmail.com', userId: user._id });
   } catch (error) {
+    console.error('Signup error:', error); // Added for debugging
     res.status(500).json({ message: 'Signup failed', error: error.message });
+  }
+});
+
+router.post('/verify-otp', async (req, res) => {
+  const { userId, otp } = req.body;
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.otp !== otp || Date.now() > user.otpExpires) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    user.otp = null;
+    user.otpExpires = null;
+    await user.save();
+
+    const token = jwt.sign({ id: user._id }, JWT_SECRET);
+    res.json({ token, subscription: user.subscription });
+  } catch (error) {
+    console.error('OTP verification error:', error); // Added for debugging
+    res.status(500).json({ message: 'OTP verification failed', error: error.message });
   }
 });
 
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+
     const user = await User.findOne({ email });
-    if (!user || user.password !== password) return res.status(400).json({ message: 'Invalid credentials' });
+    if (!user || user.password !== password) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
     const token = jwt.sign({ id: user._id }, JWT_SECRET);
     res.json({ token, subscription: user.subscription });
   } catch (error) {
+    console.error('Login error:', error); // Added for debugging
     res.status(500).json({ message: 'Login failed', error: error.message });
   }
 });
@@ -65,6 +117,7 @@ router.get('/user', async (req, res) => {
       additionalDetails: user.additionalDetails,
     });
   } catch (error) {
+    console.error('User fetch error:', error); // Added for debugging
     res.status(500).json({ error: 'User fetch failed', details: error.message });
   }
 });
@@ -93,6 +146,7 @@ router.post('/forgot-password', async (req, res) => {
     });
     res.json({ message: 'Reset link sent to your email' });
   } catch (error) {
+    console.error('Forgot password error:', error); // Added for debugging
     res.status(500).json({ message: 'Failed to send reset link', error: error.message });
   }
 });
@@ -107,6 +161,7 @@ router.post('/reset-password', async (req, res) => {
     await user.save();
     res.json({ message: 'Password reset successfully' });
   } catch (error) {
+    console.error('Reset password error:', error); // Added for debugging
     res.status(500).json({ message: 'Reset failed', error: error.message });
   }
 });

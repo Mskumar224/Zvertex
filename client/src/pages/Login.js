@@ -11,6 +11,10 @@ function Login() {
   const isMobile = useMediaQuery('(max-width:600px)');
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      setError('Please enter both email and password');
+      return;
+    }
     try {
       const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, { email, password });
       localStorage.setItem('token', data.token);
@@ -55,6 +59,7 @@ function Login() {
           onChange={(e) => setEmail(e.target.value)}
           sx={{ mb: 3 }}
           variant="outlined"
+          error={!!error && !email}
         />
         <TextField
           label="Password"
@@ -64,6 +69,7 @@ function Login() {
           onChange={(e) => setPassword(e.target.value)}
           sx={{ mb: 3 }}
           variant="outlined"
+          error={!!error && !password}
         />
         <Button
           variant="contained"

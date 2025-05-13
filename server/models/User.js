@@ -22,6 +22,9 @@ const userSchema = new mongoose.Schema({
     experience: String,
     education: String,
   },
+  otp: String,
+  otpExpires: Date,
+  pendingSubscription: String,
 });
 
 module.exports = mongoose.model('User', userSchema);

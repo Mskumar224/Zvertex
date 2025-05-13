@@ -21,6 +21,7 @@ router.post('/search', async (req, res) => {
 
     res.json({ results });
   } catch (error) {
+    console.error('ZOHA search error:', error); // Updated for debugging
     res.status(500).json({ error: 'Search failed', details: error.message });
   }
 });

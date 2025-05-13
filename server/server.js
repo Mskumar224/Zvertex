@@ -6,7 +6,7 @@ const fileUpload = require('express-fileupload');
 const authRoutes = require('./routes/auth');
 const subscriptionRoutes = require('./routes/subscription');
 const jobRoutes = require('./routes/job');
-const zgptRoutes = require('./routes/zgpt');
+const zohaRoutes = require('./routes/zoha');   
 const { scheduleDailyEmails } = require('./utils/dailyEmail');
 const { scheduleRecurringJobs } = require('./utils/recurringJobs');
 
@@ -36,7 +36,7 @@ app.use(fileUpload());
 app.use('/api/auth', authRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/job', jobRoutes);
-app.use('/api/zgpt', zgptRoutes);
+app.use('/api/zoha', zohaRoutes);  
 
 app.get('/test', (req, res) => res.send('Server is alive'));
 app.get('/health', (req, res) => res.status(200).send('OK'));

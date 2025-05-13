@@ -11,7 +11,7 @@ import RecruiterDashboard from './pages/RecruiterDashboard';
 import BusinessDashboard from './pages/BusinessDashboard';
 import JobApply from './pages/JobApply';
 import Saas from './pages/Saas';
-import Zgpt from './pages/Zgpt';
+import ZOHA from './pages/ZOHA'; 
 import Petmic from './pages/Petmic';
 
 const drawerWidth = 280;
@@ -35,7 +35,7 @@ function App() {
             <Route path="/business-dashboard" component={BusinessDashboard} />
             <Route path="/job-apply" component={JobApply} />
             <Route path="/saas" component={Saas} />
-            <Route path="/zgpt" component={Zgpt} />
+            <Route path="/zoha" component={ZOHA} />  
             <Route path="/petmic" component={Petmic} />
             <Route path="*" render={() => <Redirect to="/" />} />
           </Switch>

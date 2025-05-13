@@ -11,7 +11,7 @@ function Home() {
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     try {
-      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/zgpt/search`, { query: searchQuery });
+      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/zoha/search`, { query: searchQuery });
       setSearchResults(data.results);
     } catch (err) {
       console.error('Search failed:', err);
@@ -58,7 +58,7 @@ function Home() {
       <Box sx={{ mb: 6, display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: isMobile ? 'column' : 'row' }}>
         <TextField
           variant="outlined"
-          placeholder="Ask ZGpt about jobs, skills, or careers..."
+          placeholder="Ask ZOHA about jobs, skills, or careers..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyPress={handleKeyPress}
@@ -86,7 +86,7 @@ function Home() {
             '&:hover': { background: 'linear-gradient(45deg, #115293, #1976d2)' },
           }}
         >
-          Search
+          ZOHA
         </Button>
       </Box>
 

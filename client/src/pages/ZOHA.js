@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { Container, Typography, TextField, Button, Box } from '@mui/material';
 import axios from 'axios';
 
-function Zgpt() {
+function ZOHA() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
 
   const handleSearch = async () => {
     if (!query.trim()) return;
     try {
-      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/zgpt/search`, { query });
+      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/zoha/search`, { query });
       setResults(data.results);
     } catch (err) {
       console.error('Search failed:', err);
@@ -20,12 +20,12 @@ function Zgpt() {
   return (
     <Container maxWidth="md" sx={{ py: 6 }}>
       <Typography variant="h4" sx={{ color: '#1976d2', mb: 4, cursor: 'pointer' }} onClick={() => window.location.href = '/'}>
-        ZvertexAI - ZGpt
+        ZvertexAI - ZOHA
       </Typography>
       <Box sx={{ display: 'flex', mb: 4 }}>
         <TextField
           variant="outlined"
-          placeholder="Ask ZGpt about jobs, skills, or careers..."
+          placeholder="Ask ZOHA about jobs, skills, or careers..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -76,4 +76,4 @@ function Zgpt() {
   );
 }
 
-export default Zgpt;
+export default ZOHA;
