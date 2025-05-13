@@ -1,37 +1,28 @@
 import React, { useState } from 'react';
-import { Container, Typography, TextField, Button, Box, FormControl, InputLabel, Select, MenuItem, Link } from '@mui/material';
+import { Container, Typography, TextField, Button, Box, Link } from '@mui/material';
 import axios from 'axios';
-import { useHistory } from 'react-router-dom';
+import { useHistory, useParams } from 'react-router-dom';
 
-function Signup() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    subscription: ''
-  });
+function ResetPassword() {
+  const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const history = useHistory();
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const { token } = useParams();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      console.log('Sending POST to /api/auth/signup:', formData);
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/signup`, formData);
+      console.log('Sending POST to /api/auth/reset-password:', { token });
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/reset-password/${token}`, { password });
       setMessage(response.data.message);
       setError('');
       setTimeout(() => history.push('/login'), 3000);
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Signup failed';
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to reset password';
       setError(errorMessage);
       setMessage('');
-      console.error('Signup error:', errorMessage, {
+      console.error('Reset password error:', errorMessage, {
         status: err.response?.status,
         data: err.response?.data
       });
@@ -66,7 +57,7 @@ function Signup() {
           align="center"
           sx={{ color: '#1976d2', mb: 3, fontWeight: 600 }}
         >
-          ZvertexAI - Signup
+          ZvertexAI - Reset Password
         </Typography>
         {message && (
           <Typography sx={{ color: '#115293', mb: 2, textAlign: 'center', fontSize: '0.9rem' }}>
@@ -81,63 +72,15 @@ function Signup() {
         <form onSubmit={handleSubmit}>
           <TextField
             fullWidth
-            label="Name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            margin="normal"
-            required
-            variant="outlined"
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            label="Email"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleChange}
-            margin="normal"
-            required
-            variant="outlined"
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            label="Phone"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            margin="normal"
-            required
-            variant="outlined"
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            label="Password"
-            name="password"
+            label="New Password"
             type="password"
-            value={formData.password}
-            onChange={handleChange}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             margin="normal"
             required
             variant="outlined"
             sx={{ mb: 2 }}
           />
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Subscription</InputLabel>
-            <Select
-              name="subscription"
-              value={formData.subscription}
-              onChange={handleChange}
-              required
-            >
-              <MenuItem value="Student">Student</MenuItem>
-              <MenuItem value="Recruiter">Recruiter</MenuItem>
-              <MenuItem value="Business">Business</MenuItem>
-            </Select>
-          </FormControl>
           <Button
             type="submit"
             variant="contained"
@@ -145,7 +88,7 @@ function Signup() {
             fullWidth
             sx={{ mt: 2, py: 1.2, fontSize: '1rem' }}
           >
-            Sign Up
+            Reset Password
           </Button>
           <Link
             href="/login"
@@ -159,7 +102,7 @@ function Signup() {
               '&:hover': { textDecoration: 'underline' },
             }}
           >
-            Already have an account? Log In
+            Back to Login
           </Link>
         </form>
       </Box>
@@ -167,4 +110,4 @@ function Signup() {
   );
 }
 
-export default Signup;
+export default ResetPassword;

@@ -5,29 +5,66 @@ const Job = require('../models/Job');
 const Profile = require('../models/Profile');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
-const { v4: uuidv4 } = require('uuid');
+const axios = require('axios');
+const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
 });
 
-// Simulated tech and role extraction
-const extractTechAndRole = (file) => {
-  return {
-    detectedTech: ['JavaScript', 'Python', 'Java'][Math.floor(Math.random() * 3)],
-    detectedRole: ['Developer', 'Engineer', 'Consultant'][Math.floor(Math.random() * 3)]
-  };
+// Enhanced resume parsing
+const parseResume = async (file) => {
+  let text = '';
+  try {
+    if (file.mimetype === 'application/pdf') {
+      const data = await pdfParse(file.buffer);
+      text = data.text;
+    } else if (file.mimetype === 'application/msword' || file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      const result = await mammoth.extractRawText({ buffer: file.buffer });
+      text = result.value;
+    }
+
+    const techKeywords = ['JavaScript', 'Python', 'Java', 'C++', 'React', 'Node.js', 'SQL', 'AWS', 'Angular', 'Django'];
+    const roleKeywords = ['Developer', 'Engineer', 'Consultant', 'Manager', 'Analyst', 'Architect', 'Designer'];
+    const detectedTech = techKeywords.find(keyword => text.toLowerCase().includes(keyword.toLowerCase())) || 'Unknown';
+    const detectedRole = roleKeywords.find(keyword => text.toLowerCase().includes(keyword.toLowerCase())) || 'Unknown';
+
+    return { detectedTech, detectedRole };
+  } catch (error) {
+    console.error('Resume parsing error:', error.message);
+    return { detectedTech: 'Unknown', detectedRole: 'Unknown' };
+  }
 };
 
-// Fetch real-time jobs (simulated)
+// Fetch real-time jobs (simulated GitHub Jobs API)
 const fetchRealTimeJobs = async (technology, companies) => {
-  const jobs = [
-    { title: `${technology} Developer`, company: companies[0] || 'Indeed', location: 'Remote', technology },
-    { title: `Senior ${technology} Engineer`, company: companies[1] || 'LinkedIn', location: 'San Francisco', technology },
-    { title: `${technology} Consultant`, company: companies[2] || 'Glassdoor', location: 'New York', technology }
-  ].filter(job => job.company);
-  return jobs;
+  try {
+    // Simulated API call (replace with real API like Adzuna or Indeed if available)
+    const jobs = [
+      { id: `job-${Date.now()}-1`, title: `${technology} Developer`, company: companies[0] || 'Indeed', location: 'Remote', jobLink: `https://www.indeed.com/viewjob?jk=job1`, requiredFields: ['name', 'email', 'phone'] },
+      { id: `job-${Date.now()}-2`, title: `Senior ${technology} Engineer`, company: companies[1] || 'LinkedIn', location: 'San Francisco', jobLink: `https://www.linkedin.com/jobs/view/job2`, requiredFields: ['name', 'email', 'linkedin'] },
+      { id: `job-${Date.now()}-3`, title: `${technology} Consultant`, company: companies[2] || 'Glassdoor', location: 'New York', jobLink: `https://www.glassdoor.com/job/job3`, requiredFields: ['name', 'email', 'portfolio'] }
+    ].filter(job => job.company);
+    return jobs;
+  } catch (error) {
+    console.error('Fetch jobs error:', error.message);
+    return [];
+  }
+};
+
+// Simulated form autofill
+const autofillJobForm = (job, user) => {
+  const formData = {};
+  job.requiredFields.forEach(field => {
+    if (field === 'name') formData[field] = user.name || 'N/A';
+    if (field === 'email') formData[field] = user.email || 'N/A';
+    if (field === 'phone') formData[field] = user.phone || 'N/A';
+    if (field === 'linkedin') formData[field] = user.linkedin || 'N/A';
+    if (field === 'portfolio') formData[field] = user.portfolio || 'N/A';
+  });
+  return formData;
 };
 
 router.post('/apply', async (req, res) => {
@@ -41,23 +78,68 @@ router.post('/apply', async (req, res) => {
     const user = await User.findById(decoded.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    // Check required fields
+    const requiredFields = ['phone', 'linkedin', 'portfolio'];
+    const missingFields = requiredFields.filter(field => !user[field]);
+    if (missingFields.length > 0) {
+      await transporter.sendMail({
+        from: '"ZvertexAI Team" <zvertexai@honotech.com>',
+        to: user.email,
+        subject: 'ZvertexAI - Complete Your Profile',
+        html: `
+          <div style="font-family: Roboto, Arial, sans-serif; color: #333;">
+            <h2 style="color: #1976d2;">Complete Your Profile</h2>
+            <p>Please provide the following details to enable auto-apply:</p>
+            <ul>${missingFields.map(field => `<li>${field}</li>`).join('')}</ul>
+            <p>Update your profile <a href="https://zvertexai.com/profile-form">here</a>.</p>
+            <p>Contact: <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a></p>
+          </div>
+        `
+      });
+      return res.status(400).json({ message: `Please update your profile with: ${missingFields.join(', ')}` });
+    }
+
+    // Parse resume
+    const { detectedTech, detectedRole } = await parseResume(req.file);
+
     // Fetch real-time jobs
-    const jobsToApply = await fetchRealTimeJobs(user.selectedTechnology, user.selectedCompanies);
+    const jobsToApply = await fetchRealTimeJobs(user.selectedTechnology || detectedTech, user.selectedCompanies);
     if (!jobsToApply.length) throw new Error('No matching jobs found');
 
     const jobIds = [];
     for (const jobData of jobsToApply) {
+      // Simulate autofill
+      const formData = autofillJobForm(jobData, user);
+      console.log('Autofilled form for job:', jobData.id, formData);
+
       const job = new Job({
         title: jobData.title,
         company: jobData.company,
         location: jobData.location,
-        technology: jobData.technology,
-        postedBy: user._id,
-        jobId: uuidv4() // Generate unique jobId
+        technology: user.selectedTechnology || detectedTech,
+        jobLink: jobData.jobLink,
+        postedBy: user._id
       });
       await job.save();
       user.jobsApplied.push(job._id);
       jobIds.push(job._id.toString());
+
+      // Send communication email to job poster (simulated)
+      await transporter.sendMail({
+        from: '"ZvertexAI Team" <zvertexai@honotech.com>',
+        to: `recruiter@${jobData.company.toLowerCase()}.com`, // Simulated
+        subject: `Application for ${jobData.title}`,
+        html: `
+          <div style="font-family: Roboto, Arial, sans-serif; color: #333;">
+            <h2 style="color: #1976d2;">New Application</h2>
+            <p>Applicant: ${user.name}</p>
+            <p>Email: ${user.email}</p>
+            <p>Phone: ${user.phone}</p>
+            <p>Job: ${jobData.title}</p>
+            <p>Contact the applicant for further steps.</p>
+          </div>
+        `
+      });
     }
 
     user.resumes += 1;
@@ -79,11 +161,12 @@ router.post('/apply', async (req, res) => {
                 <strong>Job ID:</strong> ${jobIds[index]}<br>
                 <strong>Title:</strong> ${job.title}<br>
                 <strong>Company:</strong> ${job.company}<br>
-                <strong>Location:</strong> ${job.location}
+                <strong>Location:</strong> ${job.location}<br>
+                <strong>Apply Here:</strong> <a href="${job.jobLink}">${job.jobLink}</a>
               </li>
             `).join('')}
           </ul>
-          <p><strong>Technology:</strong> ${user.selectedTechnology || 'Not specified'}</p>
+          <p><strong>Technology:</strong> ${user.selectedTechnology || detectedTech}</p>
           <p><strong>Companies:</strong> ${user.selectedCompanies?.join(', ') || 'Not specified'}</p>
           <p><strong>Resume count:</strong> ${user.resumes}</p>
           <p>Contact: <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a> or +1(918) 924-5130</p>
@@ -110,7 +193,7 @@ router.post('/upload-profile', async (req, res) => {
     const user = await User.findById(decoded.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const { detectedTech, detectedRole } = extractTechAndRole(req.file);
+    const { detectedTech, detectedRole } = await parseResume(req.file);
     const profile = new Profile({
       name: `Profile_${Date.now()}`,
       email: user.email,

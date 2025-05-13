@@ -44,7 +44,7 @@ function DocumentUpload({ userId, onUploadSuccess }) {
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
       {error && (
-        <Typography color="error" sx={{ mb: 2 }}>
+        <Typography sx={{ color: 'error.main', mb: 2, fontSize: '0.9rem' }}>
           {error}
         </Typography>
       )}
@@ -54,13 +54,15 @@ function DocumentUpload({ userId, onUploadSuccess }) {
         fullWidth
         margin="normal"
         inputProps={{ accept: '.pdf,.doc,.docx' }}
+        variant="outlined"
+        sx={{ mb: 2 }}
       />
       <Button
         type="submit"
         variant="contained"
         color="primary"
         fullWidth
-        sx={{ mt: 2, borderRadius: '25px' }}
+        sx={{ py: 1.2, fontSize: '0.95rem', borderRadius: '12px' }}
       >
         Upload Document
       </Button>

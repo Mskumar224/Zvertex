@@ -76,18 +76,42 @@ function JobApply() {
   };
 
   return (
-    <Container maxWidth="md" sx={{ py: 8 }}>
-      <Box sx={{ p: 4, background: '#fff', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <Typography variant={isMobile ? 'h5' : 'h4'} align="center" sx={{ color: '#1976d2', mb: 4 }}>
+    <Container
+      maxWidth="md"
+      sx={{
+        py: 4,
+        ml: { xs: 0, md: '260px' },
+        minHeight: '100vh',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      <Box
+        sx={{
+          p: { xs: 3, sm: 4 },
+          background: '#fff',
+          borderRadius: '16px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+          width: '100%',
+          maxWidth: 600,
+          transition: 'all 0.3s ease',
+        }}
+      >
+        <Typography
+          variant={isMobile ? 'h5' : 'h4'}
+          align="center"
+          sx={{ color: '#1976d2', mb: 3, fontWeight: 600 }}
+        >
           ZvertexAI - Job Application
         </Typography>
         {message && (
-          <Typography sx={{ color: '#115293', mb: 2, textAlign: 'center' }}>
+          <Typography sx={{ color: '#115293', mb: 2, textAlign: 'center', fontSize: '0.9rem' }}>
             {message}
           </Typography>
         )}
         {error && (
-          <Typography color="error" sx={{ mb: 2, textAlign: 'center' }}>
+          <Typography sx={{ color: 'error.main', mb: 2, textAlign: 'center', fontSize: '0.9rem' }}>
             {error}
           </Typography>
         )}
@@ -96,6 +120,7 @@ function JobApply() {
             <FormControlLabel
               control={<Switch checked={useManualTech} onChange={handleManualTechToggle} />}
               label="Enter technology manually"
+              sx={{ color: '#424242' }}
             />
           </Box>
           {useManualTech ? (
@@ -107,9 +132,11 @@ function JobApply() {
               onChange={handleChange}
               margin="normal"
               required
+              variant="outlined"
+              sx={{ mb: 2 }}
             />
           ) : (
-            <FormControl fullWidth margin="normal">
+            <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Preferred Technology</InputLabel>
               <Select
                 name="selectedTechnology"
@@ -121,10 +148,12 @@ function JobApply() {
                 <MenuItem value="Python">Python</MenuItem>
                 <MenuItem value="Java">Java</MenuItem>
                 <MenuItem value="C++">C++</MenuItem>
+                <MenuItem value="React">React</MenuItem>
+                <MenuItem value="Node.js">Node.js</MenuItem>
               </Select>
             </FormControl>
           )}
-          <FormControl fullWidth margin="normal">
+          <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Preferred Companies</InputLabel>
             <Select
               name="selectedCompanies"
@@ -136,7 +165,7 @@ function JobApply() {
               <MenuItem value="Indeed">Indeed</MenuItem>
               <MenuItem value="LinkedIn">LinkedIn</MenuItem>
               <MenuItem value="Glassdoor">Glassdoor</MenuItem>
-              <MenuItem value="Monster">Monster</MenuItem>
+              <MenuItem value="ZipRecruiter">ZipRecruiter</MenuItem>
             </Select>
           </FormControl>
           <TextField
@@ -146,13 +175,16 @@ function JobApply() {
             onChange={handleChange}
             margin="normal"
             required
+            variant="outlined"
+            inputProps={{ accept: '.pdf,.doc,.docx' }}
+            sx={{ mb: 2 }}
           />
           <Button
             type="submit"
             variant="contained"
             color="primary"
             fullWidth
-            sx={{ mt: 3, py: 1.5, borderRadius: '25px' }}
+            sx={{ mt: 2, py: 1.2, fontSize: '1rem' }}
           >
             Save Preferences & Apply
           </Button>

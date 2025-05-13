@@ -1,11 +1,11 @@
 const mongoose = require('mongoose');
 
 const jobSchema = new mongoose.Schema({
-  jobId: { type: String, unique: true }, // Ensure unique jobId
   title: String,
   company: String,
   location: String,
   technology: String,
+  jobLink: String,
   postedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now }
 });

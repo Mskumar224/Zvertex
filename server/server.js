@@ -5,6 +5,7 @@ const multer = require('multer');
 const authRoutes = require('./routes/auth');
 const jobRoutes = require('./routes/job');
 const exportRoutes = require('./routes/export');
+const cronJobs = require('./cronJobs');
 // Ensure models are registered before routes
 require('./models/User');
 require('./models/Profile');
@@ -15,16 +16,12 @@ require('dotenv').config();
 const app = express();
 
 // Configure CORS with explicit headers
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'https://zvertexai.com');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.header('Access-Control-Max-Age', '86400');
-  if (req.method === 'OPTIONS') {
-    return res.status(204).send();
-  }
-  next();
-});
+app.use(cors({
+  origin: ['https://zvertexai.com', 'http://localhost:3000'],
+  methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  maxAge: 86400
+}));
 
 // Log requests and responses
 app.use((req, res, next) => {
@@ -58,11 +55,13 @@ app.use((err, req, res, next) => {
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-}).then(() => console.log('MongoDB connected'))
-  .catch(err => {
-    console.error('MongoDB connection error:', err);
-    process.exit(1); // Exit on MongoDB connection failure
-  });
+}).then(() => {
+  console.log('MongoDB connected');
+  cronJobs.startAutoApply(); // Start cron jobs after MongoDB connection
+}).catch(err => {
+  console.error('MongoDB connection error:', err);
+  process.exit(1); // Exit on MongoDB connection failure
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Container, Typography, TextField, Button, Box, useMediaQuery } from '@mui/material';
+import { Container, Typography, TextField, Button, Box, Link } from '@mui/material';
 import axios from 'axios';
 import { useHistory } from 'react-router-dom';
 
@@ -10,10 +10,9 @@ function Login() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const history = useHistory();
-  const isMobile = useMediaQuery('(max-width:600px)');
 
   const handleChange = (e) => {
-    setFormData({ ...(formData), [e.target.name]: e.target.value });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
@@ -21,9 +20,7 @@ function Login() {
     try {
       console.log('Sending POST to /api/auth/login:', { email: formData.email });
       const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, formData, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
       if (response.data.needsOtp) {
         setUserId(response.data.userId);
@@ -71,18 +68,42 @@ function Login() {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ py: 8 }}>
-      <Box sx={{ p: 4, background: '#fff', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <Typography variant={isMobile ? 'h5' : 'h4'} align="center" sx={{ color: '#1976d2', mb: 4 }}>
+    <Container
+      maxWidth="sm"
+      sx={{
+        py: 4,
+        ml: { xs: 0, md: '260px' },
+        display: 'flex',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        alignItems: 'center',
+      }}
+    >
+      <Box
+        sx={{
+          p: { xs: 3, sm: 4 },
+          background: '#fff',
+          borderRadius: '16px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+          width: '100%',
+          maxWidth: 400,
+          transition: 'all 0.3s ease',
+        }}
+      >
+        <Typography
+          variant="h4"
+          align="center"
+          sx={{ color: '#1976d2', mb: 3, fontWeight: 600 }}
+        >
           ZvertexAI - Login
         </Typography>
         {message && (
-          <Typography sx={{ color: '#115293', mb: 2, textAlign: 'center' }}>
+          <Typography sx={{ color: '#115293', mb: 2, textAlign: 'center', fontSize: '0.9rem' }}>
             {message}
           </Typography>
         )}
         {error && (
-          <Typography color="error" sx={{ mb: 2, textAlign: 'center' }}>
+          <Typography sx={{ color: 'error.main', mb: 2, textAlign: 'center', fontSize: '0.9rem' }}>
             {error}
           </Typography>
         )}
@@ -97,6 +118,8 @@ function Login() {
               onChange={handleChange}
               margin="normal"
               required
+              variant="outlined"
+              sx={{ mb: 2 }}
             />
             <TextField
               fullWidth
@@ -107,16 +130,46 @@ function Login() {
               onChange={handleChange}
               margin="normal"
               required
+              variant="outlined"
+              sx={{ mb: 2 }}
             />
             <Button
               type="submit"
               variant="contained"
               color="primary"
               fullWidth
-              sx={{ mt: 3, py: 1.5, borderRadius: '25px' }}
+              sx={{ mt: 2, py: 1.2, fontSize: '1rem' }}
             >
               Log In
             </Button>
+            <Link
+              href="/forgot-password"
+              sx={{
+                display: 'block',
+                textAlign: 'center',
+                mt: 2,
+                color: '#1976d2',
+                textDecoration: 'none',
+                fontSize: '0.9rem',
+                '&:hover': { textDecoration: 'underline' },
+              }}
+            >
+              Forgot Password?
+            </Link>
+            <Link
+              href="/signup"
+              sx={{
+                display: 'block',
+                textAlign: 'center',
+                mt: 1,
+                color: '#1976d2',
+                textDecoration: 'none',
+                fontSize: '0.9rem',
+                '&:hover': { textDecoration: 'underline' },
+              }}
+            >
+              Don't have an account? Sign Up
+            </Link>
           </form>
         ) : (
           <form onSubmit={handleOtpSubmit}>
@@ -127,13 +180,15 @@ function Login() {
               onChange={(e) => setOtp(e.target.value)}
               margin="normal"
               required
+              variant="outlined"
+              sx={{ mb: 2 }}
             />
             <Button
               type="submit"
               variant="contained"
               color="primary"
               fullWidth
-              sx={{ mt: 3, py: 1.5, borderRadius: '25px' }}
+              sx={{ mt: 2, py: 1.2, fontSize: '1rem' }}
             >
               Verify OTP
             </Button>

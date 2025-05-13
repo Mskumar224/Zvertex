@@ -3,13 +3,14 @@
     "version": "0.1.0",
     "private": true,
     "dependencies": {
-      "@mui/material": "^5.15.15",
-      "@emotion/react": "^11.11.4",
-      "@emotion/styled": "^11.11.5",
-      "axios": "^1.6.8",
+      "@mui/material": "^5.14.0",
+      "@emotion/react": "^11.11.0",
+      "@emotion/styled": "^11.11.0",
+      "axios": "^1.4.0",
       "react": "^18.2.0",
       "react-dom": "^18.2.0",
-      "react-router-dom": "^5.3.4"
+      "react-router-dom": "^5.3.3",
+      "react-scripts": "5.0.1"
     },
     "scripts": {
       "start": "react-scripts start",
@@ -18,7 +19,10 @@
       "eject": "react-scripts eject"
     },
     "eslintConfig": {
-      "extends": "react-app"
+      "extends": [
+        "react-app",
+        "react-app/jest"
+      ]
     },
     "browserslist": {
       "production": [
@@ -31,8 +35,5 @@
         "last 1 firefox version",
         "last 1 safari version"
       ]
-    },
-    "devDependencies": {
-      "react-scripts": "5.0.1"
     }
   }
