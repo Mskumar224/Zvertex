@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Button, Box, Grid, useMediaQuery } from '@mui/material';
+import { Container, Typography, Button, Box, Grid } from '@mui/material';
 import axios from 'axios';
 import DocumentUpload from '../components/DocumentUpload';
 
@@ -8,7 +8,6 @@ function StudentDashboard() {
   const [recruiters, setRecruiters] = useState([{}, {}, {}]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const isMobile = useMediaQuery('(max-width:600px)');
 
   useEffect(() => {
     const fetchUserData = async () => {
