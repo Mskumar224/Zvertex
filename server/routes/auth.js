@@ -29,22 +29,24 @@ router.post('/signup', async (req, res) => {
     }
 
     let user = await User.findOne({ email });
+    let otp;
     if (user && !user.isSubscriptionVerified) {
       // Treat unverified users as new: update details and resend OTP
+      otp = generateOTP();
       user.password = password;
       user.name = name;
       user.phone = phone;
       user.pendingSubscription = subscriptionType;
       user.selectedCompanies = ['Indeed', 'LinkedIn', 'Glassdoor'];
       user.selectedTechnology = 'JavaScript';
-      user.otp = generateOTP();
+      user.otp = otp;
       user.otpExpires = Date.now() + 10 * 60 * 1000;
       await user.save();
     } else if (user) {
       console.log('Signup duplicate email:', email);
       return res.status(400).json({ message: 'Account already exists. Please login or reset your password.' });
     } else {
-      const otp = generateOTP();
+      otp = generateOTP();
       user = new User({
         email,
         password,
