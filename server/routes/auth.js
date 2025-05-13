@@ -53,7 +53,6 @@ router.post('/signup', async (req, res) => {
       html: `
         <div style="font-family: Roboto, Arial, sans-serif; color: #333; background: #f5f5f5; padding: 20px; border-radius: 8px;">
           <h2 style="color: #1976d2;">ZvertexAI Subscription OTP</h2>
-          <p>Dear Admin,</p>
           <p>User (${email}) is signing up with subscription: <strong>${subscriptionType}</strong>.</p>
           <p>OTP: <strong style="font-size: 1.2em; color: #115293;">${otp}</strong> (valid for 10 minutes).</p>
           <p>Contact: <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a> or +1(918) 924-5130</p>
@@ -143,7 +142,8 @@ router.get('/user', async (req, res) => {
   if (!token) return res.status(401).json({ error: 'No token provided' });
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).populate('profiles jobsApplied recruiters');
+    if (!decoded.id) throw new Error('Invalid token payload');
+    const user = await User.findById(decoded.id).populate('profiles jobsApplied recruiters').lean();
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({
       email: user.email, subscription: user.subscription, name: user.name, phone: user.phone,
@@ -161,6 +161,7 @@ router.patch('/user', async (req, res) => {
   if (!token) return res.status(401).json({ error: 'No token provided' });
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded.id) throw new Error('Invalid token payload');
     const user = await User.findById(decoded.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
     const { selectedTechnology, selectedCompanies } = req.body;
@@ -208,6 +209,7 @@ router.post('/reset-password', async (req, res) => {
   const { token, newPassword } = req.body;
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded.id) throw new Error('Invalid token payload');
     const user = await User.findById(decoded.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
     if (newPassword.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' });
