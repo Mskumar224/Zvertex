@@ -11,7 +11,7 @@ function JobApply() {
   });
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [useManualTech, setUseManualTech] = useState(false); // Toggle for manual tech entry
+  const [useManualTech, setUseManualTech] = useState(false);
   const history = useHistory();
   const isMobile = useMediaQuery('(max-width:600px)');
 
@@ -27,7 +27,7 @@ function JobApply() {
 
   const handleManualTechToggle = (e) => {
     setUseManualTech(e.target.checked);
-    setFormData({ ...formData, selectedTechnology: '' }); // Reset tech when toggling
+    setFormData({ ...formData, selectedTechnology: '' });
   };
 
   const handleSubmit = async (e) => {
@@ -64,7 +64,8 @@ function JobApply() {
       console.error('Auto apply error:', errorMessage, {
         status: err.response?.status,
         data: err.response?.data,
-        url: err.config?.url
+        url: err.config?.url,
+        headers: err.config?.headers
       });
     }
   };
