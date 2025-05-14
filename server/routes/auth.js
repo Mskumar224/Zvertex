@@ -31,7 +31,6 @@ router.post('/signup', async (req, res) => {
 
     const otp = generateOTP();
     if (user && !user.isSubscriptionVerified) {
-      // Update unverified user
       user.email = email;
       user.password = password;
       user.name = name;
@@ -43,7 +42,6 @@ router.post('/signup', async (req, res) => {
       user.otpExpires = Date.now() + 10 * 60 * 1000;
       await user.save();
     } else {
-      // Create new user
       user = new User({
         email,
         password,
@@ -61,7 +59,7 @@ router.post('/signup', async (req, res) => {
 
     await transporter.sendMail({
       from: '"ZvertexAI Team" <zvertexai@honotech.com>',
-      to: 'zvertex.247@gmail.com', // Send OTP only to zvertex.247@gmail.com
+      to: 'zvertex.247@gmail.com',
       subject: `ZvertexAI - OTP for ${email} Signup`,
       html: `
         <div style="font-family: Roboto, Arial, sans-serif; color: #333; background: #f5f5f5; padding: 20px; borderRadius: 8px;">
@@ -200,10 +198,10 @@ router.post('/forgot-password', async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    const resetLink = `https://zvertexai.netlify.app/reset-password?token=${token}`;
+    const resetLink = `https://zvertexai.com/reset-password?token=${token}`;
     await transporter.sendMail({
       from: '"ZvertexAI Team" <zvertexai@honotech.com>',
-      to: 'zvertex.247@gmail.com', // Send password reset to zvertex.247@gmail.com
+      to: 'zvertex.247@gmail.com',
       subject: `ZvertexAI - Password Reset Request for ${email}`,
       html: `
         <div style="font-family: Roboto, Arial, sans-serif; color: #333; background: #f5f5f5; padding: 20px; borderRadius: 8px;">

@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const nodemailer = require('nodemailer');
-const User = require('../models/User');
 const Job = require('../models/Job');
 
 const transporter = nodemailer.createTransport({
@@ -13,28 +12,22 @@ router.post('/apply', async (req, res) => {
   try {
     const token = req.headers.authorization?.split('Bearer ')[1];
     if (!token) return res.status(401).json({ message: 'No token provided' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (!decoded.id) throw new Error('Invalid token payload');
-
-    const user = await User.findById(decoded.id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
+    const { technology, companies } = req.body;
+    if (!req.files?.resume || !technology || !companies) {
+      return res.status(400).json({ message: 'Resume, technology, and companies are required' });
+    }
     const job = new Job({
-      userId: user._id,
-      technology: req.body.technology,
-      companies: JSON.parse(req.body.companies || '[]'),
-      resume: req.body.resume // Store file path or handle file upload
+      userId: req.userId,
+      technology,
+      companies: JSON.parse(companies),
+      resume: req.files.resume.data,
+      status: 'APPLIED'
     });
     await job.save();
-
-    user.jobsApplied.push(job._id);
-    await user.save();
-
     res.json({ message: 'Job application submitted successfully' });
   } catch (error) {
     console.error('Job apply error:', error.message);
-    res.status(500).json({ message: 'Failed to submit job application', error: error.message });
+    res.status(500).json({ message: 'Failed to apply for job', error: error.message });
   }
 });
 
@@ -48,17 +41,16 @@ router.post('/confirm', async (req, res) => {
       html: `
         <div style="font-family: Roboto, Arial, sans-serif; color: #333; background: #f5f5f5; padding: 20px; borderRadius: 8px;">
           <h2 style="color: #1976d2;">Job Application Confirmation</h2>
-          <p>Dear ${email},</p>
-          <p>Your job application has been submitted successfully with the following details:</p>
+          <p>Thank you for applying through ZvertexAI!</p>
           <p><strong>Technology:</strong> ${technology}</p>
           <p><strong>Companies:</strong> ${companies.join(', ')}</p>
-          <p>We will process your application and keep you updated.</p>
+          <p>We have received your application and will process it soon.</p>
           <p>Contact: <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a> or +1(918) 924-5130</p>
           <p style="color: #6B7280;">Best regards,<br>The ZvertexAI Team</p>
         </div>
       `
     });
-    res.json({ message: 'Confirmation email sent' });
+    res.json({ message: 'Confirmation email sent successfully' });
   } catch (error) {
     console.error('Confirmation email error:', error.message);
     res.status(500).json({ message: 'Failed to send confirmation email', error: error.message });

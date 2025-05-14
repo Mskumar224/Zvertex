@@ -4,11 +4,7 @@ import axios from 'axios';
 import { useHistory } from 'react-router-dom';
 
 function JobApply() {
-  const [formData, setFormData] = useState({
-    selectedTechnology: '',
-    selectedCompanies: [],
-    resume: null
-  });
+  const [formData, setFormData] = useState({ selectedTechnology: '', selectedCompanies: [], resume: null });
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,9 +20,7 @@ function JobApply() {
     }
   };
 
-  const handleFileChange = (e) => {
-    setFormData({ ...formData, resume: e.target.files[0] });
-  };
+  const handleFileChange = (e) => setFormData({ ...formData, resume: e.target.files[0] });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,50 +28,31 @@ function JobApply() {
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No token found');
-
-      // Update user preferences
       await axios.patch(`${process.env.REACT_APP_API_URL}/api/auth/user`, {
         selectedTechnology: formData.selectedTechnology,
         selectedCompanies: formData.selectedCompanies
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      // Fetch user email
-      const userResponse = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/user`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const userEmail = userResponse.data.email;
-
-      // Simulate job application (mock API call or processing)
+      }, { headers: { Authorization: `Bearer ${token}` } });
       const formDataToSend = new FormData();
       formDataToSend.append('resume', formData.resume);
       formDataToSend.append('technology', formData.selectedTechnology);
       formDataToSend.append('companies', JSON.stringify(formData.selectedCompanies));
-
-      // Send confirmation email to user
       await axios.post(`${process.env.REACT_APP_API_URL}/api/job/apply`, formDataToSend, {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
       });
-
-      // Send confirmation email
-      await axios.post(`${process.env.REACT_APP_API_URL}/api/job/confirm`, {
-        email: userEmail,
-        technology: formData.selectedTechnology,
-        companies: formData.selectedCompanies
-      }, {
+      const userResponse = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/user`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-
-      setMessage('Job application submitted successfully! Check your email for confirmation.');
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/job/confirm`, {
+        email: userResponse.data.email,
+        technology: formData.selectedTechnology,
+        companies: formData.selectedCompanies
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      setMessage('Application submitted successfully! Check your email for confirmation.');
       setError('');
       setTimeout(() => history.push('/student-dashboard'), 2000);
     } catch (err) {
       console.error('Job apply error:', err);
-      setError(err.response?.data?.message || 'Failed to submit application');
+      setError(err.response?.data?.message || 'Failed to submit application.');
       setMessage('');
     } finally {
       setLoading(false);
@@ -86,43 +61,16 @@ function JobApply() {
 
   return (
     <Container maxWidth={isMobile ? 'xs' : 'sm'} sx={{ py: isMobile ? 4 : 8 }}>
-      <Box
-        sx={{
-          p: isMobile ? 2 : 4,
-          background: '#fff',
-          borderRadius: 2,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          transition: 'all 0.3s ease',
-        }}
-      >
-        <Typography
-          variant={isMobile ? 'h5' : 'h4'}
-          align="center"
-          sx={{ color: '#1976d2', mb: 4, fontWeight: 600 }}
-        >
+      <Box sx={{ p: isMobile ? 2 : 4, background: '#fff', borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+        <Typography variant={isMobile ? 'h5' : 'h4'} align="center" sx={{ color: '#1976d2', mb: 4, fontWeight: 600 }}>
           ZvertexAI - Job Application
         </Typography>
-        {message && (
-          <Typography sx={{ color: '#115293', mb: 2, textAlign: 'center', fontSize: isMobile ? '0.9rem' : '1rem' }}>
-            {message}
-          </Typography>
-        )}
-        {error && (
-          <Typography color="error" sx={{ mb: 2, textAlign: 'center', fontSize: isMobile ? '0.9rem' : '1rem' }}>
-            {error}
-          </Typography>
-        )}
+        {message && <Typography sx={{ color: '#115293', mb: 2, textAlign: 'center' }}>{message}</Typography>}
+        {error && <Typography color="error" sx={{ mb: 2, textAlign: 'center' }}>{error}</Typography>}
         <form onSubmit={handleSubmit}>
           <FormControl fullWidth margin="normal" variant="outlined" size={isMobile ? 'small' : 'medium'}>
             <InputLabel>Technology</InputLabel>
-            <Select
-              name="selectedTechnology"
-              value={formData.selectedTechnology}
-              onChange={handleChange}
-              label="Technology"
-              required
-              sx={{ borderRadius: '8px' }}
-            >
+            <Select name="selectedTechnology" value={formData.selectedTechnology} onChange={handleChange} label="Technology" required>
               <MenuItem value="JavaScript">JavaScript</MenuItem>
               <MenuItem value="Python">Python</MenuItem>
               <MenuItem value="Java">Java</MenuItem>
@@ -131,50 +79,17 @@ function JobApply() {
           </FormControl>
           <FormControl fullWidth margin="normal" variant="outlined" size={isMobile ? 'small' : 'medium'}>
             <InputLabel>Companies</InputLabel>
-            <Select
-              name="selectedCompanies"
-              value={formData.selectedCompanies}
-              onChange={handleChange}
-              label="Companies"
-              multiple
-              required
-              sx={{ borderRadius: '8px' }}
-            >
+            <Select name="selectedCompanies" value={formData.selectedCompanies} onChange={handleChange} label="Companies" multiple required>
               <MenuItem value="Indeed">Indeed</MenuItem>
               <MenuItem value="LinkedIn">LinkedIn</MenuItem>
               <MenuItem value="Glassdoor">Glassdoor</MenuItem>
               <MenuItem value="Monster">Monster</MenuItem>
             </Select>
           </FormControl>
-          <TextField
-            fullWidth
-            type="file"
-            name="resume"
-            onChange={handleFileChange}
-            margin="normal"
-            required
-            variant="outlined"
-            size={isMobile ? 'small' : 'medium'}
-            sx={{ '& .MuiInputBase-root': { borderRadius: '8px' } }}
-            inputProps={{ accept: '.pdf' }}
-          />
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            fullWidth
-            disabled={loading}
-            sx={{
-              mt: 3,
-              py: isMobile ? 1 : 1.5,
-              borderRadius: '25px',
-              background: 'linear-gradient(45deg, #1976d2, #42a5f5)',
-              '&:hover': { background: 'linear-gradient(45deg, #1565c0, #2196f3)' },
-              textTransform: 'none',
-              fontSize: isMobile ? '0.9rem' : '1rem',
-              fontWeight: 500,
-            }}
-          >
+          <Box sx={{ mt: 2, mb: 2 }}>
+            <input type="file" accept=".pdf" onChange={handleFileChange} required />
+          </Box>
+          <Button type="submit" variant="contained" color="primary" fullWidth disabled={loading} sx={{ mt: 3, py: isMobile ? 1 : 1.5, fontSize: isMobile ? '0.9rem' : '1rem' }}>
             {loading ? <CircularProgress size={24} color="inherit" /> : 'Submit Application'}
           </Button>
         </form>
