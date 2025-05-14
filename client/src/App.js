@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Switch, Redirect } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider, createTheme, AppBar, Toolbar, Typography, Container, Box, Link } from '@mui/material';
 import Signup from './pages/Signup';
 import Login from './pages/Login';
 import StudentDashboard from './pages/StudentDashboard';
@@ -86,13 +86,36 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <Router>
-        <Switch>
-          <Route exact path="/signup" component={Signup} />
-          <Route exact path="/login" component={Login} />
-          <Route exact path="/student-dashboard" component={StudentDashboard} />
-          <Route exact path="/job-apply" component={JobApply} />
-          <Redirect from="/" to="/login" />
-        </Switch>
+        <AppBar position="static" color="primary">
+          <Toolbar>
+            <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
+              ZvertexAI
+            </Typography>
+            <Link href="/signup" color="inherit" sx={{ mx: 2, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+              Signup
+            </Link>
+            <Link href="/login" color="inherit" sx={{ mx: 2, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+              Login
+            </Link>
+          </Toolbar>
+        </AppBar>
+        <Container maxWidth="lg" sx={{ minHeight: 'calc(100vh - 128px)', py: 4 }}>
+          <Switch>
+            <Route exact path="/signup" component={Signup} />
+            <Route exact path="/login" component={Login} />
+            <Route exact path="/student-dashboard" component={StudentDashboard} />
+            <Route exact path="/job-apply" component={JobApply} />
+            <Redirect from="/" to="/login" />
+          </Switch>
+        </Container>
+        <Box component="footer" sx={{ bgcolor: 'primary.main', color: 'white', py: 2, textAlign: 'center', mt: 'auto' }}>
+          <Typography variant="body2">
+            &copy; {new Date().getFullYear()} ZvertexAI. All rights reserved. |{' '}
+            <Link href="mailto:zvertex.247@gmail.com" color="inherit" sx={{ textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+              Contact Us
+            </Link>
+          </Typography>
+        </Box>
       </Router>
     </ThemeProvider>
   );
