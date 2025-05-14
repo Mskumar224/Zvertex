@@ -48,7 +48,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Simplified CORS configuration
+// CORS configuration
 const allowedOrigins = [
   'http://localhost:3000',
   'https://zvertexai.netlify.app',
@@ -74,9 +74,6 @@ app.use(
   })
 );
 
-// Handle preflight requests explicitly
-app.options('*', cors());
-
 // MongoDB connection with retry logic
 let dbConnected = false;
 const connectToMongoDB = async (retryCount = 0, maxRetries = 10) => {
@@ -90,7 +87,7 @@ const connectToMongoDB = async (retryCount = 0, maxRetries = 10) => {
   } catch (err) {
     console.error(`MongoDB connection attempt ${retryCount + 1} failed:`, err.message);
     if (retryCount < maxRetries) {
-      const delayMs = Math.min(1000 * 2 ** retryCount, 30000); // Exponential backoff, max 30s
+      const delayMs = Math.min(1000 * 2 ** retryCount, 30000);
       console.log(`Retrying in ${delayMs / 1000} seconds...`);
       setTimeout(() => connectToMongoDB(retryCount + 1, maxRetries), delayMs);
     } else {
@@ -113,7 +110,7 @@ mongoose.connection.on('error', (err) => {
   console.error('MongoDB connection error:', err.message);
 });
 
-// Multer configuration for memory storage (for Cloudinary)
+// Multer configuration
 const upload = multer({ storage: multer.memoryStorage() }).single('resume');
 
 // Schemas
@@ -277,7 +274,6 @@ const fetchRealTimeJobs = async (companies, technology, location, maxRetries = 3
     jobs[company] = [];
   }
 
-  // Check database for recent jobs (within last 6 hours)
   const cacheTime = new Date(Date.now() - 6 * 60 * 60 * 1000);
   const cachedJobs = await Job.find({
     company: { $in: companies },
@@ -290,7 +286,6 @@ const fetchRealTimeJobs = async (companies, technology, location, maxRetries = 3
   }
   console.log(`Retrieved ${cachedJobs.length} cached jobs from database`);
 
-  // If sufficient cached jobs, return early
   const totalCachedJobs = Object.values(jobs).flat().length;
   if (totalCachedJobs >= companies.length * 2) {
     console.log('Using cached jobs, skipping API calls');
@@ -302,7 +297,6 @@ const fetchRealTimeJobs = async (companies, technology, location, maxRetries = 3
     { name: 'LinkedIn', scraper: scrapeLinkedInJobs },
   ];
 
-  // Batch companies to reduce API calls
   const companyBatches = [];
   for (let i = 0; i < companies.length; i += 5) {
     companyBatches.push(companies.slice(i, i + 5));
@@ -315,12 +309,11 @@ const fetchRealTimeJobs = async (companies, technology, location, maxRetries = 3
           console.log(`Fetching jobs from ${source.name} for ${batch.length} companies at ${new Date().toISOString()} - Attempt ${attempt + 1}`);
           let scrapedJobs = [];
           if (source.name === 'Indeed') {
-            // Fetch multiple pages for Indeed to maximize results
             for (let page = 1; page <= 2; page++) {
               const pageJobs = await source.scraper(technology, location, batch, page);
               scrapedJobs.push(...pageJobs);
-              if (pageJobs.length < 10) break; // Stop if fewer results
-              await delay(2000); // Delay between page requests
+              if (pageJobs.length < 10) break;
+              await delay(2000);
             }
           } else {
             scrapedJobs = await source.scraper(technology, location, batch);
@@ -328,7 +321,6 @@ const fetchRealTimeJobs = async (companies, technology, location, maxRetries = 3
           for (const job of scrapedJobs) {
             if (batch.includes(job.company)) {
               jobs[job.company].push(job);
-              // Store in database
               await Job.updateOne(
                 { jobId: job.jobId },
                 { $set: job },
@@ -337,10 +329,10 @@ const fetchRealTimeJobs = async (companies, technology, location, maxRetries = 3
             }
           }
           console.log(`Stored ${scrapedJobs.length} jobs from ${source.name} for batch`);
-          break; // Success, move to next batch
+          break;
         } catch (error) {
           if (error.message === '429 Rate Limit' && attempt < maxRetries - 1) {
-            const waitTime = (2 ** attempt) * 10000; // Exponential backoff: 10s, 20s, 40s
+            const waitTime = (2 ** attempt) * 10000;
             console.warn(`Rate limited (429), waiting ${waitTime / 1000} seconds`);
             await delay(waitTime);
             continue;
@@ -369,7 +361,7 @@ const fetchRealTimeJobs = async (companies, technology, location, maxRetries = 3
             }
           }
         }
-        await delay(5000); // Delay between batches
+        await delay(5000);
       }
     }
   }
@@ -393,7 +385,7 @@ const autoApplyToJob = async (job, user) => {
     if (job.requiresDocs) {
       console.log(`Using LinkedIn: ${user.linkedinProfile || 'Not provided'}, Cover Letter: ${user.coverLetter || 'Not provided'}`);
     }
-    await delay(1000); // Simulate application process
+    await delay(1000);
     return true;
   } catch (error) {
     console.error(`Auto-apply failed for ${user.email} to ${job.title}:`, error.message);
@@ -455,7 +447,7 @@ schedule.scheduleJob('0 0 * * *', async () => {
     }
     const applied = await runAutoApplyForUser(userDoc);
     console.log(`Applied to ${applied} jobs for ${user.email}`);
-    await delay(5000); // Delay between users to avoid overwhelming APIs
+    await delay(5000);
   }
 });
 
@@ -704,6 +696,24 @@ app.post('/api/reset-password', async (req, res) => {
   }
 });
 
+app.post('/api/update-phone', async (req, res) => {
+  const { token, phone } = req.body;
+  try {
+    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
+    if (!token) return res.status(401).json({ message: 'No token provided' });
+    if (!phone) return res.status(400).json({ message: 'Phone number is required' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findOne({ email: decoded.email });
+    if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
+    user.phone = phone;
+    await user.save();
+    res.status(200).json({ message: 'Phone number updated successfully' });
+  } catch (error) {
+    console.error('Update phone error:', error.message);
+    res.status(500).json({ message: 'Failed to update phone number', error: error.message });
+  }
+});
+
 app.post('/api/upload-resume', upload, async (req, res) => {
   try {
     if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
@@ -715,8 +725,7 @@ app.post('/api/upload-resume', upload, async (req, res) => {
     const user = await User.findOne({ email: decoded.email });
     if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
     if (!user.phone) {
-      console.warn(`User ${user.email} missing phone number, updating schema may be required`);
-      return res.status(400).json({ message: 'Phone number required. Please update your profile.' });
+      return res.status(400).json({ message: 'Phone number required. Please update your profile.', errorCode: 'missing_phone' });
     }
     const result = await cloudinary.uploader.upload_stream({ resource_type: 'auto' }, async (error, result) => {
       if (error) throw new Error('Cloudinary upload failed');
@@ -740,11 +749,10 @@ app.post('/api/select-companies', async (req, res) => {
     const user = await User.findOne({ email: decoded.email });
     if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
     if (!user.phone) {
-      console.warn(`User ${user.email} missing phone number, updating schema may be required`);
-      return res.status(400).json({ message: 'Phone number required. Please update your profile.' });
+      return res.status(400).json({ message: 'Phone number required. Please update your profile.', errorCode: 'missing_phone' });
     }
     user.selectedCompanies = companies || [];
-    await user.save({ validateModifiedOnly: true }); // Skip phone validation for existing users
+    await user.save({ validateModifiedOnly: true });
     const jobs = await fetchRealTimeJobs(companies, user.technology, user.scraperPreferences.location);
     res.status(200).json({ message: 'Companies updated', jobs });
   } catch (error) {
@@ -761,9 +769,12 @@ app.post('/api/update-profile', async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findOne({ email: decoded.email });
     if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
+    if (!user.phone && !phone) {
+      return res.status(400).json({ message: 'Phone number required. Please provide a phone number.', errorCode: 'missing_phone' });
+    }
     user.linkedinProfile = linkedinProfile || user.linkedinProfile;
     user.coverLetter = coverLetter || user.coverLetter;
-    if (phone) user.phone = phone; // Update phone only if provided
+    if (phone) user.phone = phone;
     await user.save();
     res.status(200).json({ message: 'Profile updated', linkedinProfile: user.linkedinProfile, coverLetter: user.coverLetter, phone: user.phone });
   } catch (error) {
@@ -783,10 +794,8 @@ app.post('/api/auto-apply', async (req, res) => {
     if (!user.resumePaths.length) return res.status(400).json({ message: 'No resume uploaded' });
     if (!user.selectedCompanies.length) return res.status(400).json({ message: 'No companies selected' });
     if (!user.phone) {
-      console.warn(`User ${user.email} missing phone number, updating schema may be required`);
-      return res.status(400).json({ message: 'Phone number required. Please update your profile.' });
+      return res.status(400).json({ message: 'Phone number required. Please update your profile.', errorCode: 'missing_phone' });
     }
-    // Update profile only if new details are provided
     if (linkedinProfile) user.linkedinProfile = linkedinProfile;
     if (coverLetter) user.coverLetter = coverLetter;
     const appliedToday = await runAutoApplyForUser(user);
@@ -807,8 +816,7 @@ app.post('/api/update-scraper-preferences', async (req, res) => {
     const user = await User.findOne({ email: decoded.email });
     if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
     if (!user.phone) {
-      console.warn(`User ${user.email} missing phone number, updating schema may be required`);
-      return res.status(400).json({ message: 'Phone number required. Please update your profile.' });
+      return res.status(400).json({ message: 'Phone number required. Please update your profile.', errorCode: 'missing_phone' });
     }
     user.scraperPreferences.jobBoards = jobBoards || user.scraperPreferences.jobBoards;
     user.scraperPreferences.frequency = frequency || user.scraperPreferences.frequency;
@@ -830,8 +838,7 @@ app.get('/api/jobs', async (req, res) => {
     const user = await User.findOne({ email: decoded.email });
     if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
     if (!user.phone) {
-      console.warn(`User ${user.email} missing phone number, updating schema may be required`);
-      return res.status(400).json({ message: 'Phone number required. Please update your profile.' });
+      return res.status(400).json({ message: 'Phone number required. Please update your profile.', errorCode: 'missing_phone' });
     }
     const jobs = await Job.find({
       company: { $in: user.selectedCompanies },
@@ -844,7 +851,6 @@ app.get('/api/jobs', async (req, res) => {
   }
 });
 
-// Dashboard endpoint
 app.get('/api/dashboard', async (req, res) => {
   const { token } = req.headers.authorization?.split(' ')[1] ? { token: req.headers.authorization.split(' ')[1] } : req.query;
   try {
@@ -854,8 +860,7 @@ app.get('/api/dashboard', async (req, res) => {
     const user = await User.findOne({ email: decoded.email }).lean();
     if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
     if (!user.phone) {
-      console.warn(`User ${user.email} missing phone number, updating schema may be required`);
-      return res.status(400).json({ message: 'Phone number required. Please update your profile.' });
+      return res.status(400).json({ message: 'Phone number required. Please update your profile.', errorCode: 'missing_phone' });
     }
     const jobsAppliedCount = user.appliedJobs ? user.appliedJobs.length : 0;
     res.status(200).json({
