@@ -18,19 +18,35 @@ const StaticHomePage: React.FC = () => {
 
       try {
         const decoded = JSON.parse(atob(token.split('.')[1]));
+        if (!decoded || typeof decoded !== 'object') {
+          throw new Error('Invalid token payload');
+        }
         const companies = JSON.parse(localStorage.getItem('selectedCompanies') || '[]');
-        const res = await axios.post('https://zvertexai-orzv.onrender.com/api/select-companies', {
+        const selectCompaniesRes = await axios.post('https://zvertexai-orzv.onrender.com/api/select-companies', {
           token,
           companies,
+        }, {
+          headers: { Authorization: `Bearer ${token}` },
         });
 
-        const userRes = await axios.get('https://zvertexai-orzv.onrender.com/api/health');
+        try {
+          await axios.get('https://zvertexai-orzv.onrender.com/api/health');
+        } catch (healthError: any) {
+          console.error('Health check failed:', healthError.response?.status, healthError.message);
+          if (healthError.response?.status === 404) {
+            setError('Server health endpoint not found. Please try again later.');
+            return;
+          }
+        }
+
         if (companies.length > 0 && localStorage.getItem('resumeUploaded') === 'true') {
-          const appliedToday = await axios.post('https://zvertexai-orzv.onrender.com/api/auto-apply', { token });
+          const appliedTodayRes = await axios.post('https://zvertexai-orzv.onrender.com/api/auto-apply', { token }, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
           setUserData({
             email: decoded.email,
             companies: companies,
-            appliedToday: appliedToday.data.appliedToday || 0,
+            appliedToday: appliedTodayRes.data.appliedToday || 0,
           });
         } else {
           setUserData({
@@ -41,15 +57,17 @@ const StaticHomePage: React.FC = () => {
           setError('Please upload a resume and select companies to start auto-applying.');
         }
       } catch (error: any) {
-        console.error('Fetch user data failed:', error.message);
+        console.error('Fetch user data failed:', error.message, error.response?.status);
         if (error.response?.status === 403) {
           setError('Account not verified. Please complete OTP verification.');
           navigate('/login');
         } else if (error.response?.status === 400) {
           setError(error.response.data.message || 'Setup incomplete. Please upload a resume and select companies.');
           navigate('/resume-upload');
+        } else if (error.response?.status === 404) {
+          setError('Requested resource not found. Please check the server or try again later.');
         } else {
-          setError('Failed to load user data. Please try again later or contact support at zvertex.247@gmail.com.');
+          setError('Failed to load user data. Please try again later.');
         }
       }
     };
@@ -73,12 +91,20 @@ const StaticHomePage: React.FC = () => {
         formData.append('token', token);
         try {
           await axios.post('https://zvertexai-orzv.onrender.com/api/upload-resume', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
+            headers: { 
+              'Content-Type': 'multipart/form-data',
+              Authorization: `Bearer ${token}`,
+            },
           });
           localStorage.setItem('resumeUploaded', 'true');
           navigate('/companies');
         } catch (error: any) {
-          alert('Upload failed: ' + (error.response?.data?.message || error.message));
+          const errorMessage = error.response?.data?.message || error.message;
+          if (error.response?.status === 404) {
+            alert('Upload endpoint not found. Please check the server.');
+          } else {
+            alert(`Upload failed: ${errorMessage}`);
+          }
         }
       }
     };
@@ -88,10 +114,16 @@ const StaticHomePage: React.FC = () => {
   const handleLogin = async () => {
     try {
       const res = await axios.post('https://zvertexai-orzv.onrender.com/api/login', { email, password });
-      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('token', res.data.accessToken);
+      localStorage.setItem('refreshToken', res.data.refreshToken);
       navigate('/dashboard');
     } catch (error: any) {
-      alert('Login failed: ' + (error.response?.data?.message || error.message));
+      const errorMessage = error.response?.data?.message || error.message;
+      if (error.response?.status === 404) {
+        alert('Login endpoint not found. Please check the server.');
+      } else {
+        alert(`Login failed: ${errorMessage}`);
+      }
     }
   };
 
