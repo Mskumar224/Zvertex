@@ -87,38 +87,40 @@ app.options('*', (req, res) => {
   res.sendStatus(204);
 });
 
-// MongoDB connection with retry logic
+// MongoDB connection with retry logic and keep-alive
 let dbConnected = false;
 const connectToMongoDB = async () => {
-  let retries = 5;
-  while (retries > 0) {
-    try {
-      await mongoose.connect(process.env.MONGODB_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      });
-      dbConnected = true;
-      console.log('Connected to MongoDB');
-      break;
-    } catch (err) {
-      console.error('MongoDB connection attempt failed:', err.message);
-      retries--;
-      if (retries === 0) {
-        console.error('MongoDB connection exhausted retries');
-        break;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5s
-    }
+  try {
+    await mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      keepAlive: true,
+      keepAliveInitialDelay: 300000,
+    });
+    dbConnected = true;
+    console.log('Connected to MongoDB');
+  } catch (err) {
+    console.error('MongoDB connection failed:', err.message);
+    setTimeout(connectToMongoDB, 5000); // Retry every 5 seconds
   }
 };
 connectToMongoDB();
 
+// Keep MongoDB connection alive
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB disconnected, attempting to reconnect...');
+  dbConnected = false;
+  connectToMongoDB();
+});
+
 // Multer configuration for memory storage (for Cloudinary)
 const upload = multer({ storage: multer.memoryStorage() }).single('resume');
 
-// User schema
+// User schema with indexing
 const userSchema = new mongoose.Schema({
-  email: { type: String, unique: true, required: true },
+  email: { type: String, unique: true, required: true, index: true },
   password: { type: String, required: true },
   subscription: { type: String, enum: ['Student', 'Vendor/Recruiter', 'Business'], required: true },
   plan: { type: String, enum: ['Basic', 'Unlimited'], default: 'Basic' },
@@ -134,20 +136,25 @@ const userSchema = new mongoose.Schema({
   isOtpVerified: { type: Boolean, default: false },
 });
 
+// Add index for frequent queries
+userSchema.index({ email: 1, isOtpVerified: 1 });
+
 const User = mongoose.model('User', userSchema);
 
-// OTP schema
+// OTP schema with indexing
 const otpSchema = new mongoose.Schema({
-  email: { type: String, required: true },
+  email: { type: String, required: true, index: true },
   otp: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now, expires: 600 }, // Expires in 10 minutes
+  createdAt: { type: Date, default: Date.now, expires: 600 },
 });
 
 const OTP = mongoose.model('OTP', otpSchema);
 
-// Nodemailer setup
+// Nodemailer setup with connection pooling
 const transporter = nodemailer.createTransport({
   service: 'gmail',
+  pool: true,
+  maxConnections: 5,
   auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
 });
 transporter.verify((error) => {
@@ -288,7 +295,7 @@ const getSignupEmail = (email, subscription) => `
       </tr>
       <tr>
         <td style="background-color: #87CEEB; padding: 10px; text-align: center;">
-          <p style="color: #FFFFFF; font-size: 12px; margin: 0;">&copy; ${new Date().getFullYear()} ZvertexAI. All rights reserved.</p>
+          <p style="color: #FFFFFF; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} ZvertexAI. All rights reserved.</p>
         </td>
       </tr>
     </table>
@@ -314,7 +321,7 @@ const getOtpEmail = (email, otp) => `
       </tr>
       <tr>
         <td style="background-color: #87CEEB; padding: 10px; text-align: center;">
-          <p style="color: #FFFFFF; font-size: 12px; margin: 0;">&copy; ${new Date().getFullYear()} ZvertexAI. All rights reserved.</p>
+          <p style="color: #FFFFFF; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} ZvertexAI. All rights reserved.</p>
         </td>
       </tr>
     </table>
@@ -343,7 +350,7 @@ const getAutoApplyEmail = (email, subscription, companies) => `
       </tr>
       <tr>
         <td style="background-color: #87CEEB; padding: 10px; text-align: center;">
-          <p style="color: #FFFFFF; font-size: 12px; margin: 0;">&copy; ${new Date().getFullYear()} ZvertexAI. All rights reserved.</p>
+          <p style="color: #FFFFFF; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} ZvertexAI. All rights reserved.</p>
         </td>
       </tr>
     </table>
@@ -369,7 +376,7 @@ const getResetPasswordEmail = (email, resetLink) => `
       </tr>
       <tr>
         <td style="background-color: #87CEEB; padding: 10px; text-align: center;">
-          <p style="color: #FFFFFF; font-size: 12px; margin: 0;">&copy; ${new Date().getFullYear()} ZvertexAI. All rights reserved.</p>
+          <p style="color: #FFFFFF; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} ZvertexAI. All rights reserved.</p>
         </td>
       </tr>
     </table>
@@ -385,11 +392,10 @@ app.post('/api/signup', async (req, res) => {
     if (!dbConnected) throw new Error('Database not connected');
     if (!email || !password || !subscription)
       return res.status(400).json({ message: 'Missing required fields' });
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email }).lean();
     if (existingUser && existingUser.isOtpVerified)
       return res.status(400).json({ message: 'Email already registered and verified' });
     if (existingUser && !existingUser.isOtpVerified) {
-      // Allow re-attempt if not verified
       await User.deleteOne({ email });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -410,7 +416,7 @@ app.post('/api/verify-otp', async (req, res) => {
   try {
     if (!dbConnected) throw new Error('Database not connected');
     if (!email || !otp) return res.status(400).json({ message: 'Missing email or OTP' });
-    const otpRecord = await OTP.findOne({ email, otp });
+    const otpRecord = await OTP.findOne({ email, otp }).lean();
     if (!otpRecord) return res.status(400).json({ message: 'Invalid or expired OTP' });
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -433,7 +439,7 @@ app.post('/api/login', async (req, res) => {
   try {
     if (!dbConnected) throw new Error('Database not connected');
     if (!email || !password) return res.status(400).json({ message: 'Missing required fields' });
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).lean();
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -614,3 +620,13 @@ const port = process.env.PORT || 5002;
 app.listen(port, () => console.log(`Server running on port ${port}`)).on('error', (err) =>
   console.error('Server startup failed:', err.message)
 );
+
+// Periodic ping to keep server alive
+setInterval(async () => {
+  try {
+    await axios.get(`https://zvertexai-orzv.onrender.com/api/health`);
+    console.log('Keep-alive ping successful');
+  } catch (error) {
+    console.error('Keep-alive ping failed:', error.message);
+  }
+}, 14 * 60 * 1000); // Every 14 minutes

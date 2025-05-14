@@ -11,23 +11,23 @@ import Companies from './pages/Companies';
 import ConfirmAutoApply from './pages/ConfirmAutoApply';
 import Dashboard from './pages/Dashboard';
 
-// Define navy blue and white theme
+// Define sky blue and white theme
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#003087', // Navy blue
+      main: '#87CEEB', // Sky blue
       contrastText: '#FFFFFF', // White
     },
     secondary: {
       main: '#FFFFFF', // White
-      contrastText: '#003087', // Navy blue
+      contrastText: '#87CEEB', // Sky blue
     },
     background: {
-      default: '#F5F7FA', // Light grey for background
+      default: '#F0F8FF', // Light sky blue background
       paper: '#FFFFFF', // White for paper elements
     },
     text: {
-      primary: '#003087', // Navy blue
+      primary: '#87CEEB', // Sky blue
       secondary: '#FFFFFF', // White
     },
   },
@@ -35,7 +35,7 @@ const theme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: '#003087',
+          backgroundColor: '#87CEEB',
           color: '#FFFFFF',
         },
       },
@@ -47,27 +47,27 @@ const theme = createTheme({
           textTransform: 'none',
           '&:hover': {
             backgroundColor: '#FFFFFF',
-            color: '#003087',
+            color: '#87CEEB',
           },
         },
         containedPrimary: {
-          backgroundColor: '#003087',
+          backgroundColor: '#87CEEB',
           color: '#FFFFFF',
         },
         outlinedSecondary: {
           borderColor: '#FFFFFF',
           color: '#FFFFFF',
           '&:hover': {
-            backgroundColor: '#003087',
+            backgroundColor: '#87CEEB',
             color: '#FFFFFF',
           },
         },
         outlinedPrimary: {
-          borderColor: '#003087',
-          color: '#003087',
+          borderColor: '#87CEEB',
+          color: '#87CEEB',
           '&:hover': {
-            backgroundColor: '#F5F7FA',
-            color: '#003087',
+            backgroundColor: '#F0F8FF',
+            color: '#87CEEB',
           },
         },
       },
@@ -75,7 +75,7 @@ const theme = createTheme({
     MuiTypography: {
       styleOverrides: {
         root: {
-          color: '#003087',
+          color: '#87CEEB',
         },
       },
     },
@@ -84,20 +84,20 @@ const theme = createTheme({
         root: {
           '& .MuiInputBase-root': {
             backgroundColor: '#FFFFFF',
-            color: '#003087',
+            color: '#87CEEB',
           },
           '& .MuiInputLabel-root': {
-            color: '#003087',
+            color: '#87CEEB',
           },
           '& .MuiOutlinedInput-root': {
             '& fieldset': {
-              borderColor: '#003087',
+              borderColor: '#87CEEB',
             },
             '&:hover fieldset': {
               borderColor: '#FFFFFF',
             },
             '&.Mui-focused fieldset': {
-              borderColor: '#003087',
+              borderColor: '#87CEEB',
             },
           },
         },
@@ -180,7 +180,7 @@ const Header: React.FC = () => {
 };
 
 const Footer: React.FC = () => (
-  <Box sx={{ bgcolor: '#003087', py: 3, mt: 'auto' }}>
+  <Box sx={{ bgcolor: '#87CEEB', py: 3, mt: 'auto' }}>
     <Container maxWidth="lg">
       <Typography variant="body2" sx={{ color: '#FFFFFF' }} align="center">
         © {new Date().getFullYear()} ZvertexAI. All rights reserved. Contact us at{' '}
