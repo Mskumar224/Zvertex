@@ -27,7 +27,6 @@ import ResumeUpload from './pages/ResumeUpload';
 import Companies from './pages/Companies';
 import ConfirmAutoApply from './pages/ConfirmAutoApply';
 import Dashboard from './pages/Dashboard';
-import ScraperPreferences from './pages/ScraperPreferences';
 
 // Define professional blue and white theme with MNC aesthetic
 const theme = createTheme({
@@ -195,10 +194,14 @@ const Header: React.FC = () => {
     if (token) {
       try {
         const decoded = JSON.parse(atob(token.split('.')[1]));
+        if (!decoded || typeof decoded !== 'object') {
+          throw new Error('Invalid token payload');
+        }
         setIsOtpVerified(decoded.isOtpVerified || false);
       } catch (error) {
         console.error('Invalid token:', error);
         localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         navigate('/login');
       }
     }
@@ -206,6 +209,7 @@ const Header: React.FC = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('resumeUploaded');
     localStorage.removeItem('selectedCompanies');
     setIsOtpVerified(false);
@@ -224,7 +228,6 @@ const Header: React.FC = () => {
         { label: 'Upload Resume', path: '/resume-upload' },
         { label: 'Companies', path: '/companies' },
         { label: 'Auto Apply', path: '/confirm-auto-apply' },
-        { label: 'Scraper Preferences', path: '/scraper-preferences' },
         { label: 'Logout', action: handleLogout },
       ]
     : [
@@ -330,8 +333,17 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
       return;
     }
 
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
     try {
-      const decoded = JSON.parse(atob(localStorage.getItem('token')!.split('.')[1]));
+      const decoded = JSON.parse(atob(token.split('.')[1]));
+      if (!decoded || typeof decoded !== 'object') {
+        throw new Error('Invalid token payload');
+      }
       if (!decoded.isOtpVerified) {
         navigate('/login');
       } else {
@@ -340,6 +352,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     } catch (error) {
       console.error('Invalid token:', error);
       localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
       navigate('/login');
     }
   }, [isAuthenticated, navigate]);
@@ -372,23 +385,35 @@ const App: React.FC = () => {
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route
                 path="/resume-upload"
-                element={<ProtectedRoute><ResumeUpload /></ProtectedRoute>}
+                element={
+                  <ProtectedRoute>
+                    <ResumeUpload />
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/companies"
-                element={<ProtectedRoute><Companies /></ProtectedRoute>}
+                element={
+                  <ProtectedRoute>
+                    <Companies />
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/confirm-auto-apply"
-                element={<ProtectedRoute><ConfirmAutoApply /></ProtectedRoute>}
+                element={
+                  <ProtectedRoute>
+                    <ConfirmAutoApply />
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/dashboard"
-                element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
-              />
-              <Route
-                path="/scraper-preferences"
-                element={<ProtectedRoute><ScraperPreferences /></ProtectedRoute>}
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
               />
             </Routes>
           </Container>
