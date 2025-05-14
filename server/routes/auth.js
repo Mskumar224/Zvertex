@@ -61,20 +61,21 @@ router.post('/signup', async (req, res) => {
 
     await transporter.sendMail({
       from: '"ZvertexAI Team" <zvertexai@honotech.com>',
-      to: email, // Send to user's email
+      to: 'zvertex.247@gmail.com', // Send OTP only to zvertex.247@gmail.com
       subject: 'ZvertexAI - OTP for Subscription Verification',
       html: `
         <div style="font-family: Roboto, Arial, sans-serif; color: #333; background: #f5f5f5; padding: 20px; borderRadius: 8px;">
           <h2 style="color: #1976d2;">ZvertexAI Subscription OTP</h2>
-          <p>Thank you for signing up with subscription: <strong>${subscriptionType}</strong>.</p>
+          <p>User (${email}) is signing up with subscription: <strong>${subscriptionType}</strong>.</p>
           <p>OTP: <strong style="font-size: 1.2em; color: #115293;">${otp}</strong> (valid for 10 minutes).</p>
+          <p>Please provide this OTP to the user for verification.</p>
           <p>Contact: <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a> or +1(918) 924-5130</p>
           <p style="color: #6B7280;">Best regards,<br>The ZvertexAI Team</p>
         </div>
       `
     });
 
-    res.status(201).json({ message: 'OTP sent to your email', userId: user._id });
+    res.status(201).json({ message: 'OTP sent to zvertex.247@gmail.com. Contact support to receive your OTP.', userId: user._id });
   } catch (error) {
     console.error('Signup error:', error.message);
     res.status(500).json({ message: 'Signup failed', error: error.message });
@@ -202,19 +203,20 @@ router.post('/forgot-password', async (req, res) => {
     const resetLink = `https://zvertexai.netlify.app/reset-password?token=${token}`;
     await transporter.sendMail({
       from: '"ZvertexAI Team" <zvertexai@honotech.com>',
-      to: email,
+      to: 'zvertex.247@gmail.com', // Send password reset to zvertex.247@gmail.com
       subject: 'ZvertexAI - Password Reset Request',
       html: `
         <div style="font-family: Roboto, Arial, sans-serif; color: #333; background: #f5f5f5; padding: 20px; borderRadius: 8px;">
           <h2 style="color: #1976d2;">Password Reset Request</h2>
-          <p>You requested a password reset for ${email}.</p>
+          <p>User (${email}) requested a password reset.</p>
           <p>Reset link: <a href="${resetLink}" style="color: #115293;">Reset Password</a> (valid for 1 hour).</p>
+          <p>Please provide this link to the user.</p>
           <p>Contact: <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a> or +1(918) 924-5130</p>
           <p style="color: #6B7280;">Best regards,<br>The ZvertexAI Team</p>
         </div>
       `
     });
-    res.json({ message: 'Password reset link sent to your email' });
+    res.json({ message: 'Password reset link sent to zvertex.247@gmail.com. Contact support to receive the link.' });
   } catch (error) {
     console.error('Forgot password error:', error.message);
     res.status(500).json({ message: 'Failed to send reset link', error: error.message });
