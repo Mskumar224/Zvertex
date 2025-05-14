@@ -7,6 +7,7 @@ const ResumeUpload: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [technology, setTechnology] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -15,8 +16,14 @@ const ResumeUpload: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) return alert('Please select a file');
-    if (!technology) return alert('Please specify your technology');
+    if (!file) {
+      setMessage('Please select a file');
+      return;
+    }
+    if (!technology) {
+      setMessage('Please specify your technology');
+      return;
+    }
     const formData = new FormData();
     formData.append('resume', file);
     formData.append('token', localStorage.getItem('token') || '');
@@ -27,9 +34,10 @@ const ResumeUpload: React.FC = () => {
       });
       setSuggestions(res.data.suggestions);
       localStorage.setItem('resumeUploaded', 'true');
-      navigate('/companies');
+      setMessage('Resume uploaded successfully! Redirecting to companies...');
+      setTimeout(() => navigate('/companies'), 1000);
     } catch (error: any) {
-      alert('Upload failed: ' + (error.response?.data?.message || error.message));
+      setMessage('Upload failed: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -46,11 +54,11 @@ const ResumeUpload: React.FC = () => {
           margin="normal"
           required
         />
-        <Button type="submit" variant="contained" sx={{ mr: 2, px: 4, py: 1.5 }}>Upload</Button>
+        <Button type="submit" variant="contained" sx={{ mt: 2, mr: 2, px: 4, py: 1.5 }}>Upload</Button>
         <Button
           variant="outlined"
-          onClick={() => navigate(-1)}
-          sx={{ px: 4, py: 1.5, borderColor: '#007bff', color: '#007bff' }}
+          onClick={() => navigate('/dashboard')}
+          sx={{ mt: 2, px: 4, py: 1.5 }}
         >
           Back
         </Button>
@@ -64,6 +72,11 @@ const ResumeUpload: React.FC = () => {
             ))}
           </ul>
         </div>
+      )}
+      {message && (
+        <Typography sx={{ mt: 2, color: message.includes('failed') ? '#dc3545' : '#28a745' }}>
+          {message}
+        </Typography>
       )}
     </Container>
   );

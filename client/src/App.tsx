@@ -35,8 +35,8 @@ const theme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: '#003087', // Navy blue
-          color: '#FFFFFF', // White
+          backgroundColor: '#003087',
+          color: '#FFFFFF',
         },
       },
     },
@@ -60,6 +60,14 @@ const theme = createTheme({
           '&:hover': {
             backgroundColor: '#003087',
             color: '#FFFFFF',
+          },
+        },
+        outlinedPrimary: {
+          borderColor: '#003087',
+          color: '#003087',
+          '&:hover': {
+            backgroundColor: '#F5F7FA',
+            color: '#003087',
           },
         },
       },
@@ -146,6 +154,9 @@ const Header: React.FC = () => {
                 </Button>
                 <Button color="inherit" onClick={() => navigate('/companies')}>
                   Companies
+                </Button>
+                <Button color="inherit" onClick={() => navigate('/confirm-auto-apply')}>
+                  Auto Apply
                 </Button>
                 <Button color="inherit" onClick={handleLogout}>
                   Logout

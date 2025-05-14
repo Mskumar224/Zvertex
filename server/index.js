@@ -271,17 +271,17 @@ const sendEmail = async (to, subject, html, attachments = []) => {
 // Email templates
 const getSignupEmail = (email, subscription) => `
   <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
-    <h2 style="color: #00C4B4;">Welcome to ZvertexAI, ${email}!</h2>
+    <h2 style="color: #003087;">Welcome to ZvertexAI, ${email}!</h2>
     <p>We’re thrilled to have you on board with your ${subscription} plan.</p>
     <p>Get started by uploading your resume and selecting companies to auto-apply to!</p>
-    <a href="${process.env.FRONTEND_URL}/dashboard" style="background-color: #00C4B4; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Go to Dashboard</a>
+    <a href="${process.env.FRONTEND_URL}/dashboard" style="background-color: #003087; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Go to Dashboard</a>
     <p>Best regards,<br>The ZvertexAI Team</p>
   </div>
 `;
 
 const getOtpEmail = (email, otp) => `
   <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
-    <h2 style="color: #00C4B4;">ZvertexAI OTP Verification</h2>
+    <h2 style="color: #003087;">ZvertexAI OTP Verification</h2>
     <p>A new signup request has been received for ${email}.</p>
     <p>The OTP for verification is: <strong>${otp}</strong></p>
     <p>This OTP is valid for 10 minutes. Please provide this code to the user upon request.</p>
@@ -291,22 +291,22 @@ const getOtpEmail = (email, otp) => `
 
 const getAutoApplyEmail = (email, subscription, companies) => `
   <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
-    <h2 style="color: #00C4B4;">Auto-Apply Activated!</h2>
+    <h2 style="color: #003087;">Auto-Apply Activated!</h2>
     <p>Hello ${email},</p>
     <p>Your auto-apply process is now active for the following companies:</p>
     <ul>${companies.map((c) => `<li>${c}</li>`).join('')}</ul>
     <p>We'll apply your resume to relevant jobs daily. Track your applications in the dashboard.</p>
-    <a href="${process.env.FRONTEND_URL}/dashboard" style="background-color: #00C4B4; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Dashboard</a>
+    <a href="${process.env.FRONTEND_URL}/dashboard" style="background-color: #003087; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Dashboard</a>
     <p>Best regards,<br>The ZvertexAI Team</p>
   </div>
 `;
 
 const getResetPasswordEmail = (email, resetLink) => `
   <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
-    <h2 style="color: #00C4B4;">Reset Your Password</h2>
+    <h2 style="color: #003087;">Reset Your Password</h2>
     <p>Hello ${email},</p>
     <p>We received a request to reset your password. Click the link below to reset it:</p>
-    <a href="${resetLink}" style="background-color: #00C4B4; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a>
+    <a href="${resetLink}" style="background-color: #003087; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a>
     <p>This link expires in 1 hour. If you didn’t request this, ignore this email.</p>
     <p>Best regards,<br>The ZvertexAI Team</p>
   </div>
@@ -353,7 +353,7 @@ app.post('/api/verify-otp', async (req, res) => {
     user.isOtpVerified = true;
     await user.save();
     await OTP.deleteOne({ email, otp });
-    const token = jwt.sign({ email, subscription: user.subscription }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ email, subscription: user.subscription, isOtpVerified: true }, process.env.JWT_SECRET, {
       expiresIn: '1h',
     });
     await sendEmail(email, 'Welcome to ZvertexAI', getSignupEmail(email, user.subscription));
@@ -376,7 +376,7 @@ app.post('/api/login', async (req, res) => {
     if (!user.isOtpVerified) {
       return res.status(403).json({ message: 'OTP verification required. Please sign up again.' });
     }
-    const token = jwt.sign({ email, subscription: user.subscription }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ email, subscription: user.subscription, isOtpVerified: true }, process.env.JWT_SECRET, {
       expiresIn: '1h',
     });
     res.status(200).json({ message: 'Login successful', token });
@@ -519,12 +519,15 @@ app.post('/api/auto-apply', async (req, res) => {
     }
     let appliedCount = 0;
     for (const job of allJobs) {
-      const success = await autoApplyToJob(job, user);
-      if (success) {
-        user.appliedJobs.push({ jobId: job.id, date: new Date() });
-        appliedCount++;
+      const alreadyApplied = user.appliedJobs.some((appliedJob) => appliedJob.jobId === job.id && new Date(appliedJob.date).toDateString() === today);
+      if (!alreadyApplied) {
+        const success = await autoApplyToJob(job, user);
+        if (success) {
+          user.appliedJobs.push({ jobId: job.id, date: new Date() });
+          appliedCount++;
+        }
+        await delay(1000); // 1-second delay between applications
       }
-      await delay(1000); // 1-second delay between applications
     }
     await user.save();
     const resumePath = user.resumePaths[user.resumePaths.length - 1];

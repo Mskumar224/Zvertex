@@ -33,8 +33,8 @@ const ForgotPassword: React.FC = () => {
         <Button type="submit" variant="contained" sx={{ mt: 2, mr: 2, px: 4, py: 1.5 }}>Send Reset Link</Button>
         <Button
           variant="outlined"
-          onClick={() => navigate(-1)}
-          sx={{ mt: 2, px: 4, py: 1.5, borderColor: '#007bff', color: '#007bff' }}
+          onClick={() => navigate('/login')}
+          sx={{ mt: 2, px: 4, py: 1.5 }}
         >
           Back
         </Button>

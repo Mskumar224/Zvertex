@@ -44,6 +44,7 @@ const predefinedCompanies = [
 const Companies: React.FC = () => {
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
   const [manualCompany, setManualCompany] = useState('');
+  const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,9 +55,10 @@ const Companies: React.FC = () => {
         companies: selectedCompanies,
       });
       localStorage.setItem('selectedCompanies', JSON.stringify(selectedCompanies));
-      navigate('/confirm-auto-apply');
+      setMessage('Companies saved successfully! Redirecting to auto-apply...');
+      setTimeout(() => navigate('/confirm-auto-apply'), 1000);
     } catch (error: any) {
-      alert('Failed to select companies: ' + (error.response?.data?.message || error.message));
+      setMessage('Failed to select companies: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -115,18 +117,23 @@ const Companies: React.FC = () => {
         >
           Add
         </Button>
-        <Button type="submit" variant="contained" sx={{ mr: 2, px: 4, py: 1.5 }}>
+        <Button type="submit" variant="contained" sx={{ mt: 2, mr: 2, px: 4, py: 1.5 }}>
           Next
         </Button>
         <Button
           variant="outlined"
-          onClick={() => navigate(-1)}
-          sx={{ px: 4, py: 1.5, borderColor: '#007bff', color: '#007bff' }}
+          onClick={() => navigate('/resume-upload')}
+          sx={{ mt: 2, px: 4, py: 1.5 }}
         >
           Back
         </Button>
       </form>
       <Typography sx={{ mt: 2 }}>Selected Companies: {selectedCompanies.join(', ')}</Typography>
+      {message && (
+        <Typography sx={{ mt: 2, color: message.includes('Failed') ? '#dc3545' : '#28a745' }}>
+          {message}
+        </Typography>
+      )}
     </Container>
   );
 };

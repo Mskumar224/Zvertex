@@ -17,7 +17,6 @@ const Signup: React.FC = () => {
     e.preventDefault();
     try {
       if (!showOtpField) {
-        // Step 1: Send signup request to generate OTP
         const res = await axios.post('https://zvertexai-orzv.onrender.com/api/signup', {
           email,
           password,
@@ -27,14 +26,13 @@ const Signup: React.FC = () => {
         setMessage('OTP sent to company email. Please contact support to receive your OTP.');
         setShowOtpField(true);
       } else {
-        // Step 2: Verify OTP
         const res = await axios.post('https://zvertexai-orzv.onrender.com/api/verify-otp', {
           email,
           otp,
         });
         localStorage.setItem('token', res.data.token);
         setMessage('Signup successful! Redirecting to dashboard...');
-        setTimeout(() => navigate('/dashboard'), 2000);
+        setTimeout(() => navigate('/dashboard'), 1000);
       }
     } catch (error: any) {
       setMessage('Error: ' + (error.response?.data?.message || error.message));
@@ -100,8 +98,8 @@ const Signup: React.FC = () => {
         </Button>
         <Button
           variant="outlined"
-          onClick={() => navigate(-1)}
-          sx={{ mt: 2, px: 4, py: 1.5, borderColor: '#007bff', color: '#007bff' }}
+          onClick={() => navigate('/')}
+          sx={{ mt: 2, px: 4, py: 1.5 }}
         >
           Back
         </Button>

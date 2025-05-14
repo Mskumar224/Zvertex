@@ -19,7 +19,7 @@ const ResetPassword: React.FC = () => {
         newPassword,
       });
       setMessage(res.data.message);
-      setTimeout(() => navigate('/login'), 2000);
+      setTimeout(() => navigate('/login'), 1000);
     } catch (error: any) {
       setMessage(error.response?.data?.message || 'Failed to reset password');
     }
@@ -43,8 +43,8 @@ const ResetPassword: React.FC = () => {
         </Button>
         <Button
           variant="outlined"
-          onClick={() => navigate(-1)}
-          sx={{ mt: 2, px: 4, py: 1.5, borderColor: '#007bff', color: '#007bff' }}
+          onClick={() => navigate('/login')}
+          sx={{ mt: 2, px: 4, py: 1.5 }}
         >
           Back
         </Button>

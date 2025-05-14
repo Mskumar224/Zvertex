@@ -9,6 +9,7 @@ const ConfirmAutoApply: React.FC = () => {
   const [coverLetter, setCoverLetter] = useState('');
   const [requiresInfo, setRequiresInfo] = useState<{ linkedin: boolean; coverLetter: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,7 +25,7 @@ const ConfirmAutoApply: React.FC = () => {
         setJobs(res.data.jobs);
       } catch (error: any) {
         console.error('Fetch jobs failed:', error.response?.data);
-        alert('Failed to fetch real-time jobs: ' + (error.response?.data?.message || error.message));
+        setMessage('Failed to fetch real-time jobs: ' + (error.response?.data?.message || error.message));
       } finally {
         setLoading(false);
       }
@@ -43,13 +44,14 @@ const ConfirmAutoApply: React.FC = () => {
       if (res.status === 400 && res.data.requires) {
         setRequiresInfo(res.data.requires);
       } else {
-        navigate('/dashboard');
+        setMessage('Auto-apply initiated successfully! Confirmation email sent.');
+        setTimeout(() => navigate('/dashboard'), 1000);
       }
     } catch (error: any) {
       if (error.response?.status === 400 && error.response.data.requires) {
         setRequiresInfo(error.response.data.requires);
       } else {
-        alert('Auto-apply failed: ' + (error.response?.data?.message || error.message));
+        setMessage('Auto-apply failed: ' + (error.response?.data?.message || error.message));
       }
     }
   };
@@ -58,7 +60,7 @@ const ConfirmAutoApply: React.FC = () => {
     try {
       await handleConfirm();
     } catch (error: any) {
-      alert('Failed to submit additional info: ' + (error.response?.data?.message || error.message));
+      setMessage('Failed to submit additional info: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -134,11 +136,16 @@ const ConfirmAutoApply: React.FC = () => {
       )}
       <Button
         variant="outlined"
-        onClick={() => navigate(-1)}
-        sx={{ mt: 2, px: 4, py: 1.5, borderColor: '#007bff', color: '#007bff' }}
+        onClick={() => navigate('/companies')}
+        sx={{ mt: 2, px: 4, py: 1.5 }}
       >
         Back
       </Button>
+      {message && (
+        <Typography sx={{ mt: 2, color: message.includes('failed') ? '#dc3545' : '#28a745' }}>
+          {message}
+        </Typography>
+      )}
     </Container>
   );
 };

@@ -42,8 +42,9 @@ const StaticHomePage: React.FC = () => {
         }
       } catch (error: any) {
         console.error('Fetch user data failed:', error.message);
-        if (error.response?.status === 404) {
-          setError('Backend API not found. Please try again later or contact support at zvertex.247@gmail.com.');
+        if (error.response?.status === 403) {
+          setError('Account not verified. Please complete OTP verification.');
+          navigate('/login');
         } else if (error.response?.status === 400) {
           setError(error.response.data.message || 'Setup incomplete. Please upload a resume and select companies.');
           navigate('/resume-upload');
@@ -88,7 +89,7 @@ const StaticHomePage: React.FC = () => {
     try {
       const res = await axios.post('https://zvertexai-orzv.onrender.com/api/login', { email, password });
       localStorage.setItem('token', res.data.token);
-      window.location.reload();
+      navigate('/dashboard');
     } catch (error: any) {
       alert('Login failed: ' + (error.response?.data?.message || error.message));
     }
@@ -107,8 +108,7 @@ const StaticHomePage: React.FC = () => {
             <Button onClick={() => navigate('/resume-upload')} sx={{ mb: 1, width: '100%' }}>Update Resume</Button>
             <Button onClick={() => navigate('/companies')} sx={{ mb: 1, width: '100%' }}>Update Companies</Button>
             <Button onClick={() => navigate('/confirm-auto-apply')} sx={{ mb: 1, width: '100%' }}>Auto Apply</Button>
-            <Button onClick={() => alert('Connect to LinkedIn - Coming Soon')} sx={{ mb: 1, width: '100%' }}>Connect to LinkedIn</Button>
-            <Button onClick={() => alert('Latest Trending Jobs - Coming Soon')} sx={{ mb: 1, width: '100%' }}>Latest Trending Jobs</Button>
+            <Button onClick={() => navigate('/dashboard')} sx={{ mb: 1, width: '100%' }}>Dashboard</Button>
           </>
         )}
       </Box>
@@ -146,8 +146,8 @@ const StaticHomePage: React.FC = () => {
             <Typography variant="h6" sx={{ mb: 2 }}>New to ZvertexAI?</Typography>
             <TextField label="Email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth sx={{ mb: 2 }} />
             <TextField label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} fullWidth sx={{ mb: 2 }} />
-            <Button onClick={handleLogin} sx={{ mb: 2 }}>Log In</Button>
-            <Button onClick={() => navigate('/signup')} sx={{ backgroundColor: '#28a745', color: '#fff' }}>Sign Up</Button>
+            <Button onClick={handleLogin} sx={{ mb: 2, width: '100%' }}>Log In</Button>
+            <Button onClick={() => navigate('/signup')} sx={{ backgroundColor: '#28a745', color: '#fff', width: '100%' }}>Sign Up</Button>
           </>
         ) : (
           userData ? (
