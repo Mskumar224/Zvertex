@@ -66,6 +66,11 @@ const StaticHomePage: React.FC = () => {
           navigate('/resume-upload');
         } else if (error.response?.status === 404) {
           setError('Requested resource not found. Please check the server or try again later.');
+        } else if (error.response?.status === 401) {
+          setError('Unauthorized: Please log in again.');
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          navigate('/login');
         } else {
           setError('Failed to load user data. Please try again later.');
         }
@@ -102,6 +107,9 @@ const StaticHomePage: React.FC = () => {
           const errorMessage = error.response?.data?.message || error.message;
           if (error.response?.status === 404) {
             alert('Upload endpoint not found. Please check the server.');
+          } else if (error.response?.status === 401) {
+            alert('Unauthorized: Please log in again.');
+            navigate('/login');
           } else {
             alert(`Upload failed: ${errorMessage}`);
           }
@@ -121,6 +129,10 @@ const StaticHomePage: React.FC = () => {
       const errorMessage = error.response?.data?.message || error.message;
       if (error.response?.status === 404) {
         alert('Login endpoint not found. Please check the server.');
+      } else if (error.response?.status === 401) {
+        alert('Unauthorized: Invalid credentials.');
+      } else if (error.response?.status === 400) {
+        alert(`Login failed: ${errorMessage}`);
       } else {
         alert(`Login failed: ${errorMessage}`);
       }

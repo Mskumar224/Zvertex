@@ -37,7 +37,7 @@ const Signup: React.FC = () => {
         subscription,
         phone,
       }, {
-        headers: { Authorization: null }, // Explicitly avoid sending token
+        headers: { Authorization: null },
       });
       setMessage(res.data.message);
       setShowOtpField(true);
@@ -49,6 +49,8 @@ const Signup: React.FC = () => {
         setMessage(`Signup failed: ${validationError}`);
       } else if (error.response?.status === 401) {
         setMessage('Unauthorized: Please ensure no authentication token is sent during signup.');
+      } else if (error.response?.status === 404) {
+        setMessage('Signup endpoint not found. Please check the server.');
       } else {
         setMessage(`Signup failed: ${errorMessage}`);
       }
@@ -64,7 +66,12 @@ const Signup: React.FC = () => {
       setMessage('Signup successful! Redirecting to dashboard...');
       setTimeout(() => navigate('/dashboard'), 1000);
     } catch (error: any) {
-      setMessage('OTP verification failed: ' + (error.response?.data?.message || 'Server error'));
+      const errorMessage = error.response?.data?.message || 'Server error';
+      if (error.response?.status === 404) {
+        setMessage('OTP verification endpoint not found. Please check the server.');
+      } else {
+        setMessage(`OTP verification failed: ${errorMessage}`);
+      }
     }
   };
 

@@ -28,8 +28,10 @@ const ConfirmAutoApply: React.FC = () => {
         console.error('Error fetching profile:', error.message, error.response?.status);
         if (error.response?.status === 404) {
           setMessage('Profile endpoint not found. Please check the server.');
-        } else if (error.response?.status === 403) {
+        } else if (error.response?.status === 401 || error.response?.status === 403) {
           setMessage('Unauthorized: Please log in again.');
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
           navigate('/login');
         } else {
           setMessage('Failed to load profile data. Please try again later.');
@@ -62,8 +64,10 @@ const ConfirmAutoApply: React.FC = () => {
         setMessage('Auto-apply endpoint not found. Please check the server.');
       } else if (error.response?.status === 400) {
         setMessage(`Error: ${errorMessage}`);
-      } else if (error.response?.status === 403) {
+      } else if (error.response?.status === 401 || error.response?.status === 403) {
         setMessage('Unauthorized: Please log in again.');
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         navigate('/login');
       } else {
         setMessage(`Error: ${errorMessage}`);

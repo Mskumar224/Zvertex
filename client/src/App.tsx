@@ -198,6 +198,9 @@ const Header: React.FC = () => {
           throw new Error('Invalid token payload');
         }
         setIsOtpVerified(decoded.isOtpVerified || false);
+        if (decoded.isOtpVerified && location.pathname === '/login') {
+          navigate('/dashboard');
+        }
       } catch (error) {
         console.error('Invalid token:', error);
         localStorage.removeItem('token');
@@ -205,7 +208,7 @@ const Header: React.FC = () => {
         navigate('/login');
       }
     }
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');

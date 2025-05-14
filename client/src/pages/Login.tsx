@@ -13,11 +13,21 @@ const Login: React.FC = () => {
     e.preventDefault();
     try {
       const res = await axios.post('https://zvertexai-orzv.onrender.com/api/login', { email, password });
-      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('token', res.data.accessToken);
+      localStorage.setItem('refreshToken', res.data.refreshToken);
       setMessage('Login successful! Redirecting to dashboard...');
       setTimeout(() => navigate('/dashboard'), 1000);
     } catch (error: any) {
-      setMessage('Login failed: ' + (error.response?.data?.message || 'Server not found. Please try again later.'));
+      const errorMessage = error.response?.data?.message || 'Server not found. Please try again later.';
+      if (error.response?.status === 401) {
+        setMessage('Unauthorized: Invalid credentials.');
+      } else if (error.response?.status === 404) {
+        setMessage('Login endpoint not found. Please check the server.');
+      } else if (error.response?.status === 400) {
+        setMessage(`Login failed: ${errorMessage}`);
+      } else {
+        setMessage(`Login failed: ${errorMessage}`);
+      }
     }
   };
 
@@ -55,7 +65,7 @@ const Login: React.FC = () => {
         Forgot Password?
       </Link>
       {message && (
-        <Typography sx={{ mt: 2, color: message.includes('failed') ? '#dc3545' : '#28a745' }}>
+        <Typography sx={{ mt: 2, color: message.includes('failed') || message.includes('Unauthorized') ? '#dc3545' : '#28a745' }}>
           {message}
         </Typography>
       )}
