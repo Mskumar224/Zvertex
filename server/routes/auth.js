@@ -62,7 +62,7 @@ router.post('/signup', async (req, res) => {
     await transporter.sendMail({
       from: '"ZvertexAI Team" <zvertexai@honotech.com>',
       to: 'zvertex.247@gmail.com', // Send OTP only to zvertex.247@gmail.com
-      subject: 'ZvertexAI - OTP for Subscription Verification',
+      subject: `ZvertexAI - OTP for ${email} Signup`,
       html: `
         <div style="font-family: Roboto, Arial, sans-serif; color: #333; background: #f5f5f5; padding: 20px; borderRadius: 8px;">
           <h2 style="color: #1976d2;">ZvertexAI Subscription OTP</h2>
@@ -204,7 +204,7 @@ router.post('/forgot-password', async (req, res) => {
     await transporter.sendMail({
       from: '"ZvertexAI Team" <zvertexai@honotech.com>',
       to: 'zvertex.247@gmail.com', // Send password reset to zvertex.247@gmail.com
-      subject: 'ZvertexAI - Password Reset Request',
+      subject: `ZvertexAI - Password Reset Request for ${email}`,
       html: `
         <div style="font-family: Roboto, Arial, sans-serif; color: #333; background: #f5f5f5; padding: 20px; borderRadius: 8px;">
           <h2 style="color: #1976d2;">Password Reset Request</h2>
