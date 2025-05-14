@@ -5,7 +5,11 @@ import { useHistory } from 'react-router-dom';
 
 function Signup() {
   const [formData, setFormData] = useState({
-    email: '', password: '', name: '', phone: '', subscriptionType: 'STUDENT'
+    email: '',
+    password: '',
+    name: '',
+    phone: '',
+    subscriptionType: 'STUDENT'
   });
   const [otp, setOtp] = useState('');
   const [userId, setUserId] = useState('');

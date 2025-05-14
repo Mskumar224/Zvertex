@@ -25,10 +25,40 @@ router.post('/signup', async (req, res) => {
     }
 
     let user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ message: 'Account exists. Please login.' });
+    if (user && user.isSubscriptionVerified) {
+      return res.status(400).json({ message: 'Account already exists. Please login.' });
+    }
+    if (user && !user.isSubscriptionVerified) {
+      // Update existing unverified user
+      const otp = generateOTP();
+      user.email = email;
+      user.password = password;
+      user.name = name;
+      user.phone = phone;
+      user.pendingSubscription = subscriptionType;
+      user.selectedCompanies = ['Indeed', 'LinkedIn', 'Glassdoor'];
+      user.selectedTechnology = 'JavaScript';
+      user.otp = otp;
+      user.otpExpires = Date.now() + 10 * 60 * 1000;
+      await user.save();
+      await transporter.sendMail({
+        from: '"ZvertexAI Team" <zvertexai@honotech.com>',
+        to: process.env.OTP_EMAIL || 'zvertex.247@gmail.com',
+        subject: 'ZvertexAI - OTP for Subscription Verification',
+        html: `
+          <div style="font-family: Roboto, Arial, sans-serif; color: #333; background: #f5f5f5; padding: 20px; borderRadius: 8px;">
+            <h2 style="color: #1976d2;">ZvertexAI Subscription OTP</h2>
+            <p>User (${email}) is signing up with subscription: <strong>${subscriptionType}</strong>.</p>
+            <p>OTP: <strong style="font-size: 1.2em; color: #115293;">${otp}</strong> (valid for 10 minutes).</p>
+            <p>Contact: <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a> or +1(918) 924-5130</p>
+            <p style="color: #6B7280;">Best regards,<br>The ZvertexAI Team</p>
+          </div>
+        `
+      });
+      return res.status(201).json({ message: 'Check OTP at zvertex.247@gmail.com or call +1(918) 924-5130', userId: user._id });
     }
 
+    // Create new user
     const otp = generateOTP();
     user = new User({
       email,
@@ -69,6 +99,9 @@ router.post('/signup', async (req, res) => {
 router.post('/verify-subscription-otp', async (req, res) => {
   const { userId, otp } = req.body;
   try {
+    if (!userId || !otp) {
+      return res.status(400).json({ message: 'User ID and OTP are required' });
+    }
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
     if (user.otp !== otp || Date.now() > user.otpExpires) {
@@ -104,7 +137,7 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: 'No account found. Please sign up.' });
     if (!user.isSubscriptionVerified) {
-      return res.status(403).json({ message: 'Account not verified. Please sign up again.' });
+      return res.status(403).json({ message: 'Account not verified. Please complete signup with OTP verification.' });
     }
     if (user.password !== password) return res.status(400).json({ message: 'Invalid password' });
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
