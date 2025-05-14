@@ -15,7 +15,6 @@ const StaticHomePage: React.FC = () => {
     const fetchUserData = async () => {
       const token = localStorage.getItem('token');
       if (!token) {
-        navigate('/login');
         return;
       }
 
@@ -25,7 +24,7 @@ const StaticHomePage: React.FC = () => {
           throw new Error('Invalid token payload or unverified account');
         }
         const companies = JSON.parse(localStorage.getItem('selectedCompanies') || '[]');
-        const selectCompaniesRes = await axios.post('https://zvertexai-orzv.onrender.com/api/select-companies', {
+        await axios.post('https://zvertexai-orzv.onrender.com/api/select-companies', {
           companies,
         }, {
           headers: { Authorization: `Bearer ${token}` },
@@ -41,23 +40,17 @@ const StaticHomePage: React.FC = () => {
           }
         }
 
-        if (companies.length > 0 && localStorage.getItem('resumeUploaded') === 'true') {
-          const appliedTodayRes = await axios.post('https://zvertexai-orzv.onrender.com/api/auto-apply', {}, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          setUserData({
-            email: decoded.email,
-            companies: companies,
-            appliedToday: appliedTodayRes.data.appliedToday || 0,
-          });
-        } else {
-          setUserData({
-            email: decoded.email,
-            companies: companies,
-            appliedToday: 0,
-          });
-          setError('Please upload a resume and select companies to start auto-applying.');
-        }
+        const jobsRes = await axios.get('https://zvertexai-orzv.onrender.com/api/job-applications', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setUserData({
+          email: decoded.email,
+          companies: companies,
+          appliedToday: jobsRes.data.applications?.filter((job: any) =>
+            new Date(job.dateApplied).toDateString() === new Date().toDateString()
+          ).length || 0,
+        });
       } catch (error: any) {
         console.error('Fetch user data failed:', error.message, error.response?.status);
         if (error.response?.status === 401 || error.response?.status === 403) {

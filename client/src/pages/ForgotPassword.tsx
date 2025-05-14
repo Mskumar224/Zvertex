@@ -13,8 +13,16 @@ const ForgotPassword: React.FC = () => {
     try {
       const res = await axios.post('https://zvertexai-orzv.onrender.com/api/forgot-password', { email });
       setMessage(res.data.message);
+      setTimeout(() => navigate('/login'), 2000);
     } catch (error: any) {
-      setMessage(error.response?.data?.message || 'Failed to send reset email');
+      const errorMessage = error.response?.data?.message || 'Server error';
+      if (error.response?.status === 404) {
+        setMessage('Forgot password endpoint not found. Please check the server.');
+      } else if (error.response?.status === 400) {
+        setMessage(`Request failed: ${errorMessage}`);
+      } else {
+        setMessage(`Request failed: ${errorMessage}`);
+      }
     }
   };
 
@@ -30,7 +38,7 @@ const ForgotPassword: React.FC = () => {
           margin="normal"
           required
         />
-        <Button type="submit" variant="contained" sx={{ mt: 2, mr: 2, px: 4, py: 1.5 }}>Send Reset Link</Button>
+        <Button type="submit" variant="contained" sx={{ mt: 2, mr: 2, px: 4, py: 1.5 }}>Submit</Button>
         <Button
           variant="outlined"
           onClick={() => navigate('/login')}

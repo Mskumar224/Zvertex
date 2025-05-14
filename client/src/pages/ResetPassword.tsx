@@ -1,27 +1,34 @@
 import React, { useState } from 'react';
 import { Container, TextField, Button, Typography } from '@mui/material';
 import axios from 'axios';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const ResetPassword: React.FC = () => {
-  const [newPassword, setNewPassword] = useState('');
+  const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
-  const location = useLocation();
-  const query = new URLSearchParams(location.search);
-  const token = query.get('token') || '';
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!token) {
+      setMessage('Invalid or missing reset token.');
+      return;
+    }
     try {
-      const res = await axios.post('https://zvertexai-orzv.onrender.com/api/reset-password', {
-        token,
-        newPassword,
-      });
+      const res = await axios.post('https://zvertexai-orzv.onrender.com/api/reset-password', { token, password });
       setMessage(res.data.message);
-      setTimeout(() => navigate('/login'), 1000);
+      setTimeout(() => navigate('/login'), 2000);
     } catch (error: any) {
-      setMessage(error.response?.data?.message || 'Failed to reset password');
+      const errorMessage = error.response?.data?.message || 'Server error';
+      if (error.response?.status === 404) {
+        setMessage('Reset password endpoint not found. Please check the server.');
+      } else if (error.response?.status === 400) {
+        setMessage(`Reset failed: ${errorMessage}`);
+      } else {
+        setMessage(`Reset failed: ${errorMessage}`);
+      }
     }
   };
 
@@ -32,15 +39,13 @@ const ResetPassword: React.FC = () => {
         <TextField
           label="New Password"
           type="password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           fullWidth
           margin="normal"
           required
         />
-        <Button type="submit" variant="contained" sx={{ mt: 2, mr: 2, px: 4, py: 1.5 }}>
-          Reset Password
-        </Button>
+        <Button type="submit" variant="contained" sx={{ mt: 2, mr: 2, px: 4, py: 1.5 }}>Reset Password</Button>
         <Button
           variant="outlined"
           onClick={() => navigate('/login')}
