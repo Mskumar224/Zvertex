@@ -8,6 +8,8 @@ const dotenv = require('dotenv');
 const multer = require('multer');
 const axios = require('axios');
 const cloudinary = require('cloudinary').v2;
+const puppeteer = require('puppeteer');
+const schedule = require('node-schedule');
 
 dotenv.config();
 
@@ -74,7 +76,6 @@ app.use(
   })
 );
 
-// Explicitly handle OPTIONS requests
 app.options('*', (req, res) => {
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
@@ -103,12 +104,11 @@ const connectToMongoDB = async () => {
     console.log('Connected to MongoDB');
   } catch (err) {
     console.error('MongoDB connection failed:', err.message);
-    setTimeout(connectToMongoDB, 5000); // Retry every 5 seconds
+    setTimeout(connectToMongoDB, 5000);
   }
 };
 connectToMongoDB();
 
-// Keep MongoDB connection alive
 mongoose.connection.on('disconnected', () => {
   console.log('MongoDB disconnected, attempting to reconnect...');
   dbConnected = false;
@@ -118,7 +118,7 @@ mongoose.connection.on('disconnected', () => {
 // Multer configuration for memory storage (for Cloudinary)
 const upload = multer({ storage: multer.memoryStorage() }).single('resume');
 
-// User schema with indexing
+// Schemas
 const userSchema = new mongoose.Schema({
   email: { type: String, unique: true, required: true, index: true },
   password: { type: String, required: true },
@@ -134,23 +134,40 @@ const userSchema = new mongoose.Schema({
   coverLetter: String,
   technology: String,
   isOtpVerified: { type: Boolean, default: false },
+  scraperPreferences: {
+    jobBoards: [{ type: String, enum: ['Indeed', 'LinkedIn', 'Glassdoor'], default: ['Indeed'] }],
+    frequency: { type: String, default: 'daily' },
+    location: { type: String, default: 'United States' },
+  },
 });
-
-// Add index for frequent queries
 userSchema.index({ email: 1, isOtpVerified: 1 });
 
-const User = mongoose.model('User', userSchema);
+const jobSchema = new mongoose.Schema({
+  jobId: { type: String, required: true, unique: true },
+  title: { type: String, required: true },
+  company: { type: String, required: true },
+  location: String,
+  posted: { type: Date, default: Date.now },
+  url: String,
+  description: String,
+  source: { type: String, enum: ['Indeed', 'LinkedIn', 'Glassdoor', 'Mock'], required: true },
+  requiresDocs: Boolean,
+  appliedBy: [{ userId: mongoose.Schema.Types.ObjectId, date: Date }],
+}, { timestamps: true });
+jobSchema.index({ company: 1, posted: -1 });
+jobSchema.index({ jobId: 1 });
 
-// OTP schema with indexing
 const otpSchema = new mongoose.Schema({
   email: { type: String, required: true, index: true },
   otp: { type: String, required: true },
   createdAt: { type: Date, default: Date.now, expires: 600 },
 });
 
+const User = mongoose.model('User', userSchema);
+const Job = mongoose.model('Job', jobSchema);
 const OTP = mongoose.model('OTP', otpSchema);
 
-// Nodemailer setup with connection pooling
+// Nodemailer setup
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   pool: true,
@@ -165,117 +182,196 @@ transporter.verify((error) => {
 // Utility functions
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const generateOtp = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
-};
+const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 const scanResume = (resumePath) => ['Add more technical skills', 'Update recent experience'];
 const updateResume = (resumePath, prompt) => resumePath;
 
-const fetchRealTimeJobs = async (companies, technology, retries = 3) => {
-  const jobs = {};
-  const indeedOptions = {
+const scrapeIndeedJobs = async (technology, location, companies, page = 1) => {
+  const options = {
     method: 'GET',
     url: 'https://indeed12.p.rapidapi.com/jobs/search',
-    params: {
-      query: technology || 'software',
-      location: 'United States',
-      page: '1',
-      sort: 'date',
-    },
-    headers: {
-      'X-RapidAPI-Key': process.env.RAPIDAPI_KEY,
-      'X-RapidAPI-Host': 'indeed12.p.rapidapi.com',
-    },
+    params: { query: technology || 'software', location: location || 'United States', page: page.toString(), sort: 'date' },
+    headers: { 'X-RapidAPI-Key': process.env.RAPIDAPI_KEY, 'X-RapidAPI-Host': 'indeed12.p.rapidapi.com' },
   };
+  try {
+    const response = await axios.request(options);
+    const jobs = response.data.hits || [];
+    return jobs
+      .filter((job) => companies.some((c) => job.company_name.toLowerCase().includes(c.toLowerCase())))
+      .map((job) => ({
+        jobId: job.job_id,
+        title: job.title,
+        company: job.company_name,
+        location: job.location,
+        posted: new Date(job.posted_time),
+        url: job.link || `https://www.indeed.com/viewjob?jk=${job.job_id}`,
+        description: job.description,
+        source: 'Indeed',
+        requiresDocs: job.description.includes('resume') || job.description.includes('cover letter'),
+      }));
+  } catch (error) {
+    console.error('Indeed scraping error:', error.message);
+    return [];
+  }
+};
 
-  for (let attempt = 0; attempt < retries; attempt++) {
-    try {
-      console.log(`Fetching jobs for ${companies.length} companies at ${new Date().toISOString()} - Attempt ${attempt + 1}`);
-      const response = await axios.request(indeedOptions);
-      const allJobs = response.data.hits || [];
-      for (const company of companies) {
-        const companyJobs = allJobs
-          .filter((job) => job.company_name.toLowerCase().includes(company.toLowerCase()))
-          .map((job) => ({
-            id: job.job_id,
-            title: job.title,
-            posted: job.posted_time,
-            requiresDocs: job.description.includes('resume') || job.description.includes('cover letter'),
-            url: job.link || `https://www.indeed.com/viewjob?jk=${job.job_id}`,
-          }));
-        jobs[company] = companyJobs.length > 0 ? companyJobs : [];
-      }
-      // Fill in missing companies with mock data only if no real jobs found
-      for (const company of companies) {
-        if (!jobs[company] || jobs[company].length === 0) {
-          console.log(`No jobs found for ${company}, using mock data`);
-          jobs[company] = [
-            {
-              id: `${company}-mock-1`,
-              title: `${company} - ${technology || 'Software'} Engineer`,
-              posted: new Date().toISOString(),
-              requiresDocs: true,
-              url: `https://${company.toLowerCase()}.com/careers`,
-            },
-          ];
+const scrapeLinkedInJobs = async (technology, location, companies) => {
+  try {
+    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+    const page = await browser.newPage();
+    const query = encodeURIComponent(`${technology || 'software'} ${location || 'United States'}`);
+    await page.goto(`https://www.linkedin.com/jobs/search?keywords=${query}&sortBy=DD`, { waitUntil: 'networkidle2' });
+    await page.waitForSelector('.jobs-search__results-list', { timeout: 10000 });
+    const jobs = await page.evaluate((companies) => {
+      const jobElements = document.querySelectorAll('.jobs-search__results-list li');
+      const jobList = [];
+      jobElements.forEach((el) => {
+        const companyEl = el.querySelector('.base-search-card__subtitle');
+        const company = companyEl?.innerText || '';
+        if (companies.some((c) => company.toLowerCase().includes(c.toLowerCase()))) {
+          const titleEl = el.querySelector('.base-search-card__title');
+          const linkEl = el.querySelector('a');
+          jobList.push({
+            jobId: linkEl?.href.split('?')[0] || `linkedin-${Date.now()}`,
+            title: titleEl?.innerText || 'Unknown Title',
+            company,
+            location: el.querySelector('.job-search-card__location')?.innerText || '',
+            posted: new Date(),
+            url: linkEl?.href || '',
+            description: '',
+            source: 'LinkedIn',
+            requiresDocs: true,
+          });
         }
-      }
-      return jobs; // Success, exit retry loop
-    } catch (error) {
-      console.error(`Indeed API attempt ${attempt + 1} failed:`, error.response?.status, error.message);
-      if (error.response?.status === 429) {
-        const retryAfter = error.response.headers['retry-after'] || (attempt + 1) * 5; // Default to 5s, 10s, 15s
-        console.log(`Rate limited (429), waiting ${retryAfter} seconds`);
-        await delay(retryAfter * 1000);
-      } else if (error.response?.status === 403) {
-        console.error('Forbidden (403): Check RAPIDAPI_KEY or Indeed API access');
-        break; // Exit on 403, no retry
-      } else if (attempt === retries - 1) {
-        console.error('Max retries reached, falling back to mock data');
-        for (const company of companies) {
-          jobs[company] = [
-            {
-              id: `${company}-mock-1`,
-              title: `${company} - ${technology || 'Software'} Engineer`,
-              posted: new Date().toISOString(),
-              requiresDocs: true,
-              url: `https://${company.toLowerCase()}.com/careers`,
-            },
-          ];
+      });
+      return jobList;
+    }, companies);
+    await browser.close();
+    return jobs;
+  } catch (error) {
+    console.error('LinkedIn scraping error:', error.message);
+    return [];
+  }
+};
+
+const fetchRealTimeJobs = async (companies, technology, location, retries = 3) => {
+  const jobs = {};
+  for (const company of companies) {
+    jobs[company] = [];
+  }
+
+  const sources = [
+    { name: 'Indeed', scraper: scrapeIndeedJobs },
+    { name: 'LinkedIn', scraper: scrapeLinkedInJobs },
+  ];
+
+  for (const source of sources) {
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        console.log(`Scraping ${source.name} for ${companies.length} companies - Attempt ${attempt + 1}`);
+        const scrapedJobs = await source.scraper(technology, location, companies);
+        for (const job of scrapedJobs) {
+          if (companies.includes(job.company)) {
+            jobs[job.company].push(job);
+          }
         }
-        return jobs;
+        break;
+      } catch (error) {
+        console.error(`${source.name} attempt ${attempt + 1} failed:`, error.message);
+        if (attempt === retries - 1) {
+          console.log(`Max retries reached for ${source.name}, using mock data`);
+          for (const company of companies) {
+            jobs[company].push({
+              jobId: `${company}-mock-${Date.now()}`,
+              title: `${company} - ${technology || 'Software'} Engineer`,
+              company,
+              location: location || 'United States',
+              posted: new Date(),
+              url: `https://${company.toLowerCase()}.com/careers`,
+              description: 'Mock job listing',
+              source: 'Mock',
+              requiresDocs: true,
+            });
+          }
+        }
+        await delay((attempt + 1) * 5000);
       }
     }
   }
-  return jobs; // Return whatever we have after retries
+
+  for (const company of companies) {
+    for (const job of jobs[company]) {
+      await Job.updateOne(
+        { jobId: job.jobId },
+        { $set: job },
+        { upsert: true }
+      );
+    }
+  }
+
+  return jobs;
 };
 
 const autoApplyToJob = async (job, user) => {
-  console.log(`Auto-applying to ${job.title} at ${job.url} for ${user.email}`);
-  console.log(`Using resume: ${user.resumePaths[user.resumePaths.length - 1]}`);
+  console.log(`Auto-applying to ${job.title} at ${job.company} for ${user.email}`);
+  const resumePath = user.resumePaths[user.resumePaths.length - 1];
+  console.log(`Using resume: ${resumePath}`);
   if (job.requiresDocs) {
     console.log(`Using LinkedIn: ${user.linkedinProfile}, Cover Letter: ${user.coverLetter}`);
   }
-  return true; // Simulated success
+  await delay(1000);
+  return true;
 };
 
-const sendEmail = async (to, subject, html, attachments = []) => {
-  try {
-    await transporter.sendMail({
-      from: `"ZvertexAI" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      html,
-      attachments,
-    });
-    console.log('Email sent to:', to);
-  } catch (error) {
-    console.error('Email sending failed:', error.message);
+const runAutoApplyForUser = async (user) => {
+  if (!user.isOtpVerified || !user.resumePaths.length || !user.selectedCompanies.length) {
+    console.log(`Skipping auto-apply for ${user.email}: Incomplete setup`);
+    return 0;
   }
+
+  const jobs = await fetchRealTimeJobs(user.selectedCompanies, user.technology, user.scraperPreferences.location);
+  let appliedToday = 0;
+
+  for (const company of user.selectedCompanies) {
+    for (const job of jobs[company]) {
+      const alreadyApplied = user.appliedJobs.some((j) => j.jobId === job.jobId) ||
+        (await Job.findOne({ jobId: job.jobId, 'appliedBy.userId': user._id }));
+      if (!alreadyApplied) {
+        const success = await autoApplyToJob(job, user);
+        if (success) {
+          user.appliedJobs.push({ jobId: job.jobId, date: new Date() });
+          await Job.updateOne(
+            { jobId: job.jobId },
+            { $push: { appliedBy: { userId: user._id, date: new Date() } } }
+          );
+          appliedToday++;
+        }
+      }
+    }
+  }
+
+  await user.save();
+  if (appliedToday > 0) {
+    await sendEmail(
+      user.email,
+      'ZvertexAI Auto-Apply Update',
+      getAutoApplyEmail(user.email, user.subscription, user.selectedCompanies)
+    );
+  }
+  return appliedToday;
 };
 
-// Email templates
+schedule.scheduleJob('0 0 * * *', async () => {
+  console.log('Running daily job scraper at', new Date().toISOString());
+  const users = await User.find({ isOtpVerified: true }).lean();
+  for (const user of users) {
+    const userDoc = await User.findById(user._id);
+    const applied = await runAutoApplyForUser(userDoc);
+    console.log(`Applied to ${applied} jobs for ${user.email}`);
+  }
+});
+
 const getSignupEmail = (email, subscription) => `
   <div style="font-family: Arial, sans-serif; background-color: #F0F8FF; color: #333; padding: 20px;">
     <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: auto; background-color: #FFFFFF; border: 1px solid #87CEEB;">
@@ -382,6 +478,21 @@ const getResetPasswordEmail = (email, resetLink) => `
     </table>
   </div>
 `;
+
+const sendEmail = async (to, subject, html, attachments = []) => {
+  try {
+    await transporter.sendMail({
+      from: `"ZvertexAI" <${process.env.EMAIL_USER}>`,
+      to,
+      subject,
+      html,
+      attachments,
+    });
+    console.log('Email sent to:', to);
+  } catch (error) {
+    console.error('Email sending failed:', error.message);
+  }
+};
 
 // API routes
 app.get('/api/health', (req, res) => res.status(200).json({ message: 'Server is running', dbConnected }));
@@ -501,24 +612,22 @@ app.post('/api/upload-resume', upload, async (req, res) => {
   try {
     if (!dbConnected) throw new Error('Database not connected');
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-    const result = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream({ resource_type: 'raw' }, (error, result) => {
-        if (error) reject(new Error('Upload failed'));
-        resolve(result);
-      }).end(req.file.buffer);
-    });
-    const decoded = jwt.verify(req.body.token, process.env.JWT_SECRET);
+    const token = req.body.token;
+    const technology = req.body.technology;
+    if (!token) return res.status(401).json({ message: 'No token provided' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findOne({ email: decoded.email });
-    if (!user || !user.isOtpVerified)
-      return res.status(403).json({ message: 'Account not verified' });
-    user.resumePaths.push(result.secure_url);
-    if (req.body.technology) user.technology = req.body.technology;
-    await user.save();
-    const suggestions = scanResume(result.secure_url);
-    res.status(200).json({ message: 'Resume uploaded', path: result.secure_url, suggestions });
+    if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
+    const result = await cloudinary.uploader.upload_stream({ resource_type: 'auto' }, async (error, result) => {
+      if (error) throw new Error('Cloudinary upload failed');
+      user.resumePaths.push(result.secure_url);
+      user.technology = technology || user.technology;
+      await user.save();
+      res.status(200).json({ message: 'Resume uploaded successfully' });
+    }).end(req.file.buffer);
   } catch (error) {
-    console.error('Upload error:', error.message);
-    res.status(500).json({ message: 'Upload failed', error: error.message });
+    console.error('Resume upload error:', error.message);
+    res.status(500).json({ message: 'Resume upload failed', error: error.message });
   }
 });
 
@@ -526,19 +635,17 @@ app.post('/api/select-companies', async (req, res) => {
   const { token, companies } = req.body;
   try {
     if (!dbConnected) throw new Error('Database not connected');
-    if (!token || !companies) return res.status(400).json({ message: 'Missing token or companies' });
-    if (companies.length > 10) return res.status(400).json({ message: 'Maximum 10 companies allowed' });
+    if (!token) return res.status(401).json({ message: 'No token provided' });
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findOne({ email: decoded.email });
-    if (!user || !user.isOtpVerified)
-      return res.status(403).json({ message: 'Account not verified' });
-    user.selectedCompanies = companies;
+    if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
+    user.selectedCompanies = companies || [];
     await user.save();
-    const jobs = await fetchRealTimeJobs(companies, user.technology);
-    res.status(200).json({ message: 'Companies selected', jobs });
+    const jobs = await fetchRealTimeJobs(companies, user.technology, user.scraperPreferences.location);
+    res.status(200).json({ message: 'Companies updated', jobs });
   } catch (error) {
     console.error('Select companies error:', error.message);
-    res.status(500).json({ message: 'Failed to select companies', error: error.message });
+    res.status(500).json({ message: 'Failed to update companies', error: error.message });
   }
 });
 
@@ -546,16 +653,16 @@ app.post('/api/update-profile', async (req, res) => {
   const { token, linkedinProfile, coverLetter } = req.body;
   try {
     if (!dbConnected) throw new Error('Database not connected');
+    if (!token) return res.status(401).json({ message: 'No token provided' });
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findOne({ email: decoded.email });
-    if (!user || !user.isOtpVerified)
-      return res.status(403).json({ message: 'Account not verified' });
+    if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
     user.linkedinProfile = linkedinProfile || user.linkedinProfile;
     user.coverLetter = coverLetter || user.coverLetter;
     await user.save();
-    res.status(200).json({ message: 'Profile updated' });
+    res.status(200).json({ message: 'Profile updated', linkedinProfile: user.linkedinProfile, coverLetter: user.coverLetter });
   } catch (error) {
-    console.error('Profile update error:', error.message);
+    console.error('Update profile error:', error.message);
     res.status(500).json({ message: 'Failed to update profile', error: error.message });
   }
 });
@@ -564,69 +671,63 @@ app.post('/api/auto-apply', async (req, res) => {
   const { token, linkedinProfile, coverLetter } = req.body;
   try {
     if (!dbConnected) throw new Error('Database not connected');
+    if (!token) return res.status(401).json({ message: 'No token provided' });
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findOne({ email: decoded.email });
-    if (!user || !user.isOtpVerified)
-      return res.status(403).json({ message: 'Account not verified' });
-    if (!user.resumePaths.length || !user.selectedCompanies.length) {
-      return res.status(400).json({ message: 'Upload resume and select companies first' });
-    }
-    if (linkedinProfile) user.linkedinProfile = linkedinProfile;
-    if (coverLetter) user.coverLetter = coverLetter;
+    if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
+    if (!user.resumePaths.length) return res.status(400).json({ message: 'No resume uploaded' });
+    if (!user.selectedCompanies.length) return res.status(400).json({ message: 'No companies selected' });
+    user.linkedinProfile = linkedinProfile || user.linkedinProfile;
+    user.coverLetter = coverLetter || user.coverLetter;
+    const appliedToday = await runAutoApplyForUser(user);
     await user.save();
-    const today = new Date().toDateString();
-    const appliedToday = user.appliedJobs.filter((job) => new Date(job.date).toDateString() === today).length;
-    const jobs = await fetchRealTimeJobs(user.selectedCompanies, user.technology);
-    const allJobs = Object.values(jobs).flat();
-    const missingInfo = allJobs.some(
-      (job) => job.requiresDocs && (!user.linkedinProfile || !user.coverLetter)
-    );
-    if (missingInfo) {
-      return res.status(400).json({
-        message: 'Additional information required',
-        requires: { linkedin: !user.linkedinProfile, coverLetter: !user.coverLetter },
-      });
-    }
-    let appliedCount = 0;
-    for (const job of allJobs) {
-      const alreadyApplied = user.appliedJobs.some((appliedJob) => appliedJob.jobId === job.id && new Date(appliedJob.date).toDateString() === today);
-      if (!alreadyApplied) {
-        const success = await autoApplyToJob(job, user);
-        if (success) {
-          user.appliedJobs.push({ jobId: job.id, date: new Date() });
-          appliedCount++;
-        }
-        await delay(1000); // 1-second delay between applications
-      }
-    }
-    await user.save();
-    const resumePath = user.resumePaths[user.resumePaths.length - 1];
-    const attachments = [{ filename: 'resume.pdf', path: resumePath }];
-    await sendEmail(
-      user.email,
-      'Auto-Apply Activated - ZvertexAI',
-      getAutoApplyEmail(user.email, user.subscription, user.selectedCompanies),
-      attachments
-    );
-    res.status(200).json({ message: 'Auto-apply process completed', appliedToday: appliedToday + appliedCount });
+    res.status(200).json({ message: `Auto-applied to ${appliedToday} jobs`, appliedToday });
   } catch (error) {
     console.error('Auto-apply error:', error.message);
     res.status(500).json({ message: 'Auto-apply failed', error: error.message });
   }
 });
 
-// Start server
-const port = process.env.PORT || 5002;
-app.listen(port, () => console.log(`Server running on port ${port}`)).on('error', (err) =>
-  console.error('Server startup failed:', err.message)
-);
-
-// Periodic ping to keep server alive
-setInterval(async () => {
+app.post('/api/update-scraper-preferences', async (req, res) => {
+  const { token, jobBoards, frequency, location } = req.body;
   try {
-    await axios.get(`https://zvertexai-orzv.onrender.com/api/health`);
-    console.log('Keep-alive ping successful');
+    if (!dbConnected) throw new Error('Database not connected');
+    if (!token) return res.status(401).json({ message: 'No token provided' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findOne({ email: decoded.email });
+    if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
+    user.scraperPreferences.jobBoards = jobBoards || user.scraperPreferences.jobBoards;
+    user.scraperPreferences.frequency = frequency || user.scraperPreferences.frequency;
+    user.scraperPreferences.location = location || user.scraperPreferences.location;
+    await user.save();
+    res.status(200).json({ message: 'Scraper preferences updated', preferences: user.scraperPreferences });
   } catch (error) {
-    console.error('Keep-alive ping failed:', error.message);
+    console.error('Update scraper preferences error:', error.message);
+    res.status(500).json({ message: 'Failed to update preferences', error: error.message });
   }
-}, 14 * 60 * 1000); // Every 14 minutes
+});
+
+app.get('/api/jobs', async (req, res) => {
+  const { token } = req.headers.authorization?.split(' ')[1] ? { token: req.headers.authorization.split(' ')[1] } : req.query;
+  try {
+    if (!dbConnected) throw new Error('Database not connected');
+    if (!token) return res.status(401).json({ message: 'No token provided' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findOne({ email: decoded.email });
+    if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
+    const jobs = await Job.find({
+      company: { $in: user.selectedCompanies },
+      createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+    }).sort({ posted: -1 }).lean();
+    res.status(200).json({ jobs });
+  } catch (error) {
+    console.error('Fetch jobs error:', error.message);
+    res.status(500).json({ message: 'Failed to fetch jobs', error: error.message });
+  }
+});
+
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

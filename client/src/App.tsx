@@ -27,6 +27,7 @@ import ResumeUpload from './pages/ResumeUpload';
 import Companies from './pages/Companies';
 import ConfirmAutoApply from './pages/ConfirmAutoApply';
 import Dashboard from './pages/Dashboard';
+import ScraperPreferences from './pages/ScraperPreferences';
 
 // Define professional blue and white theme with MNC aesthetic
 const theme = createTheme({
@@ -223,6 +224,7 @@ const Header: React.FC = () => {
         { label: 'Upload Resume', path: '/resume-upload' },
         { label: 'Companies', path: '/companies' },
         { label: 'Auto Apply', path: '/confirm-auto-apply' },
+        { label: 'Scraper Preferences', path: '/scraper-preferences' },
         { label: 'Logout', action: handleLogout },
       ]
     : [
@@ -370,35 +372,23 @@ const App: React.FC = () => {
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route
                 path="/resume-upload"
-                element={
-                  <ProtectedRoute>
-                    <ResumeUpload />
-                  </ProtectedRoute>
-                }
+                element={<ProtectedRoute><ResumeUpload /></ProtectedRoute>}
               />
               <Route
                 path="/companies"
-                element={
-                  <ProtectedRoute>
-                    <Companies />
-                  </ProtectedRoute>
-                }
+                element={<ProtectedRoute><Companies /></ProtectedRoute>}
               />
               <Route
                 path="/confirm-auto-apply"
-                element={
-                  <ProtectedRoute>
-                    <ConfirmAutoApply />
-                  </ProtectedRoute>
-                }
+                element={<ProtectedRoute><ConfirmAutoApply /></ProtectedRoute>}
               />
               <Route
                 path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
+                element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
+              />
+              <Route
+                path="/scraper-preferences"
+                element={<ProtectedRoute><ScraperPreferences /></ProtectedRoute>}
               />
             </Routes>
           </Container>
