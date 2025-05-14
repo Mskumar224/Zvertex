@@ -11,6 +11,21 @@ require('dotenv').config();
 
 const app = express();
 
+// Explicit CORS middleware with detailed logging
+app.use((req, res, next) => {
+  console.log(`Handling ${req.method} request for ${req.url} from origin: ${req.headers.origin}`);
+  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') {
+    console.log('Responding to preflight OPTIONS request');
+    return res.status(204).end();
+  }
+  next();
+});
+
+// Additional CORS middleware for redundancy
 app.use(cors({
   origin: ['https://zvertexai.com', 'http://localhost:3000'],
   methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
@@ -35,7 +50,10 @@ console.log('Setting up routes...');
 app.use('/api/auth', authRoutes);
 app.use('/api/job', jobRoutes);
 
-app.get('/health', (req, res) => res.status(200).json({ status: 'OK' }));
+app.get('/health', (req, res) => {
+  console.log('Health check requested');
+  res.status(200).json({ status: 'OK' });
+});
 
 app.use((err, req, res, next) => {
   console.error('Server error:', err.message);
