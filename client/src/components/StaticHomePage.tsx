@@ -93,7 +93,6 @@ const StaticHomePage: React.FC = () => {
       if (file) {
         const formData = new FormData();
         formData.append('resume', file);
-        formData.append('token', token);
         try {
           await axios.post('https://zvertexai-orzv.onrender.com/api/upload-resume', formData, {
             headers: { 
@@ -105,13 +104,17 @@ const StaticHomePage: React.FC = () => {
           navigate('/companies');
         } catch (error: any) {
           const errorMessage = error.response?.data?.message || error.message;
-          if (error.response?.status === 404) {
-            alert('Upload endpoint not found. Please check the server.');
-          } else if (error.response?.status === 401) {
-            alert('Unauthorized: Please log in again.');
+          if (error.response?.status === 401) {
+            setError('Unauthorized: Please log in again.');
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
             navigate('/login');
+          } else if (error.response?.status === 404) {
+            setError('Upload endpoint not found. Please check the server.');
+          } else if (error.response?.status === 400) {
+            setError(`Upload failed: ${errorMessage}`);
           } else {
-            alert(`Upload failed: ${errorMessage}`);
+            setError(`Upload failed: ${errorMessage}`);
           }
         }
       }
@@ -128,13 +131,13 @@ const StaticHomePage: React.FC = () => {
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message;
       if (error.response?.status === 404) {
-        alert('Login endpoint not found. Please check the server.');
+        setError('Login endpoint not found. Please check the server.');
       } else if (error.response?.status === 401) {
-        alert('Unauthorized: Invalid credentials.');
+        setError('Unauthorized: Invalid credentials.');
       } else if (error.response?.status === 400) {
-        alert(`Login failed: ${errorMessage}`);
+        setError(`Login failed: ${errorMessage}`);
       } else {
-        alert(`Login failed: ${errorMessage}`);
+        setError(`Login failed: ${errorMessage}`);
       }
     }
   };
