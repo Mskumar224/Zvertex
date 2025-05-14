@@ -70,16 +70,20 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
     optionsSuccessStatus: 204,
+    preflightContinue: false,
   })
 );
 
 // MongoDB connection
 let dbConnected = false;
-const connectToMongoDB = async (retryCount = 0, maxRetries = 10) => {
+const connectToMongoDB = async (retryCount = 0, maxRetries = 15) => {
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 60000,
+      connectTimeoutMS: 30000,
+      maxPoolSize: 10,
       serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
     });
     dbConnected = true;
     console.log('Connected to MongoDB');
@@ -615,7 +619,18 @@ const verifyToken = (req, res, next) => {
 };
 
 // API routes
-app.get('/api/health', (req, res) => res.status(200).json({ message: 'Server is running', dbConnected }));
+app.get('/api/health', async (req, res) => {
+  try {
+    if (!dbConnected) {
+      return res.status(503).json({ message: 'Database not connected', dbConnected });
+    }
+    await mongoose.connection.db.admin().ping();
+    res.status(200).json({ message: 'Server is running', dbConnected });
+  } catch (error) {
+    console.error('Health check failed:', error.message);
+    res.status(503).json({ message: 'Service unavailable', dbConnected });
+  }
+});
 
 app.post(
   '/api/signup',
@@ -1023,7 +1038,7 @@ app.get('/api/dashboard', verifyToken, async (req, res) => {
     if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
     const user = await User.findOne({ email: req.user.email }).lean();
     if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
-    const needsPhoneUpdate = !user.phone;
+    const needsPhoneUpdate = !user.phone || user.phone === 'N/A';
     const jobsAppliedCount = user.appliedJobs ? user.appliedJobs.length : 0;
     res.status(200).json({
       message: needsPhoneUpdate ? 'Dashboard data retrieved, phone number required' : 'Dashboard data retrieved',
