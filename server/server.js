@@ -39,6 +39,11 @@ console.log('Setting up routes...');
 app.use('/api/auth', authRoutes);
 app.use('/api/job', jobRoutes);
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK' });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Server error:', err.message);
