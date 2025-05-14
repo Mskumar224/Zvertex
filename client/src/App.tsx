@@ -1,6 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Route, Routes, useNavigate, useLocation } from 'react-router-dom';
-import { AppBar, Toolbar, Typography, Button, Container, Box, CssBaseline, createTheme, ThemeProvider } from '@mui/material';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Container,
+  Box,
+  CssBaseline,
+  createTheme,
+  ThemeProvider,
+  IconButton,
+  Drawer,
+  List,
+  ListItem,
+  ListItemText,
+  useMediaQuery,
+} from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
 import StaticHomePage from './components/StaticHomePage';
 import Signup from './pages/Signup';
 import Login from './pages/Login';
@@ -42,13 +59,16 @@ const theme = createTheme({
     h4: {
       fontWeight: 600,
       color: '#1A2526',
+      fontSize: { xs: '1.5rem', sm: '2rem' }, // Responsive font size
     },
     h6: {
       fontWeight: 500,
       color: '#1A2526',
+      fontSize: { xs: '1rem', sm: '1.25rem' },
     },
     body1: {
       color: '#1A2526',
+      fontSize: { xs: '0.875rem', sm: '1rem' },
     },
   },
   components: {
@@ -66,8 +86,9 @@ const theme = createTheme({
         root: {
           borderRadius: '6px',
           textTransform: 'none',
-          padding: '8px 16px',
+          padding: { xs: '6px 12px', sm: '8px 16px' },
           fontWeight: 500,
+          fontSize: { xs: '0.75rem', sm: '0.875rem' },
           '&:hover': {
             backgroundColor: '#E6F0FA',
             color: '#005B99',
@@ -165,6 +186,8 @@ const Header: React.FC = () => {
   const location = useLocation();
   const isAuthenticated = !!localStorage.getItem('token');
   const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -188,50 +211,93 @@ const Header: React.FC = () => {
     navigate('/login');
   };
 
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
+
   const isAuthPage = ['/login', '/signup', '/forgot-password', '/reset-password'].includes(location.pathname);
+
+  const navItems = isAuthenticated && isOtpVerified
+    ? [
+        { label: 'Dashboard', path: '/dashboard' },
+        { label: 'Upload Resume', path: '/resume-upload' },
+        { label: 'Companies', path: '/companies' },
+        { label: 'Auto Apply', path: '/confirm-auto-apply' },
+        { label: 'Logout', action: handleLogout },
+      ]
+    : [
+        { label: 'Login', path: '/login' },
+        { label: 'Signup', path: '/signup' },
+      ];
+
+  const drawer = (
+    <Box sx={{ width: 250, bgcolor: '#FFFFFF', height: '100%' }}>
+      <Typography variant="h6" sx={{ p: 2, color: '#005B99', fontWeight: 600 }}>
+        ZvertexAI
+      </Typography>
+      <List>
+        {navItems.map((item) => (
+          <ListItem
+            key={item.label}
+            onClick={() => {
+              if (item.path) navigate(item.path);
+              if (item.action) item.action();
+              setMobileOpen(false);
+            }}
+            sx={{ cursor: 'pointer' }}
+          >
+            <ListItemText primary={item.label} primaryTypographyProps={{ color: '#1A2526' }} />
+          </ListItem>
+        ))}
+      </List>
+    </Box>
+  );
 
   return (
     <AppBar position="static">
-      <Toolbar>
+      <Toolbar sx={{ justifyContent: 'space-between' }}>
         <Button
           color="inherit"
           onClick={() => navigate('/')}
-          sx={{ fontWeight: 600, fontSize: '1.25rem', textTransform: 'none' }}
+          sx={{ fontWeight: 600, fontSize: { xs: '1rem', sm: '1.25rem' }, textTransform: 'none' }}
         >
           ZvertexAI
         </Button>
-        <Box sx={{ flexGrow: 1 }} />
-        {!isAuthPage && (
+        {isMobile ? (
           <>
-            {isAuthenticated && isOtpVerified ? (
-              <>
-                <Button color="inherit" onClick={() => navigate('/dashboard')}>
-                  Dashboard
-                </Button>
-                <Button color="inherit" onClick={() => navigate('/resume-upload')}>
-                  Upload Resume
-                </Button>
-                <Button color="inherit" onClick={() => navigate('/companies')}>
-                  Companies
-                </Button>
-                <Button color="inherit" onClick={() => navigate('/confirm-auto-apply')}>
-                  Auto Apply
-                </Button>
-                <Button color="inherit" onClick={handleLogout}>
-                  Logout
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button color="inherit" onClick={() => navigate('/login')}>
-                  Login
-                </Button>
-                <Button color="inherit" onClick={() => navigate('/signup')}>
-                  Signup
-                </Button>
-              </>
-            )}
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="end"
+              onClick={handleDrawerToggle}
+              sx={{ display: { sm: 'none' } }}
+            >
+              <MenuIcon />
+            </IconButton>
+            <Drawer
+              anchor="right"
+              open={mobileOpen}
+              onClose={handleDrawerToggle}
+              ModalProps={{ keepMounted: true }}
+              sx={{ display: { xs: 'block', sm: 'none' } }}
+            >
+              {drawer}
+            </Drawer>
           </>
+        ) : (
+          !isAuthPage && (
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              {navItems.map((item) => (
+                <Button
+                  key={item.label}
+                  color="inherit"
+                  onClick={() => (item.path ? navigate(item.path) : item.action?.())}
+                >
+                  {item.label}
+                </Button>
+              ))}
+            </Box>
+          )
         )}
       </Toolbar>
     </AppBar>
@@ -239,9 +305,12 @@ const Header: React.FC = () => {
 };
 
 const Footer: React.FC = () => (
-  <Box sx={{ bgcolor: '#005B99', py: 3, mt: 'auto' }}>
+  <Box sx={{ bgcolor: '#005B99', py: { xs: 2, sm: 3 }, mt: 'auto' }}>
     <Container maxWidth="lg">
-      <Typography variant="body2" sx={{ color: '#FFFFFF' }} align="center">
+      <Typography
+        variant="body2"
+        sx={{ color: '#FFFFFF', textAlign: 'center', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+      >
         © {new Date().getFullYear()} ZvertexAI. All rights reserved.
       </Typography>
     </Container>
@@ -281,13 +350,18 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 const App: React.FC = () => {
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   return (
     <ThemeProvider theme={theme}>
       <Router>
         <CssBaseline />
         <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
           <Header />
-          <Container maxWidth="lg" sx={{ flexGrow: 1, py: 4, bgcolor: '#FFFFFF' }}>
+          <Container
+            maxWidth={isMobile ? 'sm' : 'lg'}
+            sx={{ flexGrow: 1, py: { xs: 2, sm: 4 }, bgcolor: '#FFFFFF' }}
+          >
             <Routes>
               <Route path="/" element={<StaticHomePage />} />
               <Route path="/signup" element={<Signup />} />
