@@ -59,16 +59,16 @@ const theme = createTheme({
     h4: {
       fontWeight: 600,
       color: '#1A2526',
-      fontSize: { xs: '1.5rem', sm: '2rem' }, // Responsive font size
+      fontSize: '2rem',
     },
     h6: {
       fontWeight: 500,
       color: '#1A2526',
-      fontSize: { xs: '1rem', sm: '1.25rem' },
+      fontSize: '1.25rem',
     },
     body1: {
       color: '#1A2526',
-      fontSize: { xs: '0.875rem', sm: '1rem' },
+      fontSize: '1rem',
     },
   },
   components: {
@@ -86,9 +86,9 @@ const theme = createTheme({
         root: {
           borderRadius: '6px',
           textTransform: 'none',
-          padding: { xs: '6px 12px', sm: '8px 16px' },
+          padding: '8px 16px',
           fontWeight: 500,
-          fontSize: { xs: '0.75rem', sm: '0.875rem' },
+          fontSize: '0.875rem',
           '&:hover': {
             backgroundColor: '#E6F0FA',
             color: '#005B99',
@@ -217,7 +217,7 @@ const Header: React.FC = () => {
 
   const isAuthPage = ['/login', '/signup', '/forgot-password', '/reset-password'].includes(location.pathname);
 
-  const navItems = isAuthenticated && isOtpVerified
+  const navItems: { label: string; path?: string; action?: () => void }[] = isAuthenticated && isOtpVerified
     ? [
         { label: 'Dashboard', path: '/dashboard' },
         { label: 'Upload Resume', path: '/resume-upload' },
