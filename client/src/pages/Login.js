@@ -5,11 +5,9 @@ import { useHistory } from 'react-router-dom';
 
 function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
-  const [otp, setOtp] = useState('');
-  const [userId, setUserId] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false); // Added loading state
+  const [loading, setLoading] = useState(false);
   const history = useHistory();
   const isMobile = useMediaQuery('(max-width:600px)');
 
@@ -21,38 +19,19 @@ function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      console.log('Sending POST to /api/auth/login:', formData); // Debug log
+      console.log('Sending POST to /api/auth/login:', formData);
       const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, formData);
-      if (response.data.needsOtp) {
-        setUserId(response.data.userId);
-        setMessage(response.data.message);
-        setError('');
-      } else {
-        localStorage.setItem('token', response.data.token);
-        console.log('Redirecting to:', response.data.redirect); // Debug log
-        history.push(response.data.redirect);
-      }
-    } catch (err) {
-      console.error('Login error:', err); // Debug log
-      setError(err.response?.data?.message || 'Login failed');
-      setMessage('');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOtpSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      console.log('Sending OTP verification:', { userId, otp }); // Debug log
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/verify-subscription-otp`, { userId, otp });
       localStorage.setItem('token', response.data.token);
-      console.log('Redirecting to:', response.data.redirect); // Debug log
+      console.log('Redirecting to:', response.data.redirect);
       history.push(response.data.redirect);
     } catch (err) {
-      console.error('OTP verification error:', err); // Debug log
-      setError(err.response?.data?.message || 'OTP verification failed');
+      console.error('Login error:', err);
+      if (err.response?.data?.redirect === '/signup') {
+        setError(err.response.data.message);
+        setTimeout(() => history.push('/signup'), 2000);
+      } else {
+        setError(err.response?.data?.message || 'Login failed');
+      }
       setMessage('');
     } finally {
       setLoading(false);
@@ -87,88 +66,53 @@ function Login() {
             {error}
           </Typography>
         )}
-        {!userId ? (
-          <form onSubmit={handleSubmit}>
-            <TextField
-              fullWidth
-              label="Email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              margin="normal"
-              required
-              variant="outlined"
-              size={isMobile ? 'small' : 'medium'}
-              sx={{ '& .MuiInputBase-root': { borderRadius: '8px' } }}
-            />
-            <TextField
-              fullWidth
-              label="Password"
-              name="password"
-              type="password"
-              value={formData.password}
-              onChange={handleChange}
-              margin="normal"
-              required
-              variant="outlined"
-              size={isMobile ? 'small' : 'medium'}
-              sx={{ '& .MuiInputBase-root': { borderRadius: '8px' } }}
-            />
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              fullWidth
-              disabled={loading}
-              sx={{
-                mt: 3,
-                py: isMobile ? 1 : 1.5,
-                borderRadius: '25px',
-                background: 'linear-gradient(45deg, #1976d2, #42a5f5)',
-                '&:hover': { background: 'linear-gradient(45deg, #1565c0, #2196f3)' },
-                textTransform: 'none',
-                fontSize: isMobile ? '0.9rem' : '1rem',
-                fontWeight: 500,
-              }}
-            >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Log In'}
-            </Button>
-          </form>
-        ) : (
-          <form onSubmit={handleOtpSubmit}>
-            <TextField
-              fullWidth
-              label="Enter OTP"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              margin="normal"
-              required
-              variant="outlined"
-              size={isMobile ? 'small' : 'medium'}
-              sx={{ '& .MuiInputBase-root': { borderRadius: '8px' } }}
-            />
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              fullWidth
-              disabled={loading}
-              sx={{
-                mt: 3,
-                py: isMobile ? 1 : 1.5,
-                borderRadius: '25px',
-                background: 'linear-gradient(45deg, #1976d2, #42a5f5)',
-                '&:hover': { background: 'linear-gradient(45deg, #1565c0, #2196f3)' },
-                textTransform: 'none',
-                fontSize: isMobile ? '0.9rem' : '1rem',
-                fontWeight: 500,
-              }}
-            >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Verify OTP'}
-            </Button>
-          </form>
-        )}
+        <form onSubmit={handleSubmit}>
+          <TextField
+            fullWidth
+            label="Email"
+            name="email"
+            type="email"
+            value={formData.email}
+            onChange={handleChange}
+            margin="normal"
+            required
+            variant="outlined"
+            size={isMobile ? 'small' : 'medium'}
+            sx={{ '& .MuiInputBase-root': { borderRadius: '8px' } }}
+          />
+          <TextField
+            fullWidth
+            label="Password"
+            name="password"
+            type="password"
+            value={formData.password}
+            onChange={handleChange}
+            margin="normal"
+            required
+            variant="outlined"
+            size={isMobile ? 'small' : 'medium'}
+            sx={{ '& .MuiInputBase-root': { borderRadius: '8px' } }}
+          />
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            fullWidth
+            disabled={loading}
+            sx={{
+              mt: 3,
+              py: isMobile ? 1 : 1.5,
+              borderRadius: '25px',
+              background: 'linear-gradient(45deg, #1976d2, #42a5f5)',
+              '&:hover': { background: 'linear-gradient(45deg, #1565c0, #2196f3)' },
+              textTransform: 'none',
+              fontSize: isMobile ? '0.9rem' : '1rem',
+              fontWeight: 500,
+            }}
+          >
+            {loading ? <CircularProgress size={24} color="inherit" /> : 'Log In'}
+          </Button>
+        </form>
       </Box>
     </Container>
   );

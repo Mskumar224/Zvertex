@@ -6,7 +6,7 @@ import { useHistory } from 'react-router-dom';
 function StudentDashboard() {
   const [user, setUser] = useState(null);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true); // Added loading state
+  const [loading, setLoading] = useState(true);
   const history = useHistory();
   const isMobile = useMediaQuery('(max-width:600px)');
 
@@ -15,14 +15,14 @@ function StudentDashboard() {
       try {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('No token found');
-        console.log('Sending GET to /api/auth/user'); // Debug log
+        console.log('Sending GET to /api/auth/user');
         const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/user`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUser(response.data);
         setError('');
       } catch (err) {
-        console.error('Fetch user error:', err.message); // Debug log
+        console.error('Fetch user error:', err.message);
         setError('Failed to fetch user data. Please try again.');
       } finally {
         setLoading(false);
