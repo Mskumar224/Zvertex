@@ -25,38 +25,24 @@ router.post('/signup', async (req, res) => {
     }
 
     let user = await User.findOne({ email });
-    let otp;
-    if (user && !user.isSubscriptionVerified) {
-      otp = generateOTP();
-      Object.assign(user, {
-        password,
-        name,
-        phone,
-        pendingSubscription: subscriptionType,
-        selectedCompanies: ['Indeed', 'LinkedIn', 'Glassdoor'],
-        selectedTechnology: 'JavaScript',
-        otp,
-        otpExpires: Date.now() + 10 * 60 * 1000
-      });
-      await user.save();
-    } else if (user) {
+    if (user) {
       return res.status(400).json({ message: 'Account exists. Please login.' });
-    } else {
-      otp = generateOTP();
-      user = new User({
-        email,
-        password,
-        name,
-        phone,
-        subscription: 'NONE',
-        pendingSubscription: subscriptionType,
-        selectedCompanies: ['Indeed', 'LinkedIn', 'Glassdoor'],
-        selectedTechnology: 'JavaScript',
-        otp,
-        otpExpires: Date.now() + 10 * 60 * 1000
-      });
-      await user.save();
     }
+
+    const otp = generateOTP();
+    user = new User({
+      email,
+      password,
+      name,
+      phone,
+      subscription: 'NONE',
+      pendingSubscription: subscriptionType,
+      selectedCompanies: ['Indeed', 'LinkedIn', 'Glassdoor'],
+      selectedTechnology: 'JavaScript',
+      otp,
+      otpExpires: Date.now() + 10 * 60 * 1000
+    });
+    await user.save();
 
     await transporter.sendMail({
       from: '"ZvertexAI Team" <zvertexai@honotech.com>',
@@ -118,25 +104,7 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: 'No account found. Please sign up.' });
     if (!user.isSubscriptionVerified) {
-      const otp = generateOTP();
-      user.otp = otp;
-      user.otpExpires = Date.now() + 10 * 60 * 1000;
-      await user.save();
-      await transporter.sendMail({
-        from: '"ZvertexAI Team" <zvertexai@honotech.com>',
-        to: process.env.OTP_EMAIL || 'zvertex.247@gmail.com',
-        subject: 'ZvertexAI - OTP for Account Verification',
-        html: `
-          <div style="font-family: Roboto, Arial, sans-serif; color: #333; background: #f5f5f5; padding: 20px; borderRadius: 8px;">
-            <h2 style="color: #1976d2;">ZvertexAI Account Verification OTP</h2>
-            <p>User (${email}) is attempting to log in but not verified.</p>
-            <p>OTP: <strong style="font-size: 1.2em; color: #115293;">${otp}</strong> (valid for 10 minutes).</p>
-            <p>Contact: <a href="mailto:zvertex.247@gmail.com">zvertex.247@gmail.com</a> or +1(918) 924-5130</p>
-            <p style="color: #6B7280;">Best regards,<br>The ZvertexAI Team</p>
-          </div>
-        `
-      });
-      return res.status(403).json({ message: 'Check OTP at zvertex.247@gmail.com or call +1(918) 924-5130', needsOtp: true, userId: user._id });
+      return res.status(403).json({ message: 'Account not verified. Please sign up again.' });
     }
     if (user.password !== password) return res.status(400).json({ message: 'Invalid password' });
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
