@@ -50,30 +50,22 @@ console.log('Starting backend server...', {
 const app = express();
 
 // Security middleware
-app.use(helmet()); // Set secure HTTP headers
-app.use(express.json({ limit: '10kb' })); // Limit JSON payload size
+app.use(helmet());
+app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per IP
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: 'Too many requests from this IP, please try again later.',
 });
 app.use(limiter);
 
 // CORS configuration
-const allowedOrigins = ['https://zvertexai.com', 'http://localhost:3000'];
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, origin || '*');
-      } else {
-        console.warn(`CORS rejected origin: ${origin}`);
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
+    origin: ['https://zvertexai.com', 'http://localhost:3000'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
@@ -94,7 +86,7 @@ const connectToMongoDB = async (retryCount = 0, maxRetries = 10) => {
   } catch (err) {
     console.error(`MongoDB connection attempt ${retryCount + 1} failed:`, err.message);
     if (retryCount < maxRetries) {
-      const delayMs = Math.min(1000 * 2 ** retryCount, 30000);
+      const delayMs = Math.min(2000 * 2 ** retryCount, 60000);
       console.log(`Retrying in ${delayMs / 1000} seconds...`);
       setTimeout(() => connectToMongoDB(retryCount + 1, maxRetries), delayMs);
     } else {
@@ -608,12 +600,16 @@ const sendEmail = async (to, subject, html, attachments = []) => {
 // Middleware to verify JWT
 const verifyToken = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1] || req.query.token;
-  if (!token) return res.status(401).json({ message: 'No token provided' });
+  if (!token) {
+    console.warn('No token provided', { url: req.url, method: req.method });
+    return res.status(401).json({ message: 'No token provided' });
+  }
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     next();
   } catch (error) {
+    console.error('Token verification failed:', error.message);
     return res.status(401).json({ message: 'Invalid or expired token' });
   }
 };
@@ -632,6 +628,7 @@ app.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.warn('Signup validation failed:', errors.array());
       return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
     }
 
@@ -671,6 +668,7 @@ app.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.warn('OTP verification validation failed:', errors.array());
       return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
     }
 
@@ -678,9 +676,15 @@ app.post(
     try {
       if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
       const otpRecord = await OTP.findOne({ email, otp }).lean();
-      if (!otpRecord) return res.status(400).json({ message: 'Invalid or expired OTP' });
+      if (!otpRecord) {
+        console.warn('Invalid or expired OTP:', { email, otp });
+        return res.status(400).json({ message: 'Invalid or expired OTP' });
+      }
       const user = await User.findOne({ email });
-      if (!user) return res.status(404).json({ message: 'User not found' });
+      if (!user) {
+        console.warn('User not found for OTP:', { email });
+        return res.status(404).json({ message: 'User not found' });
+      }
       user.isOtpVerified = true;
       const { accessToken, refreshToken } = generateTokens(user);
       user.refreshToken = refreshToken;
@@ -704,6 +708,7 @@ app.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.warn('Login validation failed:', errors.array());
       return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
     }
 
@@ -711,10 +716,17 @@ app.post(
     try {
       if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
       const user = await User.findOne({ email });
-      if (!user || !(await bcrypt.compare(password, user.password))) {
+      if (!user) {
+        console.warn('Login failed: User not found', { email });
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        console.warn('Login failed: Invalid password', { email });
         return res.status(401).json({ message: 'Invalid credentials' });
       }
       if (!user.isOtpVerified) {
+        console.warn('Login failed: OTP not verified', { email });
         return res.status(403).json({ message: 'OTP verification required. Please sign up again.' });
       }
       const { accessToken, refreshToken } = generateTokens(user);
@@ -730,11 +742,17 @@ app.post(
 
 app.post('/api/refresh-token', async (req, res) => {
   const { refreshToken } = req.body;
-  if (!refreshToken) return res.status(401).json({ message: 'No refresh token provided' });
+  if (!refreshToken) {
+    console.warn('No refresh token provided');
+    return res.status(401).json({ message: 'No refresh token provided' });
+  }
   try {
     const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
     const user = await User.findOne({ email: decoded.email, refreshToken });
-    if (!user) return res.status(401).json({ message: 'Invalid refresh token' });
+    if (!user) {
+      console.warn('Invalid refresh token:', { email: decoded.email });
+      return res.status(401).json({ message: 'Invalid refresh token' });
+    }
     const { accessToken, newRefreshToken } = generateTokens(user);
     user.refreshToken = newRefreshToken;
     await user.save();
@@ -751,6 +769,7 @@ app.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.warn('Forgot password validation failed:', errors.array());
       return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
     }
 
@@ -784,6 +803,7 @@ app.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.warn('Reset password validation failed:', errors.array());
       return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
     }
 
@@ -793,6 +813,7 @@ app.post(
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const user = await User.findOne({ email: decoded.email, resetToken: token });
       if (!user || user.resetTokenExpiry < new Date()) {
+        console.warn('Invalid or expired reset token:', { email: decoded.email });
         return res.status(400).json({ message: 'Invalid or expired token' });
       }
       user.password = await bcrypt.hash(newPassword, 10);
@@ -819,6 +840,7 @@ app.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.warn('Update profile validation failed:', errors.array());
       return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
     }
 
@@ -879,8 +901,8 @@ app.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json_LENGTH = 1000; // Limit response length
-      return res.status(400).json({ message: 'Validation failed', errors: errors.array().slice(0, MAX_RESPONSE_LENGTH) });
+      console.warn('Select companies validation failed:', errors.array());
+      return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
     }
 
     const { companies } = req.body;
@@ -913,6 +935,7 @@ app.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.warn('Auto-apply validation failed:', errors.array());
       return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
     }
 
@@ -950,6 +973,7 @@ app.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.warn('Update scraper preferences validation failed:', errors.array());
       return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
     }
 
@@ -1025,6 +1049,15 @@ app.get('/api/dashboard', verifyToken, async (req, res) => {
     console.error('Dashboard error:', error.message);
     res.status(500).json({ message: 'Internal server error' });
   }
+});
+
+// Global error middleware
+app.use((err, req, res, next) => {
+  console.error('Global error:', err.message, err.stack);
+  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  res.status(500).json({ message: 'Internal server error' });
 });
 
 // Start server
