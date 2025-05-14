@@ -193,9 +193,14 @@ const Header: React.FC = () => {
   return (
     <AppBar position="static">
       <Toolbar>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
+        <Button
+          color="inherit"
+          onClick={() => navigate('/')}
+          sx={{ fontWeight: 600, fontSize: '1.25rem', textTransform: 'none' }}
+        >
           ZvertexAI
-        </Typography>
+        </Button>
+        <Box sx={{ flexGrow: 1 }} />
         {!isAuthPage && (
           <>
             {isAuthenticated && isOtpVerified ? (
@@ -237,10 +242,7 @@ const Footer: React.FC = () => (
   <Box sx={{ bgcolor: '#005B99', py: 3, mt: 'auto' }}>
     <Container maxWidth="lg">
       <Typography variant="body2" sx={{ color: '#FFFFFF' }} align="center">
-        © {new Date().getFullYear()} ZvertexAI. All rights reserved. Contact us at{' '}
-        <a href="mailto:zvertex.247@gmail.com" style={{ color: '#FFFFFF', textDecoration: 'underline' }}>
-          zvertex.247@gmail.com
-        </a>.
+        © {new Date().getFullYear()} ZvertexAI. All rights reserved.
       </Typography>
     </Container>
   </Box>
