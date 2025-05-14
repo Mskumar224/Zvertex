@@ -48,7 +48,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Updated CORS configuration
+// Simplified CORS configuration
 const allowedOrigins = [
   'http://localhost:3000',
   'https://zvertexai.netlify.app',
@@ -61,39 +61,27 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
+        callback(null, origin || '*');
       } else {
-        console.log(`CORS rejected origin: ${origin}`);
+        console.warn(`CORS rejected origin: ${origin}`);
         callback(new Error('Not allowed by CORS'));
       }
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
-    preflightContinue: false,
     optionsSuccessStatus: 204,
   })
 );
 
-app.options('*', (req, res) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.sendStatus(204);
-});
+// Handle preflight requests explicitly
+app.options('*', cors());
 
 // MongoDB connection with retry logic
 let dbConnected = false;
 const connectToMongoDB = async (retryCount = 0, maxRetries = 10) => {
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     });
@@ -726,6 +714,10 @@ app.post('/api/upload-resume', upload, async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findOne({ email: decoded.email });
     if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
+    if (!user.phone) {
+      console.warn(`User ${user.email} missing phone number, updating schema may be required`);
+      return res.status(400).json({ message: 'Phone number required. Please update your profile.' });
+    }
     const result = await cloudinary.uploader.upload_stream({ resource_type: 'auto' }, async (error, result) => {
       if (error) throw new Error('Cloudinary upload failed');
       user.resumePaths.push(result.secure_url);
@@ -747,8 +739,12 @@ app.post('/api/select-companies', async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findOne({ email: decoded.email });
     if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
+    if (!user.phone) {
+      console.warn(`User ${user.email} missing phone number, updating schema may be required`);
+      return res.status(400).json({ message: 'Phone number required. Please update your profile.' });
+    }
     user.selectedCompanies = companies || [];
-    await user.save();
+    await user.save({ validateModifiedOnly: true }); // Skip phone validation for existing users
     const jobs = await fetchRealTimeJobs(companies, user.technology, user.scraperPreferences.location);
     res.status(200).json({ message: 'Companies updated', jobs });
   } catch (error) {
@@ -758,7 +754,7 @@ app.post('/api/select-companies', async (req, res) => {
 });
 
 app.post('/api/update-profile', async (req, res) => {
-  const { token, linkedinProfile, coverLetter } = req.body;
+  const { token, linkedinProfile, coverLetter, phone } = req.body;
   try {
     if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
     if (!token) return res.status(401).json({ message: 'No token provided' });
@@ -767,8 +763,9 @@ app.post('/api/update-profile', async (req, res) => {
     if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
     user.linkedinProfile = linkedinProfile || user.linkedinProfile;
     user.coverLetter = coverLetter || user.coverLetter;
+    if (phone) user.phone = phone; // Update phone only if provided
     await user.save();
-    res.status(200).json({ message: 'Profile updated', linkedinProfile: user.linkedinProfile, coverLetter: user.coverLetter });
+    res.status(200).json({ message: 'Profile updated', linkedinProfile: user.linkedinProfile, coverLetter: user.coverLetter, phone: user.phone });
   } catch (error) {
     console.error('Update profile error:', error.message);
     res.status(500).json({ message: 'Failed to update profile', error: error.message });
@@ -785,11 +782,15 @@ app.post('/api/auto-apply', async (req, res) => {
     if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
     if (!user.resumePaths.length) return res.status(400).json({ message: 'No resume uploaded' });
     if (!user.selectedCompanies.length) return res.status(400).json({ message: 'No companies selected' });
+    if (!user.phone) {
+      console.warn(`User ${user.email} missing phone number, updating schema may be required`);
+      return res.status(400).json({ message: 'Phone number required. Please update your profile.' });
+    }
     // Update profile only if new details are provided
     if (linkedinProfile) user.linkedinProfile = linkedinProfile;
     if (coverLetter) user.coverLetter = coverLetter;
     const appliedToday = await runAutoApplyForUser(user);
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
     res.status(200).json({ message: `Auto-applied to ${appliedToday} jobs`, appliedToday });
   } catch (error) {
     console.error('Auto-apply error:', error.message);
@@ -805,10 +806,14 @@ app.post('/api/update-scraper-preferences', async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findOne({ email: decoded.email });
     if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
+    if (!user.phone) {
+      console.warn(`User ${user.email} missing phone number, updating schema may be required`);
+      return res.status(400).json({ message: 'Phone number required. Please update your profile.' });
+    }
     user.scraperPreferences.jobBoards = jobBoards || user.scraperPreferences.jobBoards;
     user.scraperPreferences.frequency = frequency || user.scraperPreferences.frequency;
     user.scraperPreferences.location = location || user.scraperPreferences.location;
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
     res.status(200).json({ message: 'Scraper preferences updated', preferences: user.scraperPreferences });
   } catch (error) {
     console.error('Update scraper preferences error:', error.message);
@@ -824,6 +829,10 @@ app.get('/api/jobs', async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findOne({ email: decoded.email });
     if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
+    if (!user.phone) {
+      console.warn(`User ${user.email} missing phone number, updating schema may be required`);
+      return res.status(400).json({ message: 'Phone number required. Please update your profile.' });
+    }
     const jobs = await Job.find({
       company: { $in: user.selectedCompanies },
       createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
@@ -835,7 +844,7 @@ app.get('/api/jobs', async (req, res) => {
   }
 });
 
-// New Dashboard endpoint
+// Dashboard endpoint
 app.get('/api/dashboard', async (req, res) => {
   const { token } = req.headers.authorization?.split(' ')[1] ? { token: req.headers.authorization.split(' ')[1] } : req.query;
   try {
@@ -844,6 +853,10 @@ app.get('/api/dashboard', async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findOne({ email: decoded.email }).lean();
     if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
+    if (!user.phone) {
+      console.warn(`User ${user.email} missing phone number, updating schema may be required`);
+      return res.status(400).json({ message: 'Phone number required. Please update your profile.' });
+    }
     const jobsAppliedCount = user.appliedJobs ? user.appliedJobs.length : 0;
     res.status(200).json({
       message: 'Dashboard data retrieved',
