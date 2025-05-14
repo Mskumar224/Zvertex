@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -13,9 +14,10 @@ const Login: React.FC = () => {
     try {
       const res = await axios.post('https://zvertexai-orzv.onrender.com/api/login', { email, password });
       localStorage.setItem('token', res.data.token);
-      navigate('/dashboard');
+      setMessage('Login successful! Redirecting to dashboard...');
+      setTimeout(() => navigate('/dashboard'), 1000); // Redirect to dashboard after 1 second
     } catch (error: any) {
-      alert('Login failed: ' + (error.response?.data?.message || error.message));
+      setMessage('Login failed: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -43,15 +45,20 @@ const Login: React.FC = () => {
         <Button type="submit" variant="contained" sx={{ mt: 2, mr: 2, px: 4, py: 1.5 }}>Login</Button>
         <Button
           variant="outlined"
-          onClick={() => navigate(-1)}
-          sx={{ mt: 2, px: 4, py: 1.5, borderColor: '#007bff', color: '#007bff' }}
+          onClick={() => navigate('/')}
+          sx={{ mt: 2, px: 4, py: 1.5, borderColor: '#003087', color: '#003087' }}
         >
           Back
         </Button>
       </form>
-      <Link href="/forgot-password" sx={{ mt: 2, display: 'block', color: '#007bff' }}>
+      <Link href="/forgot-password" sx={{ mt: 2, display: 'block', color: '#003087' }}>
         Forgot Password?
       </Link>
+      {message && (
+        <Typography sx={{ mt: 2, color: message.includes('failed') ? '#dc3545' : '#28a745' }}>
+          {message}
+        </Typography>
+      )}
     </Container>
   );
 };
