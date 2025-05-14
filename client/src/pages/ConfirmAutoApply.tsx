@@ -17,9 +17,7 @@ const ConfirmAutoApply: React.FC = () => {
         return;
       }
       try {
-        const res = await axios.post('https://zvertexai-orzv.onrender.com/api/update-profile', {
-          token,
-        }, {
+        const res = await axios.post('https://zvertexai-orzv.onrender.com/api/update-profile', {}, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setLinkedinProfile(res.data.user.linkedinProfile || '');
@@ -45,12 +43,12 @@ const ConfirmAutoApply: React.FC = () => {
     e.preventDefault();
     const token = localStorage.getItem('token');
     if (!token) {
+      setMessage('Please log in to start auto-apply.');
       navigate('/login');
       return;
     }
     try {
       const res = await axios.post('https://zvertexai-orzv.onrender.com/api/auto-apply', {
-        token,
         linkedinProfile,
         coverLetter,
       }, {

@@ -14,16 +14,18 @@ const StaticHomePage: React.FC = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!token) {
+        navigate('/login');
+        return;
+      }
 
       try {
         const decoded = JSON.parse(atob(token.split('.')[1]));
-        if (!decoded || typeof decoded !== 'object') {
-          throw new Error('Invalid token payload');
+        if (!decoded || typeof decoded !== 'object' || !decoded.isOtpVerified) {
+          throw new Error('Invalid token payload or unverified account');
         }
         const companies = JSON.parse(localStorage.getItem('selectedCompanies') || '[]');
         const selectCompaniesRes = await axios.post('https://zvertexai-orzv.onrender.com/api/select-companies', {
-          token,
           companies,
         }, {
           headers: { Authorization: `Bearer ${token}` },
@@ -40,7 +42,7 @@ const StaticHomePage: React.FC = () => {
         }
 
         if (companies.length > 0 && localStorage.getItem('resumeUploaded') === 'true') {
-          const appliedTodayRes = await axios.post('https://zvertexai-orzv.onrender.com/api/auto-apply', { token }, {
+          const appliedTodayRes = await axios.post('https://zvertexai-orzv.onrender.com/api/auto-apply', {}, {
             headers: { Authorization: `Bearer ${token}` },
           });
           setUserData({
@@ -58,19 +60,16 @@ const StaticHomePage: React.FC = () => {
         }
       } catch (error: any) {
         console.error('Fetch user data failed:', error.message, error.response?.status);
-        if (error.response?.status === 403) {
-          setError('Account not verified. Please complete OTP verification.');
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          setError('Unauthorized: Please log in again.');
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
           navigate('/login');
         } else if (error.response?.status === 400) {
           setError(error.response.data.message || 'Setup incomplete. Please upload a resume and select companies.');
           navigate('/resume-upload');
         } else if (error.response?.status === 404) {
           setError('Requested resource not found. Please check the server or try again later.');
-        } else if (error.response?.status === 401) {
-          setError('Unauthorized: Please log in again.');
-          localStorage.removeItem('token');
-          localStorage.removeItem('refreshToken');
-          navigate('/login');
         } else {
           setError('Failed to load user data. Please try again later.');
         }
@@ -104,7 +103,7 @@ const StaticHomePage: React.FC = () => {
           navigate('/companies');
         } catch (error: any) {
           const errorMessage = error.response?.data?.message || error.message;
-          if (error.response?.status === 401) {
+          if (error.response?.status === 401 || error.response?.status === 403) {
             setError('Unauthorized: Please log in again.');
             localStorage.removeItem('token');
             localStorage.removeItem('refreshToken');

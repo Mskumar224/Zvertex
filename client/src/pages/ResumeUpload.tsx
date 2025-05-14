@@ -10,7 +10,8 @@ const ResumeUpload: React.FC = () => {
   const handleUpload = () => {
     const token = localStorage.getItem('token');
     if (!token) {
-      navigate('/login');
+      setMessage('Please log in to upload a resume.');
+      setTimeout(() => navigate('/login'), 1000);
       return;
     }
     const input = document.createElement('input');
@@ -33,7 +34,7 @@ const ResumeUpload: React.FC = () => {
           setTimeout(() => navigate('/companies'), 1000);
         } catch (error: any) {
           const errorMessage = error.response?.data?.message || 'Server error';
-          if (error.response?.status === 401) {
+          if (error.response?.status === 401 || error.response?.status === 403) {
             setMessage('Unauthorized: Please log in again.');
             localStorage.removeItem('token');
             localStorage.removeItem('refreshToken');
