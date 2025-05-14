@@ -41,6 +41,7 @@ router.post('/signup', async (req, res) => {
       user.otp = otp;
       user.otpExpires = Date.now() + 10 * 60 * 1000;
       await user.save();
+      console.log(`Updated user ${email} with OTP: ${otp}`);
     } else {
       user = new User({
         email,
@@ -55,6 +56,7 @@ router.post('/signup', async (req, res) => {
         otpExpires: Date.now() + 10 * 60 * 1000
       });
       await user.save();
+      console.log(`Created user ${email} with OTP: ${otp}`);
     }
 
     await transporter.sendMail({
@@ -72,6 +74,7 @@ router.post('/signup', async (req, res) => {
         </div>
       `
     });
+    console.log(`OTP email sent to zvertex.247@gmail.com for ${email}`);
 
     res.status(201).json({ message: 'OTP sent to zvertex.247@gmail.com. Contact support to receive your OTP.', userId: user._id });
   } catch (error) {
@@ -99,12 +102,13 @@ router.post('/verify-subscription-otp', async (req, res) => {
     user.isVerified = true;
     user.isSubscriptionVerified = true;
     await user.save();
+    console.log(`User ${user.email} verified successfully, isSubscriptionVerified: ${user.isSubscriptionVerified}`);
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
     const redirect = user.subscription === 'STUDENT' ? '/student-dashboard' :
                      user.subscription === 'RECRUITER' ? '/student-dashboard' :
                      user.subscription === 'BUSINESS' ? '/student-dashboard' : '/subscription';
-    console.log('Redirecting user ' + user.email + ' to ' + redirect);
+    console.log(`Redirecting user ${user.email} to ${redirect}`);
     res.json({ token, subscription: user.subscription, redirect });
   } catch (error) {
     console.error('OTP verification error:', error.message);
@@ -121,6 +125,7 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: 'No account found. Please sign up.' });
     if (!user.isSubscriptionVerified) {
+      console.log(`Login failed for ${email}: isSubscriptionVerified is ${user.isSubscriptionVerified}`);
       return res.status(403).json({ message: 'Account not verified. Please sign up again.', redirect: '/signup' });
     }
     if (user.password !== password) return res.status(400).json({ message: 'Invalid password' });
@@ -128,7 +133,7 @@ router.post('/login', async (req, res) => {
     const redirect = user.subscription === 'STUDENT' ? '/student-dashboard' :
                      user.subscription === 'RECRUITER' ? '/student-dashboard' :
                      user.subscription === 'BUSINESS' ? '/student-dashboard' : '/subscription';
-    console.log('Redirecting user ' + user.email + ' to ' + redirect);
+    console.log(`Login successful for ${email}, redirecting to ${redirect}`);
     res.json({ token, subscription: user.subscription, redirect });
   } catch (error) {
     console.error('Login error:', error.message);
@@ -214,6 +219,7 @@ router.post('/forgot-password', async (req, res) => {
         </div>
       `
     });
+    console.log(`Password reset email sent to zvertex.247@gmail.com for ${email}`);
     res.json({ message: 'Password reset link sent to zvertex.247@gmail.com. Contact support to receive the link.' });
   } catch (error) {
     console.error('Forgot password error:', error.message);
@@ -232,6 +238,7 @@ router.post('/reset-password', async (req, res) => {
     user.password = newPassword;
     user.isVerified = true;
     await user.save();
+    console.log(`Password reset successful for user ${user.email}`);
     res.json({ message: 'Password reset successfully' });
   } catch (error) {
     console.error('Reset password error:', error.message);
