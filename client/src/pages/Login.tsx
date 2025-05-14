@@ -17,7 +17,7 @@ const Login: React.FC = () => {
       setMessage('Login successful! Redirecting to dashboard...');
       setTimeout(() => navigate('/dashboard'), 1000);
     } catch (error: any) {
-      setMessage('Login failed: ' + (error.response?.data?.message || error.message));
+      setMessage('Login failed: ' + (error.response?.data?.message || 'Server not found. Please try again later.'));
     }
   };
 
