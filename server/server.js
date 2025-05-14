@@ -13,13 +13,14 @@ const app = express();
 
 // Explicit CORS middleware with detailed logging
 app.use((req, res, next) => {
-  console.log(`Handling ${req.method} request for ${req.url} from origin: ${req.headers.origin}`);
-  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+  const origin = req.headers.origin || '*';
+  console.log(`[${new Date().toISOString()}] Handling ${req.method} request for ${req.url} from origin: ${origin}`);
+  res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   if (req.method === 'OPTIONS') {
-    console.log('Responding to preflight OPTIONS request');
+    console.log(`[${new Date().toISOString()}] Responding to preflight OPTIONS request with 204`);
     return res.status(204).end();
   }
   next();
@@ -38,27 +39,51 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Log registered models
 console.log('Models registered:', mongoose.modelNames());
 
+// Connect to MongoDB with error handling
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-}).then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+}).then(() => {
+  console.log(`[${new Date().toISOString()}] MongoDB connected successfully`);
+}).catch(err => {
+  console.error(`[${new Date().toISOString()}] MongoDB connection error:`, err.message);
+  process.exit(1); // Exit if MongoDB connection fails
+});
 
-console.log('Setting up routes...');
+// Routes
+console.log(`[${new Date().toISOString()}] Setting up routes...`);
 app.use('/api/auth', authRoutes);
 app.use('/api/job', jobRoutes);
 
+// Health check endpoint
 app.get('/health', (req, res) => {
-  console.log('Health check requested');
-  res.status(200).json({ status: 'OK' });
+  console.log(`[${new Date().toISOString()}] Health check requested`);
+  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Server error:', err.message);
+  console.error(`[${new Date().toISOString()}] Server error:`, err.message);
   res.status(500).json({ message: 'Internal server error', error: err.message });
 });
 
+// Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`[${new Date().toISOString()}] Server running on port ${PORT}`);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error(`[${new Date().toISOString()}] Uncaught Exception:`, err.message);
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+  console.error(`[${new Date().toISOString()}] Unhandled Rejection:`, err.message);
+  process.exit(1);
+});
