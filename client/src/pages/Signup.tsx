@@ -69,6 +69,8 @@ const Signup: React.FC = () => {
       const errorMessage = error.response?.data?.message || 'Server error';
       if (error.response?.status === 404) {
         setMessage('OTP verification endpoint not found. Please check the server.');
+      } else if (error.response?.status === 400) {
+        setMessage(`OTP verification failed: ${errorMessage}`);
       } else {
         setMessage(`OTP verification failed: ${errorMessage}`);
       }

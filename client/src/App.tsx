@@ -191,24 +191,33 @@ const Header: React.FC = () => {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const decoded = JSON.parse(atob(token.split('.')[1]));
-        if (!decoded || typeof decoded !== 'object') {
-          throw new Error('Invalid token payload');
-        }
-        setIsOtpVerified(decoded.isOtpVerified || false);
-        if (decoded.isOtpVerified && location.pathname === '/login') {
-          navigate('/dashboard');
-        }
-      } catch (error) {
-        console.error('Invalid token:', error);
+    if (!token) {
+      if (isAuthenticated) {
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
+        setIsOtpVerified(false);
         navigate('/login');
       }
+      return;
     }
-  }, [navigate, location.pathname]);
+
+    try {
+      const decoded = JSON.parse(atob(token.split('.')[1]));
+      if (!decoded || typeof decoded !== 'object') {
+        throw new Error('Invalid token payload');
+      }
+      setIsOtpVerified(decoded.isOtpVerified || false);
+      if (decoded.isOtpVerified && ['/login', '/signup'].includes(location.pathname)) {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Invalid token:', error);
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      setIsOtpVerified(false);
+      navigate('/login');
+    }
+  }, [navigate, location.pathname, isAuthenticated]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -329,15 +338,12 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const navigate = useNavigate();
   const isAuthenticated = !!localStorage.getItem('token');
   const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-
     const token = localStorage.getItem('token');
-    if (!token) {
+    if (!token || !isAuthenticated) {
+      setIsLoading(false);
       navigate('/login');
       return;
     }
@@ -348,17 +354,24 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
         throw new Error('Invalid token payload');
       }
       if (!decoded.isOtpVerified) {
+        setIsLoading(false);
         navigate('/login');
       } else {
         setIsOtpVerified(true);
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('Invalid token:', error);
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
+      setIsLoading(false);
       navigate('/login');
     }
   }, [isAuthenticated, navigate]);
+
+  if (isLoading) {
+    return null;
+  }
 
   if (!isAuthenticated || !isOtpVerified) {
     return null;
