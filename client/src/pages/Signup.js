@@ -29,12 +29,13 @@ function Signup() {
     try {
       console.log('Sending POST to /api/auth/signup:', formData);
       const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/signup`, formData);
+      console.log('Signup response:', response.data);
       setUserId(response.data.userId);
       setMessage(response.data.message);
       setError('');
     } catch (err) {
       console.error('Signup error:', err);
-      setError(err.response?.data?.message || 'Signup failed');
+      setError(err.response?.data?.message || 'Signup failed. Please try again.');
       setMessage('');
     } finally {
       setLoading(false);
@@ -47,12 +48,17 @@ function Signup() {
     try {
       console.log('Sending OTP verification:', { userId, otp });
       const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/verify-subscription-otp`, { userId, otp });
+      console.log('OTP verification response:', response.data);
       localStorage.setItem('token', response.data.token);
-      console.log('Redirecting to:', response.data.redirect);
-      history.push(response.data.redirect);
+      setMessage('OTP verified. Redirecting...');
+      setError('');
+      // Ensure navigation to the redirect URL
+      setTimeout(() => {
+        history.push(response.data.redirect);
+      }, 1000);
     } catch (err) {
       console.error('OTP verification error:', err);
-      setError(err.response?.data?.message || 'OTP verification failed');
+      setError(err.response?.data?.message || 'OTP verification failed. Please try again.');
       setMessage('');
     } finally {
       setLoading(false);

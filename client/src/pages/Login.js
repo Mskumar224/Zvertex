@@ -21,16 +21,21 @@ function Login() {
     try {
       console.log('Sending POST to /api/auth/login:', formData);
       const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, formData);
+      console.log('Login response:', response.data);
       localStorage.setItem('token', response.data.token);
-      console.log('Redirecting to:', response.data.redirect);
-      history.push(response.data.redirect);
+      setMessage('Login successful. Redirecting...');
+      setError('');
+      // Ensure navigation to the redirect URL
+      setTimeout(() => {
+        history.push(response.data.redirect);
+      }, 1000);
     } catch (err) {
       console.error('Login error:', err);
       if (err.response?.data?.redirect === '/signup') {
         setError(err.response.data.message);
         setTimeout(() => history.push('/signup'), 2000);
       } else {
-        setError(err.response?.data?.message || 'Login failed');
+        setError(err.response?.data?.message || 'Login failed. Please try again.');
       }
       setMessage('');
     } finally {
