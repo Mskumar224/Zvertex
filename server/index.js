@@ -9,6 +9,9 @@ const multer = require('multer');
 const axios = require('axios');
 const cloudinary = require('cloudinary').v2;
 const schedule = require('node-schedule');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+const { body, validationResult } = require('express-validator');
 
 dotenv.config();
 
@@ -19,7 +22,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Check required environment variables
+// Validate environment variables
 const requiredEnv = [
   'PORT',
   'MONGODB_URI',
@@ -45,18 +48,22 @@ console.log('Starting backend server...', {
 });
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// Security middleware
+app.use(helmet()); // Set secure HTTP headers
+app.use(express.json({ limit: '10kb' })); // Limit JSON payload size
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per IP
+  message: 'Too many requests from this IP, please try again later.',
+});
+app.use(limiter);
 
 // CORS configuration
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://zvertexai.netlify.app',
-  'https://67d1e078ce70580008045c8d--zvertexai.netlify.app',
-  'https://67d1e69e2d47412a5001c924--zvertexai.netlify.app',
-  'https://67d1e9046704b12e711ef0b1--zvertexai.netlify.app',
-  'https://zvertexai.com',
-];
+const allowedOrigins = ['https://zvertexai.com', 'http://localhost:3000'];
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -74,7 +81,7 @@ app.use(
   })
 );
 
-// MongoDB connection with retry logic
+// MongoDB connection
 let dbConnected = false;
 const connectToMongoDB = async (retryCount = 0, maxRetries = 10) => {
   try {
@@ -123,6 +130,7 @@ const userSchema = new mongoose.Schema({
   selectedCompanies: [String],
   appliedJobs: [{ jobId: String, date: Date }],
   phone: { type: String, required: true },
+  refreshToken: String,
   resetToken: String,
   resetTokenExpiry: Date,
   linkedinProfile: String,
@@ -181,6 +189,25 @@ transporter.verify((error) => {
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
+
+const validatePhone = (phone) => {
+  const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+  return phoneRegex.test(phone);
+};
+
+const generateTokens = (user) => {
+  const accessToken = jwt.sign(
+    { email: user.email, subscription: user.subscription, isOtpVerified: user.isOtpVerified },
+    process.env.JWT_SECRET,
+    { expiresIn: '15m' }
+  );
+  const refreshToken = jwt.sign(
+    { email: user.email },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+  return { accessToken, refreshToken };
+};
 
 const scanResume = (resumePath) => ['Add more technical skills', 'Update recent experience'];
 const updateResume = (resumePath, prompt) => resumePath;
@@ -578,153 +605,258 @@ const sendEmail = async (to, subject, html, attachments = []) => {
   }
 };
 
+// Middleware to verify JWT
+const verifyToken = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1] || req.query.token;
+  if (!token) return res.status(401).json({ message: 'No token provided' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: 'Invalid or expired token' });
+  }
+};
+
 // API routes
 app.get('/api/health', (req, res) => res.status(200).json({ message: 'Server is running', dbConnected }));
 
-app.post('/api/signup', async (req, res) => {
-  const { email, password, subscription, phone } = req.body;
-  try {
-    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
-    if (!email || !password || !subscription || !phone)
-      return res.status(400).json({ message: 'Missing required fields: email, password, subscription, and phone are mandatory' });
-    const existingUser = await User.findOne({ email }).lean();
-    if (existingUser && existingUser.isOtpVerified)
-      return res.status(400).json({ message: 'Email already registered and verified' });
-    if (existingUser && !existingUser.isOtpVerified) {
-      await User.deleteOne({ email });
+app.post(
+  '/api/signup',
+  [
+    body('email').isEmail().normalizeEmail(),
+    body('password').isLength({ min: 8 }).trim(),
+    body('subscription').isIn(['Student', 'Vendor/Recruiter', 'Business']),
+    body('phone').matches(/^\+?[1-9]\d{1,14}$/).withMessage('Invalid phone number format'),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
     }
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ email, password: hashedPassword, subscription, phone });
-    await user.save();
-    const otp = generateOtp();
-    await OTP.create({ email, otp });
-    await sendEmail(
-      process.env.COMPANY_EMAIL,
-      'ZvertexAI OTP Verification',
-      getOtpEmail(email, otp, subscription, phone)
-    );
-    res.status(200).json({ message: 'OTP sent to company email for verification' });
-  } catch (error) {
-    console.error('Signup error:', error.message, error.stack);
-    res.status(500).json({ message: 'Signup failed', error: error.message });
-  }
-});
 
-app.post('/api/verify-otp', async (req, res) => {
-  const { email, otp } = req.body;
-  try {
-    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
-    if (!email || !otp) return res.status(400).json({ message: 'Missing email or OTP' });
-    const otpRecord = await OTP.findOne({ email, otp }).lean();
-    if (!otpRecord) return res.status(400).json({ message: 'Invalid or expired OTP' });
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    user.isOtpVerified = true;
-    await user.save();
-    await OTP.deleteOne({ email, otp });
-    const token = jwt.sign({ email, subscription: user.subscription, isOtpVerified: true }, process.env.JWT_SECRET, {
-      expiresIn: '1h',
-    });
-    await sendEmail(email, 'Welcome to ZvertexAI', getSignupEmail(email, user.subscription));
-    res.status(200).json({ message: 'OTP verified, signup complete', token });
-  } catch (error) {
-    console.error('OTP verification error:', error.message);
-    res.status(500).json({ message: 'OTP verification failed', error: error.message });
-  }
-});
-
-app.post('/api/login', async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
-    if (!email || !password) return res.status(400).json({ message: 'Missing required fields' });
-    const user = await User.findOne({ email }).lean();
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    const { email, password, subscription, phone } = req.body;
+    try {
+      if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
+      const existingUser = await User.findOne({ email }).lean();
+      if (existingUser && existingUser.isOtpVerified)
+        return res.status(400).json({ message: 'Email already registered and verified' });
+      if (existingUser && !existingUser.isOtpVerified) {
+        await User.deleteOne({ email });
+      }
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = new User({ email, password: hashedPassword, subscription, phone });
+      await user.save();
+      const otp = generateOtp();
+      await OTP.create({ email, otp });
+      await sendEmail(
+        process.env.COMPANY_EMAIL,
+        'ZvertexAI OTP Verification',
+        getOtpEmail(email, otp, subscription, phone)
+      );
+      res.status(200).json({ message: 'OTP sent to company email for verification' });
+    } catch (error) {
+      console.error('Signup error:', error.message);
+      res.status(500).json({ message: 'Internal server error' });
     }
-    if (!user.isOtpVerified) {
-      return res.status(403).json({ message: 'OTP verification required. Please sign up again.' });
+  }
+);
+
+app.post(
+  '/api/verify-otp',
+  [
+    body('email').isEmail().normalizeEmail(),
+    body('otp').isLength({ min: 6, max: 6 }).isNumeric(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
     }
-    const token = jwt.sign({ email, subscription: user.subscription, isOtpVerified: true }, process.env.JWT_SECRET, {
-      expiresIn: '1h',
-    });
-    res.status(200).json({ message: 'Login successful', token });
-  } catch (error) {
-    console.error('Login error:', error.message, error.stack);
-    res.status(500).json({ message: 'Login failed', error: error.message });
-  }
-});
 
-app.post('/api/forgot-password', async (req, res) => {
-  const { email } = req.body;
-  try {
-    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    if (!user.isOtpVerified)
-      return res.status(403).json({ message: 'Account not verified. Please complete OTP verification.' });
-    const resetToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    user.resetToken = resetToken;
-    user.resetTokenExpiry = new Date(Date.now() + 3600000);
-    await user.save();
-    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-    await sendEmail(email, 'Reset Your Password - ZvertexAI', getResetPasswordEmail(email, resetLink));
-    res.status(200).json({ message: 'Password reset email sent' });
-  } catch (error) {
-    console.error('Forgot password error:', error.message);
-    res.status(500).json({ message: 'Failed to process request', error: error.message });
-  }
-});
-
-app.post('/api/reset-password', async (req, res) => {
-  const { token, newPassword } = req.body;
-  try {
-    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findOne({ email: decoded.email, resetToken: token });
-    if (!user || user.resetTokenExpiry < new Date()) {
-      return res.status(400).json({ message: 'Invalid or expired token' });
+    const { email, otp } = req.body;
+    try {
+      if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
+      const otpRecord = await OTP.findOne({ email, otp }).lean();
+      if (!otpRecord) return res.status(400).json({ message: 'Invalid or expired OTP' });
+      const user = await User.findOne({ email });
+      if (!user) return res.status(404).json({ message: 'User not found' });
+      user.isOtpVerified = true;
+      const { accessToken, refreshToken } = generateTokens(user);
+      user.refreshToken = refreshToken;
+      await user.save();
+      await OTP.deleteOne({ email, otp });
+      await sendEmail(email, 'Welcome to ZvertexAI', getSignupEmail(email, user.subscription));
+      res.status(200).json({ message: 'OTP verified, signup complete', accessToken, refreshToken });
+    } catch (error) {
+      console.error('OTP verification error:', error.message);
+      res.status(500).json({ message: 'Internal server error' });
     }
-    user.password = await bcrypt.hash(newPassword, 10);
-    user.resetToken = undefined;
-    user.resetTokenExpiry = undefined;
-    await user.save();
-    res.status(200).json({ message: 'Password reset successful' });
-  } catch (error) {
-    console.error('Reset password error:', error.message);
-    res.status(500).json({ message: 'Failed to reset password', error: error.message });
   }
-});
+);
 
-app.post('/api/update-phone', async (req, res) => {
-  const { token, phone } = req.body;
+app.post(
+  '/api/login',
+  [
+    body('email').isEmail().normalizeEmail(),
+    body('password').notEmpty().trim(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
+    }
+
+    const { email, password } = req.body;
+    try {
+      if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
+      const user = await User.findOne({ email });
+      if (!user || !(await bcrypt.compare(password, user.password))) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+      if (!user.isOtpVerified) {
+        return res.status(403).json({ message: 'OTP verification required. Please sign up again.' });
+      }
+      const { accessToken, refreshToken } = generateTokens(user);
+      user.refreshToken = refreshToken;
+      await user.save();
+      res.status(200).json({ message: 'Login successful', accessToken, refreshToken });
+    } catch (error) {
+      console.error('Login error:', error.message);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);
+
+app.post('/api/refresh-token', async (req, res) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) return res.status(401).json({ message: 'No refresh token provided' });
   try {
-    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
-    if (!token) return res.status(401).json({ message: 'No token provided' });
-    if (!phone) return res.status(400).json({ message: 'Phone number is required' });
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findOne({ email: decoded.email });
-    if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
-    user.phone = phone;
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    const user = await User.findOne({ email: decoded.email, refreshToken });
+    if (!user) return res.status(401).json({ message: 'Invalid refresh token' });
+    const { accessToken, newRefreshToken } = generateTokens(user);
+    user.refreshToken = newRefreshToken;
     await user.save();
-    res.status(200).json({ message: 'Phone number updated successfully' });
+    res.status(200).json({ accessToken, refreshToken: newRefreshToken });
   } catch (error) {
-    console.error('Update phone error:', error.message);
-    res.status(500).json({ message: 'Failed to update phone number', error: error.message });
+    console.error('Refresh token error:', error.message);
+    res.status(401).json({ message: 'Invalid or expired refresh token' });
   }
 });
 
-app.post('/api/upload-resume', upload, async (req, res) => {
+app.post(
+  '/api/forgot-password',
+  [body('email').isEmail().normalizeEmail()],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
+    }
+
+    const { email } = req.body;
+    try {
+      if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
+      const user = await User.findOne({ email });
+      if (!user) return res.status(404).json({ message: 'User not found' });
+      if (!user.isOtpVerified)
+        return res.status(403).json({ message: 'Account not verified. Please complete OTP verification.' });
+      const resetToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+      user.resetToken = resetToken;
+      user.resetTokenExpiry = new Date(Date.now() + 3600000);
+      await user.save();
+      const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+      await sendEmail(email, 'Reset Your Password - ZvertexAI', getResetPasswordEmail(email, resetLink));
+      res.status(200).json({ message: 'Password reset email sent' });
+    } catch (error) {
+      console.error('Forgot password error:', error.message);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);
+
+app.post(
+  '/api/reset-password',
+  [
+    body('token').notEmpty(),
+    body('newPassword').isLength({ min: 8 }).trim(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
+    }
+
+    const { token, newPassword } = req.body;
+    try {
+      if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findOne({ email: decoded.email, resetToken: token });
+      if (!user || user.resetTokenExpiry < new Date()) {
+        return res.status(400).json({ message: 'Invalid or expired token' });
+      }
+      user.password = await bcrypt.hash(newPassword, 10);
+      user.resetToken = undefined;
+      user.resetTokenExpiry = undefined;
+      await user.save();
+      res.status(200).json({ message: 'Password reset successful' });
+    } catch (error) {
+      console.error('Reset password error:', error.message);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);
+
+app.post(
+  '/api/update-profile',
+  verifyToken,
+  [
+    body('phone').optional().matches(/^\+?[1-9]\d{1,14}$/).withMessage('Invalid phone number format'),
+    body('linkedinProfile').optional().isURL().withMessage('Invalid LinkedIn URL'),
+    body('coverLetter').optional().trim(),
+    body('technology').optional().trim(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
+    }
+
+    const { phone, linkedinProfile, coverLetter, technology } = req.body;
+    try {
+      if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
+      const user = await User.findOne({ email: req.user.email });
+      if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
+      if (phone) user.phone = phone;
+      if (linkedinProfile !== undefined) user.linkedinProfile = linkedinProfile;
+      if (coverLetter !== undefined) user.coverLetter = coverLetter;
+      if (technology !== undefined) user.technology = technology;
+      await user.save();
+      res.status(200).json({
+        message: 'Profile updated',
+        user: {
+          phone: user.phone,
+          linkedinProfile: user.linkedinProfile,
+          coverLetter: user.coverLetter,
+          technology: user.technology,
+        },
+      });
+    } catch (error) {
+      console.error('Update profile error:', error.message);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);
+
+app.post('/api/upload-resume', verifyToken, upload, async (req, res) => {
   try {
     if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-    const token = req.body.token;
-    const technology = req.body.technology;
-    if (!token) return res.status(401).json({ message: 'No token provided' });
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findOne({ email: decoded.email });
+    const { technology } = req.body;
+    const user = await User.findOne({ email: req.user.email });
     if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
     if (!user.phone) {
+      console.warn(`User ${user.email} missing phone number`);
       return res.status(400).json({ message: 'Phone number required. Please update your profile.', errorCode: 'missing_phone' });
     }
     const result = await cloudinary.uploader.upload_stream({ resource_type: 'auto' }, async (error, result) => {
@@ -736,108 +868,119 @@ app.post('/api/upload-resume', upload, async (req, res) => {
     }).end(req.file.buffer);
   } catch (error) {
     console.error('Resume upload error:', error.message);
-    res.status(500).json({ message: 'Resume upload failed', error: error.message });
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-app.post('/api/select-companies', async (req, res) => {
-  const { token, companies } = req.body;
+app.post(
+  '/api/select-companies',
+  verifyToken,
+  [body('companies').optional().isArray().withMessage('Companies must be an array')],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json_LENGTH = 1000; // Limit response length
+      return res.status(400).json({ message: 'Validation failed', errors: errors.array().slice(0, MAX_RESPONSE_LENGTH) });
+    }
+
+    const { companies } = req.body;
+    try {
+      if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
+      const user = await User.findOne({ email: req.user.email });
+      if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
+      if (!user.phone) {
+        console.warn(`User ${user.email} missing phone number`);
+        return res.status(400).json({ message: 'Phone number required. Please update your profile.', errorCode: 'missing_phone' });
+      }
+      user.selectedCompanies = companies || [];
+      await user.save({ validateModifiedOnly: true });
+      const jobs = await fetchRealTimeJobs(companies, user.technology, user.scraperPreferences.location);
+      res.status(200).json({ message: 'Companies updated', jobs });
+    } catch (error) {
+      console.error('Select companies error:', error.message);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);
+
+app.post(
+  '/api/auto-apply',
+  verifyToken,
+  [
+    body('linkedinProfile').optional().isURL().withMessage('Invalid LinkedIn URL'),
+    body('coverLetter').optional().trim(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
+    }
+
+    const { linkedinProfile, coverLetter } = req.body;
+    try {
+      if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
+      const user = await User.findOne({ email: req.user.email });
+      if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
+      if (!user.resumePaths.length) return res.status(400).json({ message: 'No resume uploaded' });
+      if (!user.selectedCompanies.length) return res.status(400).json({ message: 'No companies selected' });
+      if (!user.phone) {
+        console.warn(`User ${user.email} missing phone number`);
+        return res.status(400).json({ message: 'Phone number required. Please update your profile.', errorCode: 'missing_phone' });
+      }
+      if (linkedinProfile) user.linkedinProfile = linkedinProfile;
+      if (coverLetter) user.coverLetter = coverLetter;
+      const appliedToday = await runAutoApplyForUser(user);
+      await user.save({ validateModifiedOnly: true });
+      res.status(200).json({ message: `Auto-applied to ${appliedToday} jobs`, appliedToday });
+    } catch (error) {
+      console.error('Auto-apply error:', error.message);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);
+
+app.post(
+  '/api/update-scraper-preferences',
+  verifyToken,
+  [
+    body('jobBoards').optional().isArray().withMessage('Job boards must be an array'),
+    body('frequency').optional().isString().trim(),
+    body('location').optional().isString().trim(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
+    }
+
+    const { jobBoards, frequency, location } = req.body;
+    try {
+      if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
+      const user = await User.findOne({ email: req.user.email });
+      if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
+      if (!user.phone) {
+        console.warn(`User ${user.email} missing phone number`);
+        return res.status(400).json({ message: 'Phone number required. Please update your profile.', errorCode: 'missing_phone' });
+      }
+      user.scraperPreferences.jobBoards = jobBoards || user.scraperPreferences.jobBoards;
+      user.scraperPreferences.frequency = frequency || user.scraperPreferences.frequency;
+      user.scraperPreferences.location = location || user.scraperPreferences.location;
+      await user.save({ validateModifiedOnly: true });
+      res.status(200).json({ message: 'Scraper preferences updated', preferences: user.scraperPreferences });
+    } catch (error) {
+      console.error('Update scraper preferences error:', error.message);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  }
+);
+
+app.get('/api/jobs', verifyToken, async (req, res) => {
   try {
     if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
-    if (!token) return res.status(401).json({ message: 'No token provided' });
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findOne({ email: decoded.email });
+    const user = await User.findOne({ email: req.user.email });
     if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
     if (!user.phone) {
-      return res.status(400).json({ message: 'Phone number required. Please update your profile.', errorCode: 'missing_phone' });
-    }
-    user.selectedCompanies = companies || [];
-    await user.save({ validateModifiedOnly: true });
-    const jobs = await fetchRealTimeJobs(companies, user.technology, user.scraperPreferences.location);
-    res.status(200).json({ message: 'Companies updated', jobs });
-  } catch (error) {
-    console.error('Select companies error:', error.message);
-    res.status(500).json({ message: 'Failed to update companies', error: error.message });
-  }
-});
-
-app.post('/api/update-profile', async (req, res) => {
-  const { token, linkedinProfile, coverLetter, phone } = req.body;
-  try {
-    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
-    if (!token) return res.status(401).json({ message: 'No token provided' });
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findOne({ email: decoded.email });
-    if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
-    if (!user.phone && !phone) {
-      return res.status(400).json({ message: 'Phone number required. Please provide a phone number.', errorCode: 'missing_phone' });
-    }
-    user.linkedinProfile = linkedinProfile || user.linkedinProfile;
-    user.coverLetter = coverLetter || user.coverLetter;
-    if (phone) user.phone = phone;
-    await user.save();
-    res.status(200).json({ message: 'Profile updated', linkedinProfile: user.linkedinProfile, coverLetter: user.coverLetter, phone: user.phone });
-  } catch (error) {
-    console.error('Update profile error:', error.message);
-    res.status(500).json({ message: 'Failed to update profile', error: error.message });
-  }
-});
-
-app.post('/api/auto-apply', async (req, res) => {
-  const { token, linkedinProfile, coverLetter } = req.body;
-  try {
-    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
-    if (!token) return res.status(401).json({ message: 'No token provided' });
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findOne({ email: decoded.email });
-    if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
-    if (!user.resumePaths.length) return res.status(400).json({ message: 'No resume uploaded' });
-    if (!user.selectedCompanies.length) return res.status(400).json({ message: 'No companies selected' });
-    if (!user.phone) {
-      return res.status(400).json({ message: 'Phone number required. Please update your profile.', errorCode: 'missing_phone' });
-    }
-    if (linkedinProfile) user.linkedinProfile = linkedinProfile;
-    if (coverLetter) user.coverLetter = coverLetter;
-    const appliedToday = await runAutoApplyForUser(user);
-    await user.save({ validateModifiedOnly: true });
-    res.status(200).json({ message: `Auto-applied to ${appliedToday} jobs`, appliedToday });
-  } catch (error) {
-    console.error('Auto-apply error:', error.message);
-    res.status(500).json({ message: 'Auto-apply failed', error: error.message });
-  }
-});
-
-app.post('/api/update-scraper-preferences', async (req, res) => {
-  const { token, jobBoards, frequency, location } = req.body;
-  try {
-    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
-    if (!token) return res.status(401).json({ message: 'No token provided' });
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findOne({ email: decoded.email });
-    if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
-    if (!user.phone) {
-      return res.status(400).json({ message: 'Phone number required. Please update your profile.', errorCode: 'missing_phone' });
-    }
-    user.scraperPreferences.jobBoards = jobBoards || user.scraperPreferences.jobBoards;
-    user.scraperPreferences.frequency = frequency || user.scraperPreferences.frequency;
-    user.scraperPreferences.location = location || user.scraperPreferences.location;
-    await user.save({ validateModifiedOnly: true });
-    res.status(200).json({ message: 'Scraper preferences updated', preferences: user.scraperPreferences });
-  } catch (error) {
-    console.error('Update scraper preferences error:', error.message);
-    res.status(500).json({ message: 'Failed to update preferences', error: error.message });
-  }
-});
-
-app.get('/api/jobs', async (req, res) => {
-  const { token } = req.headers.authorization?.split(' ')[1] ? { token: req.headers.authorization.split(' ')[1] } : req.query;
-  try {
-    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
-    if (!token) return res.status(401).json({ message: 'No token provided' });
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findOne({ email: decoded.email });
-    if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
-    if (!user.phone) {
+      console.warn(`User ${user.email} missing phone number`);
       return res.status(400).json({ message: 'Phone number required. Please update your profile.', errorCode: 'missing_phone' });
     }
     const jobs = await Job.find({
@@ -847,40 +990,40 @@ app.get('/api/jobs', async (req, res) => {
     res.status(200).json({ jobs });
   } catch (error) {
     console.error('Fetch jobs error:', error.message);
-    res.status(500).json({ message: 'Failed to fetch jobs', error: error.message });
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-app.get('/api/dashboard', async (req, res) => {
-  const { token } = req.headers.authorization?.split(' ')[1] ? { token: req.headers.authorization.split(' ')[1] } : req.query;
+app.get('/api/dashboard', verifyToken, async (req, res) => {
   try {
     if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
-    if (!token) return res.status(401).json({ message: 'No token provided' });
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findOne({ email: decoded.email }).lean();
+    const user = await User.findOne({ email: req.user.email }).lean();
     if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
-    if (!user.phone) {
-      return res.status(400).json({ message: 'Phone number required. Please update your profile.', errorCode: 'missing_phone' });
-    }
+    const needsPhoneUpdate = !user.phone;
     const jobsAppliedCount = user.appliedJobs ? user.appliedJobs.length : 0;
     res.status(200).json({
-      message: 'Dashboard data retrieved',
+      message: needsPhoneUpdate ? 'Dashboard data retrieved, phone number required' : 'Dashboard data retrieved',
+      needs_phone_update: needsPhoneUpdate,
       user: {
         email: user.email,
         subscription: user.subscription,
-        phone: user.phone,
-        resumePaths: user.resumePaths,
-        linkedinProfile: user.linkedinProfile,
-        coverLetter: user.coverLetter,
-        technology: user.technology,
-        selectedCompanies: user.selectedCompanies,
+        phone: user.phone || null,
+        resumePaths: user.resumePaths || [],
+        linkedinProfile: user.linkedinProfile || null,
+        coverLetter: user.coverLetter || null,
+        technology: user.technology || null,
+        selectedCompanies: user.selectedCompanies || [],
         jobsAppliedCount,
-        scraperPreferences: user.scraperPreferences,
+        scraperPreferences: user.scraperPreferences || {
+          jobBoards: ['Indeed'],
+          frequency: 'daily',
+          location: 'United States',
+        },
       },
     });
   } catch (error) {
     console.error('Dashboard error:', error.message);
-    res.status(500).json({ message: 'Failed to retrieve dashboard data', error: error.message });
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
