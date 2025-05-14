@@ -88,31 +88,42 @@ app.options('*', (req, res) => {
   res.sendStatus(204);
 });
 
-// MongoDB connection with retry logic and keep-alive
+// MongoDB connection with retry logic
 let dbConnected = false;
-const connectToMongoDB = async () => {
+const connectToMongoDB = async (retryCount = 0, maxRetries = 10) => {
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
-      keepAlive: true,
-      keepAliveInitialDelay: 300000,
     });
     dbConnected = true;
     console.log('Connected to MongoDB');
   } catch (err) {
-    console.error('MongoDB connection failed:', err.message);
-    setTimeout(connectToMongoDB, 5000);
+    console.error(`MongoDB connection attempt ${retryCount + 1} failed:`, err.message);
+    if (retryCount < maxRetries) {
+      const delayMs = Math.min(1000 * 2 ** retryCount, 30000); // Exponential backoff, max 30s
+      console.log(`Retrying in ${delayMs / 1000} seconds...`);
+      setTimeout(() => connectToMongoDB(retryCount + 1, maxRetries), delayMs);
+    } else {
+      console.error('Max MongoDB connection retries reached. Exiting process.');
+      process.exit(1);
+    }
   }
 };
 connectToMongoDB();
 
 mongoose.connection.on('disconnected', () => {
-  console.log('MongoDB disconnected, attempting to reconnect...');
-  dbConnected = false;
-  connectToMongoDB();
+  if (dbConnected) {
+    console.log('MongoDB disconnected, attempting to reconnect...');
+    dbConnected = false;
+    connectToMongoDB();
+  }
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('MongoDB connection error:', err.message);
 });
 
 // Multer configuration for memory storage (for Cloudinary)
@@ -155,7 +166,6 @@ const jobSchema = new mongoose.Schema({
   appliedBy: [{ userId: mongoose.Schema.Types.ObjectId, date: Date }],
 }, { timestamps: true });
 jobSchema.index({ company: 1, posted: -1 });
-jobSchema.index({ jobId: 1 });
 
 const otpSchema = new mongoose.Schema({
   email: { type: String, required: true, index: true },
@@ -175,8 +185,12 @@ const transporter = nodemailer.createTransport({
   auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
 });
 transporter.verify((error) => {
-  if (error) console.error('Nodemailer setup failed:', error.message);
-  else console.log('Nodemailer configured successfully');
+  if (error) {
+    console.error('Nodemailer setup failed:', error.message);
+    console.error('Ensure EMAIL_USER and EMAIL_PASS are correct. EMAIL_PASS must be a Gmail App Password.');
+  } else {
+    console.log('Nodemailer configured successfully');
+  }
 });
 
 // Utility functions
@@ -448,6 +462,10 @@ schedule.scheduleJob('0 0 * * *', async () => {
   const users = await User.find({ isOtpVerified: true }).lean();
   for (const user of users) {
     const userDoc = await User.findById(user._id);
+    if (!dbConnected) {
+      console.warn(`Skipping auto-apply for ${user.email}: MongoDB not connected`);
+      continue;
+    }
     const applied = await runAutoApplyForUser(userDoc);
     console.log(`Applied to ${applied} jobs for ${user.email}`);
     await delay(5000); // Delay between users to avoid overwhelming APIs
@@ -587,7 +605,7 @@ app.get('/api/health', (req, res) => res.status(200).json({ message: 'Server is 
 app.post('/api/signup', async (req, res) => {
   const { email, password, subscription, phone } = req.body;
   try {
-    if (!dbConnected) throw new Error('Database not connected');
+    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
     if (!email || !password || !subscription || !phone)
       return res.status(400).json({ message: 'Missing required fields: email, password, subscription, and phone are mandatory' });
     const existingUser = await User.findOne({ email }).lean();
@@ -616,7 +634,7 @@ app.post('/api/signup', async (req, res) => {
 app.post('/api/verify-otp', async (req, res) => {
   const { email, otp } = req.body;
   try {
-    if (!dbConnected) throw new Error('Database not connected');
+    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
     if (!email || !otp) return res.status(400).json({ message: 'Missing email or OTP' });
     const otpRecord = await OTP.findOne({ email, otp }).lean();
     if (!otpRecord) return res.status(400).json({ message: 'Invalid or expired OTP' });
@@ -639,7 +657,7 @@ app.post('/api/verify-otp', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   try {
-    if (!dbConnected) throw new Error('Database not connected');
+    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
     if (!email || !password) return res.status(400).json({ message: 'Missing required fields' });
     const user = await User.findOne({ email }).lean();
     if (!user || !(await bcrypt.compare(password, user.password))) {
@@ -661,7 +679,7 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/forgot-password', async (req, res) => {
   const { email } = req.body;
   try {
-    if (!dbConnected) throw new Error('Database not connected');
+    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
     if (!user.isOtpVerified)
@@ -682,7 +700,7 @@ app.post('/api/forgot-password', async (req, res) => {
 app.post('/api/reset-password', async (req, res) => {
   const { token, newPassword } = req.body;
   try {
-    if (!dbConnected) throw new Error('Database not connected');
+    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findOne({ email: decoded.email, resetToken: token });
     if (!user || user.resetTokenExpiry < new Date()) {
@@ -701,7 +719,7 @@ app.post('/api/reset-password', async (req, res) => {
 
 app.post('/api/upload-resume', upload, async (req, res) => {
   try {
-    if (!dbConnected) throw new Error('Database not connected');
+    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
     const token = req.body.token;
     const technology = req.body.technology;
@@ -725,7 +743,7 @@ app.post('/api/upload-resume', upload, async (req, res) => {
 app.post('/api/select-companies', async (req, res) => {
   const { token, companies } = req.body;
   try {
-    if (!dbConnected) throw new Error('Database not connected');
+    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
     if (!token) return res.status(401).json({ message: 'No token provided' });
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findOne({ email: decoded.email });
@@ -743,7 +761,7 @@ app.post('/api/select-companies', async (req, res) => {
 app.post('/api/update-profile', async (req, res) => {
   const { token, linkedinProfile, coverLetter } = req.body;
   try {
-    if (!dbConnected) throw new Error('Database not connected');
+    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
     if (!token) return res.status(401).json({ message: 'No token provided' });
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findOne({ email: decoded.email });
@@ -761,7 +779,7 @@ app.post('/api/update-profile', async (req, res) => {
 app.post('/api/auto-apply', async (req, res) => {
   const { token, linkedinProfile, coverLetter } = req.body;
   try {
-    if (!dbConnected) throw new Error('Database not connected');
+    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
     if (!token) return res.status(401).json({ message: 'No token provided' });
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findOne({ email: decoded.email });
@@ -782,7 +800,7 @@ app.post('/api/auto-apply', async (req, res) => {
 app.post('/api/update-scraper-preferences', async (req, res) => {
   const { token, jobBoards, frequency, location } = req.body;
   try {
-    if (!dbConnected) throw new Error('Database not connected');
+    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
     if (!token) return res.status(401).json({ message: 'No token provided' });
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findOne({ email: decoded.email });
@@ -801,7 +819,7 @@ app.post('/api/update-scraper-preferences', async (req, res) => {
 app.get('/api/jobs', async (req, res) => {
   const { token } = req.headers.authorization?.split(' ')[1] ? { token: req.headers.authorization.split(' ')[1] } : req.query;
   try {
-    if (!dbConnected) throw new Error('Database not connected');
+    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
     if (!token) return res.status(401).json({ message: 'No token provided' });
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findOne({ email: decoded.email });
@@ -818,7 +836,7 @@ app.get('/api/jobs', async (req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

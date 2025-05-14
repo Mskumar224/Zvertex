@@ -1,4 +1,12 @@
 {
+  "name": "zvertexagi-server",
+  "version": "1.0.0",
+  "description": "ZvertexAGI Backend Server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
   "dependencies": {
     "axios": "^1.7.7",
     "bcrypt": "^5.1.1",
@@ -10,8 +18,8 @@
     "mongoose": "^8.7.0",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.15",
-    "puppeteer": "^23.5.0",  
-    "node-schedule": "^2.1.1"  
+    "puppeteer": "^23.5.0",
+    "node-schedule": "^2.1.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.7"
