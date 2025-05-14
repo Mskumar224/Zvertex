@@ -11,63 +11,89 @@ import Companies from './pages/Companies';
 import ConfirmAutoApply from './pages/ConfirmAutoApply';
 import Dashboard from './pages/Dashboard';
 
-// Define sky blue and white theme
+// Define professional blue and white theme with MNC aesthetic
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#87CEEB', // Sky blue
+      main: '#005B99', // Deep professional blue
       contrastText: '#FFFFFF', // White
     },
     secondary: {
       main: '#FFFFFF', // White
-      contrastText: '#87CEEB', // Sky blue
+      contrastText: '#005B99', // Deep blue
     },
     background: {
-      default: '#F0F8FF', // Light sky blue background
+      default: '#F5F6F5', // Light neutral grey for background
       paper: '#FFFFFF', // White for paper elements
     },
     text: {
-      primary: '#87CEEB', // Sky blue
+      primary: '#1A2526', // Dark grey for text
       secondary: '#FFFFFF', // White
+    },
+    success: {
+      main: '#4CAF50', // Green for success messages
+    },
+    error: {
+      main: '#D32F2F', // Red for error messages
+    },
+  },
+  typography: {
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    h4: {
+      fontWeight: 600,
+      color: '#1A2526',
+    },
+    h6: {
+      fontWeight: 500,
+      color: '#1A2526',
+    },
+    body1: {
+      color: '#1A2526',
     },
   },
   components: {
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: '#87CEEB',
+          backgroundColor: '#005B99',
           color: '#FFFFFF',
+          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
         },
       },
     },
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: '8px',
+          borderRadius: '6px',
           textTransform: 'none',
+          padding: '8px 16px',
+          fontWeight: 500,
           '&:hover': {
-            backgroundColor: '#FFFFFF',
-            color: '#87CEEB',
+            backgroundColor: '#E6F0FA',
+            color: '#005B99',
           },
         },
         containedPrimary: {
-          backgroundColor: '#87CEEB',
+          backgroundColor: '#005B99',
           color: '#FFFFFF',
+          '&:hover': {
+            backgroundColor: '#004B7F',
+          },
+        },
+        outlinedPrimary: {
+          borderColor: '#005B99',
+          color: '#005B99',
+          '&:hover': {
+            backgroundColor: '#E6F0FA',
+            borderColor: '#004B7F',
+          },
         },
         outlinedSecondary: {
           borderColor: '#FFFFFF',
           color: '#FFFFFF',
           '&:hover': {
-            backgroundColor: '#87CEEB',
-            color: '#FFFFFF',
-          },
-        },
-        outlinedPrimary: {
-          borderColor: '#87CEEB',
-          color: '#87CEEB',
-          '&:hover': {
-            backgroundColor: '#F0F8FF',
-            color: '#87CEEB',
+            backgroundColor: '#005B99',
+            borderColor: '#FFFFFF',
           },
         },
       },
@@ -75,7 +101,7 @@ const theme = createTheme({
     MuiTypography: {
       styleOverrides: {
         root: {
-          color: '#87CEEB',
+          color: '#1A2526',
         },
       },
     },
@@ -84,22 +110,50 @@ const theme = createTheme({
         root: {
           '& .MuiInputBase-root': {
             backgroundColor: '#FFFFFF',
-            color: '#87CEEB',
+            color: '#1A2526',
+            borderRadius: '6px',
           },
           '& .MuiInputLabel-root': {
-            color: '#87CEEB',
+            color: '#1A2526',
           },
           '& .MuiOutlinedInput-root': {
             '& fieldset': {
-              borderColor: '#87CEEB',
+              borderColor: '#005B99',
             },
             '&:hover fieldset': {
-              borderColor: '#FFFFFF',
+              borderColor: '#004B7F',
             },
             '&.Mui-focused fieldset': {
-              borderColor: '#87CEEB',
+              borderColor: '#005B99',
             },
           },
+        },
+      },
+    },
+    MuiSelect: {
+      styleOverrides: {
+        root: {
+          backgroundColor: '#FFFFFF',
+          color: '#1A2526',
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#005B99',
+          },
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#004B7F',
+          },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#005B99',
+          },
+        },
+      },
+    },
+    MuiListItem: {
+      styleOverrides: {
+        root: {
+          backgroundColor: '#FFFFFF',
+          borderRadius: '6px',
+          marginBottom: '8px',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
         },
       },
     },
@@ -139,7 +193,7 @@ const Header: React.FC = () => {
   return (
     <AppBar position="static">
       <Toolbar>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+        <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
           ZvertexAI
         </Typography>
         {!isAuthPage && (
@@ -180,7 +234,7 @@ const Header: React.FC = () => {
 };
 
 const Footer: React.FC = () => (
-  <Box sx={{ bgcolor: '#87CEEB', py: 3, mt: 'auto' }}>
+  <Box sx={{ bgcolor: '#005B99', py: 3, mt: 'auto' }}>
     <Container maxWidth="lg">
       <Typography variant="body2" sx={{ color: '#FFFFFF' }} align="center">
         © {new Date().getFullYear()} ZvertexAI. All rights reserved. Contact us at{' '}
