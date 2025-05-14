@@ -8,7 +8,6 @@ const dotenv = require('dotenv');
 const multer = require('multer');
 const axios = require('axios');
 const cloudinary = require('cloudinary').v2;
-const puppeteer = require('puppeteer');
 const schedule = require('node-schedule');
 
 dotenv.config();
@@ -786,8 +785,9 @@ app.post('/api/auto-apply', async (req, res) => {
     if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
     if (!user.resumePaths.length) return res.status(400).json({ message: 'No resume uploaded' });
     if (!user.selectedCompanies.length) return res.status(400).json({ message: 'No companies selected' });
-    user.linkedinProfile = linkedinProfile || user.linkedinProfile;
-    user.coverLetter = coverLetter || user.coverLetter;
+    // Update profile only if new details are provided
+    if (linkedinProfile) user.linkedinProfile = linkedinProfile;
+    if (coverLetter) user.coverLetter = coverLetter;
     const appliedToday = await runAutoApplyForUser(user);
     await user.save();
     res.status(200).json({ message: `Auto-applied to ${appliedToday} jobs`, appliedToday });
@@ -832,6 +832,37 @@ app.get('/api/jobs', async (req, res) => {
   } catch (error) {
     console.error('Fetch jobs error:', error.message);
     res.status(500).json({ message: 'Failed to fetch jobs', error: error.message });
+  }
+});
+
+// New Dashboard endpoint
+app.get('/api/dashboard', async (req, res) => {
+  const { token } = req.headers.authorization?.split(' ')[1] ? { token: req.headers.authorization.split(' ')[1] } : req.query;
+  try {
+    if (!dbConnected) return res.status(503).json({ message: 'Database not connected' });
+    if (!token) return res.status(401).json({ message: 'No token provided' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findOne({ email: decoded.email }).lean();
+    if (!user || !user.isOtpVerified) return res.status(403).json({ message: 'User not verified' });
+    const jobsAppliedCount = user.appliedJobs ? user.appliedJobs.length : 0;
+    res.status(200).json({
+      message: 'Dashboard data retrieved',
+      user: {
+        email: user.email,
+        subscription: user.subscription,
+        phone: user.phone,
+        resumePaths: user.resumePaths,
+        linkedinProfile: user.linkedinProfile,
+        coverLetter: user.coverLetter,
+        technology: user.technology,
+        selectedCompanies: user.selectedCompanies,
+        jobsAppliedCount,
+        scraperPreferences: user.scraperPreferences,
+      },
+    });
+  } catch (error) {
+    console.error('Dashboard error:', error.message);
+    res.status(500).json({ message: 'Failed to retrieve dashboard data', error: error.message });
   }
 });
 
