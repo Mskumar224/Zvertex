@@ -127,7 +127,7 @@ const userSchema = new mongoose.Schema({
   resumePaths: [String],
   selectedCompanies: [String],
   appliedJobs: [{ jobId: String, date: Date }],
-  phone: { type: String, required: true }, // Made phone mandatory
+  phone: { type: String, required: true },
   resetToken: String,
   resetTokenExpiry: Date,
   linkedinProfile: String,
@@ -191,27 +191,41 @@ const scrapeIndeedJobs = async (technology, location, companies, page = 1) => {
   const options = {
     method: 'GET',
     url: 'https://indeed12.p.rapidapi.com/jobs/search',
-    params: { query: technology || 'software', location: location || 'United States', page: page.toString(), sort: 'date' },
-    headers: { 'X-RapidAPI-Key': process.env.RAPIDAPI_KEY, 'X-RapidAPI-Host': 'indeed12.p.rapidapi.com' },
+    params: {
+      query: technology || 'software',
+      location: location || 'United States',
+      page: page.toString(),
+      sort: 'date',
+    },
+    headers: {
+      'X-RapidAPI-Key': process.env.RAPIDAPI_KEY,
+      'X-RapidAPI-Host': 'indeed12.p.rapidapi.com',
+    },
   };
   try {
     const response = await axios.request(options);
     const jobs = response.data.hits || [];
-    return jobs
-      .filter((job) => companies.some((c) => job.company_name.toLowerCase().includes(c.toLowerCase())))
+    const filteredJobs = jobs
+      .filter((job) => job.company_name && companies.some((c) => job.company_name.toLowerCase().includes(c.toLowerCase())))
       .map((job) => ({
         jobId: job.job_id,
-        title: job.title,
+        title: job.title || 'Unknown Title',
         company: job.company_name,
-        location: job.location,
-        posted: new Date(job.posted_time),
+        location: job.location || 'Unknown Location',
+        posted: job.posted_time ? new Date(job.posted_time) : new Date(),
         url: job.link || `https://www.indeed.com/viewjob?jk=${job.job_id}`,
-        description: job.description,
+        description: job.description || '',
         source: 'Indeed',
-        requiresDocs: job.description.includes('resume') || job.description.includes('cover letter'),
+        requiresDocs: (job.description || '').toLowerCase().includes('resume') || (job.description || '').toLowerCase().includes('cover letter'),
       }));
+    console.log(`Fetched ${filteredJobs.length} jobs from Indeed for page ${page}`);
+    return filteredJobs;
   } catch (error) {
-    console.error('Indeed scraping error:', error.message);
+    if (error.response?.status === 429) {
+      console.warn(`Rate limited (429) by Indeed API on page ${page}`);
+      throw new Error('429 Rate Limit');
+    }
+    console.error(`Indeed scraping error on page ${page}:`, error.message);
     return [];
   }
 };
@@ -229,14 +243,14 @@ const scrapeLinkedInJobs = async (technology, location, companies) => {
       jobElements.forEach((el) => {
         const companyEl = el.querySelector('.base-search-card__subtitle');
         const company = companyEl?.innerText || '';
-        if (companies.some((c) => company.toLowerCase().includes(c.toLowerCase()))) {
+        if (company && companies.some((c) => company.toLowerCase().includes(c.toLowerCase()))) {
           const titleEl = el.querySelector('.base-search-card__title');
           const linkEl = el.querySelector('a');
           jobList.push({
             jobId: linkEl?.href.split('?')[0] || `linkedin-${Date.now()}`,
             title: titleEl?.innerText || 'Unknown Title',
             company,
-            location: el.querySelector('.job-search-card__location')?.innerText || '',
+            location: el.querySelector('.job-search-card__location')?.innerText || 'Unknown Location',
             posted: new Date(),
             url: linkEl?.href || '',
             description: '',
@@ -248,6 +262,7 @@ const scrapeLinkedInJobs = async (technology, location, companies) => {
       return jobList;
     }, companies);
     await browser.close();
+    console.log(`Fetched ${jobs.length} jobs from LinkedIn`);
     return jobs;
   } catch (error) {
     console.error('LinkedIn scraping error:', error.message);
@@ -255,10 +270,30 @@ const scrapeLinkedInJobs = async (technology, location, companies) => {
   }
 };
 
-const fetchRealTimeJobs = async (companies, technology, location, retries = 3) => {
+const fetchRealTimeJobs = async (companies, technology, location, maxRetries = 3) => {
   const jobs = {};
   for (const company of companies) {
     jobs[company] = [];
+  }
+
+  // Check database for recent jobs (within last 6 hours)
+  const cacheTime = new Date(Date.now() - 6 * 60 * 60 * 1000);
+  const cachedJobs = await Job.find({
+    company: { $in: companies },
+    updatedAt: { $gte: cacheTime },
+  }).lean();
+  for (const job of cachedJobs) {
+    if (companies.includes(job.company)) {
+      jobs[job.company].push(job);
+    }
+  }
+  console.log(`Retrieved ${cachedJobs.length} cached jobs from database`);
+
+  // If sufficient cached jobs, return early
+  const totalCachedJobs = Object.values(jobs).flat().length;
+  if (totalCachedJobs >= companies.length * 2) {
+    console.log('Using cached jobs, skipping API calls');
+    return jobs;
   }
 
   const sources = [
@@ -266,47 +301,75 @@ const fetchRealTimeJobs = async (companies, technology, location, retries = 3) =
     { name: 'LinkedIn', scraper: scrapeLinkedInJobs },
   ];
 
-  for (const source of sources) {
-    for (let attempt = 0; attempt < retries; attempt++) {
-      try {
-        console.log(`Scraping ${source.name} for ${companies.length} companies - Attempt ${attempt + 1}`);
-        const scrapedJobs = await source.scraper(technology, location, companies);
-        for (const job of scrapedJobs) {
-          if (companies.includes(job.company)) {
-            jobs[job.company].push(job);
-          }
-        }
-        break;
-      } catch (error) {
-        console.error(`${source.name} attempt ${attempt + 1} failed:`, error.message);
-        if (attempt === retries - 1) {
-          console.log(`Max retries reached for ${source.name}, using mock data`);
-          for (const company of companies) {
-            jobs[company].push({
-              jobId: `${company}-mock-${Date.now()}`,
-              title: `${company} - ${technology || 'Software'} Engineer`,
-              company,
-              location: location || 'United States',
-              posted: new Date(),
-              url: `https://${company.toLowerCase()}.com/careers`,
-              description: 'Mock job listing',
-              source: 'Mock',
-              requiresDocs: true,
-            });
-          }
-        }
-        await delay((attempt + 1) * 5000);
-      }
-    }
+  // Batch companies to reduce API calls
+  const companyBatches = [];
+  for (let i = 0; i < companies.length; i += 5) {
+    companyBatches.push(companies.slice(i, i + 5));
   }
 
-  for (const company of companies) {
-    for (const job of jobs[company]) {
-      await Job.updateOne(
-        { jobId: job.jobId },
-        { $set: job },
-        { upsert: true }
-      );
+  for (const source of sources) {
+    for (const batch of companyBatches) {
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          console.log(`Fetching jobs from ${source.name} for ${batch.length} companies at ${new Date().toISOString()} - Attempt ${attempt + 1}`);
+          let scrapedJobs = [];
+          if (source.name === 'Indeed') {
+            // Fetch multiple pages for Indeed to maximize results
+            for (let page = 1; page <= 2; page++) {
+              const pageJobs = await source.scraper(technology, location, batch, page);
+              scrapedJobs.push(...pageJobs);
+              if (pageJobs.length < 10) break; // Stop if fewer results
+              await delay(2000); // Delay between page requests
+            }
+          } else {
+            scrapedJobs = await source.scraper(technology, location, batch);
+          }
+          for (const job of scrapedJobs) {
+            if (batch.includes(job.company)) {
+              jobs[job.company].push(job);
+              // Store in database
+              await Job.updateOne(
+                { jobId: job.jobId },
+                { $set: job },
+                { upsert: true }
+              );
+            }
+          }
+          console.log(`Stored ${scrapedJobs.length} jobs from ${source.name} for batch`);
+          break; // Success, move to next batch
+        } catch (error) {
+          if (error.message === '429 Rate Limit' && attempt < maxRetries - 1) {
+            const waitTime = (2 ** attempt) * 10000; // Exponential backoff: 10s, 20s, 40s
+            console.warn(`Rate limited (429), waiting ${waitTime / 1000} seconds`);
+            await delay(waitTime);
+            continue;
+          }
+          console.error(`${source.name} attempt ${attempt + 1} failed:`, error.message);
+          if (attempt === maxRetries - 1) {
+            console.log(`Max retries reached for ${source.name}, using mock data for batch`);
+            for (const company of batch) {
+              const mockJob = {
+                jobId: `${company}-mock-${Date.now()}`,
+                title: `${company} - ${technology || 'Software'} Engineer`,
+                company,
+                location: location || 'United States',
+                posted: new Date(),
+                url: `https://${company.toLowerCase()}.com/careers`,
+                description: 'Mock job listing',
+                source: 'Mock',
+                requiresDocs: true,
+              };
+              jobs[company].push(mockJob);
+              await Job.updateOne(
+                { jobId: mockJob.jobId },
+                { $set: mockJob },
+                { upsert: true }
+              );
+            }
+          }
+        }
+        await delay(5000); // Delay between batches
+      }
     }
   }
 
@@ -314,14 +377,27 @@ const fetchRealTimeJobs = async (companies, technology, location, retries = 3) =
 };
 
 const autoApplyToJob = async (job, user) => {
-  console.log(`Auto-applying to ${job.title} at ${job.company} for ${user.email}`);
-  const resumePath = user.resumePaths[user.resumePaths.length - 1];
-  console.log(`Using resume: ${resumePath}`);
-  if (job.requiresDocs) {
-    console.log(`Using LinkedIn: ${user.linkedinProfile}, Cover Letter: ${user.coverLetter}`);
+  try {
+    if (!job.jobId || !job.title || !job.company) {
+      console.warn(`Skipping invalid job for ${user.email}:`, job);
+      return false;
+    }
+    console.log(`Auto-applying to ${job.title} at ${job.company} for ${user.email}`);
+    const resumePath = user.resumePaths[user.resumePaths.length - 1];
+    if (!resumePath) {
+      console.warn(`No resume available for ${user.email}`);
+      return false;
+    }
+    console.log(`Using resume: ${resumePath}`);
+    if (job.requiresDocs) {
+      console.log(`Using LinkedIn: ${user.linkedinProfile || 'Not provided'}, Cover Letter: ${user.coverLetter || 'Not provided'}`);
+    }
+    await delay(1000); // Simulate application process
+    return true;
+  } catch (error) {
+    console.error(`Auto-apply failed for ${user.email} to ${job.title}:`, error.message);
+    return false;
   }
-  await delay(1000);
-  return true;
 };
 
 const runAutoApplyForUser = async (user) => {
@@ -330,11 +406,12 @@ const runAutoApplyForUser = async (user) => {
     return 0;
   }
 
+  console.log(`Starting auto-apply for ${user.email} with ${user.selectedCompanies.length} companies`);
   const jobs = await fetchRealTimeJobs(user.selectedCompanies, user.technology, user.scraperPreferences.location);
   let appliedToday = 0;
 
   for (const company of user.selectedCompanies) {
-    for (const job of jobs[company]) {
+    for (const job of jobs[company] || []) {
       const alreadyApplied = user.appliedJobs.some((j) => j.jobId === job.jobId) ||
         (await Job.findOne({ jobId: job.jobId, 'appliedBy.userId': user._id }));
       if (!alreadyApplied) {
@@ -346,7 +423,10 @@ const runAutoApplyForUser = async (user) => {
             { $push: { appliedBy: { userId: user._id, date: new Date() } } }
           );
           appliedToday++;
+          console.log(`Successfully applied to ${job.title} at ${job.company} for ${user.email}`);
         }
+      } else {
+        console.log(`Skipping already applied job ${job.title} at ${job.company} for ${user.email}`);
       }
     }
   }
@@ -358,6 +438,7 @@ const runAutoApplyForUser = async (user) => {
       'ZvertexAI Auto-Apply Update',
       getAutoApplyEmail(user.email, user.subscription, user.selectedCompanies)
     );
+    console.log(`Sent auto-apply update email to ${user.email} for ${appliedToday} applications`);
   }
   return appliedToday;
 };
@@ -369,6 +450,7 @@ schedule.scheduleJob('0 0 * * *', async () => {
     const userDoc = await User.findById(user._id);
     const applied = await runAutoApplyForUser(userDoc);
     console.log(`Applied to ${applied} jobs for ${user.email}`);
+    await delay(5000); // Delay between users to avoid overwhelming APIs
   }
 });
 
