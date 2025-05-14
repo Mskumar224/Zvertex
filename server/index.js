@@ -270,45 +270,109 @@ const sendEmail = async (to, subject, html, attachments = []) => {
 
 // Email templates
 const getSignupEmail = (email, subscription) => `
-  <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
-    <h2 style="color: #003087;">Welcome to ZvertexAI, ${email}!</h2>
-    <p>We’re thrilled to have you on board with your ${subscription} plan.</p>
-    <p>Get started by uploading your resume and selecting companies to auto-apply to!</p>
-    <a href="${process.env.FRONTEND_URL}/dashboard" style="background-color: #003087; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Go to Dashboard</a>
-    <p>Best regards,<br>The ZvertexAI Team</p>
+  <div style="font-family: Arial, sans-serif; background-color: #F0F8FF; color: #333; padding: 20px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: auto; background-color: #FFFFFF; border: 1px solid #87CEEB;">
+      <tr>
+        <td style="background-color: #87CEEB; padding: 20px; text-align: center;">
+          <h2 style="color: #FFFFFF; margin: 0;">Welcome to ZvertexAI</h2>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 20px;">
+          <p style="font-size: 16px;">Dear ${email},</p>
+          <p style="font-size: 16px;">Thank you for joining ZvertexAI with your ${subscription} plan. We're excited to help you streamline your job application process.</p>
+          <p style="font-size: 16px;">Get started by uploading your resume and selecting companies to auto-apply to.</p>
+          <a href="${process.env.FRONTEND_URL}/dashboard" style="display: inline-block; background-color: #87CEEB; color: #FFFFFF; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-size: 16px;">Go to Dashboard</a>
+          <p style="font-size: 16px; margin-top: 20px;">Best regards,<br>The ZvertexAI Team</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="background-color: #87CEEB; padding: 10px; text-align: center;">
+          <p style="color: #FFFFFF; font-size: 12px; margin: 0;">&copy; ${new Date().getFullYear()} ZvertexAI. All rights reserved.</p>
+        </td>
+      </tr>
+    </table>
   </div>
 `;
 
 const getOtpEmail = (email, otp) => `
-  <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
-    <h2 style="color: #003087;">ZvertexAI OTP Verification</h2>
-    <p>A new signup request has been received for ${email}.</p>
-    <p>The OTP for verification is: <strong>${otp}</strong></p>
-    <p>This OTP is valid for 10 minutes. Please provide this code to the user upon request.</p>
-    <p>Best regards,<br>The ZvertexAI Team</p>
+  <div style="font-family: Arial, sans-serif; background-color: #F0F8FF; color: #333; padding: 20px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: auto; background-color: #FFFFFF; border: 1px solid #87CEEB;">
+      <tr>
+        <td style="background-color: #87CEEB; padding: 20px; text-align: center;">
+          <h2 style="color: #FFFFFF; margin: 0;">ZvertexAI OTP Verification</h2>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 20px;">
+          <p style="font-size: 16px;">Dear User,</p>
+          <p style="font-size: 16px;">A new signup request has been received for ${email}.</p>
+          <p style="font-size: 16px;">Your OTP for verification is: <strong>${otp}</strong></p>
+          <p style="font-size: 16px;">This OTP is valid for 10 minutes. Please provide this code to complete your signup.</p>
+          <p style="font-size: 16px;">Best regards,<br>The ZvertexAI Team</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="background-color: #87CEEB; padding: 10px; text-align: center;">
+          <p style="color: #FFFFFF; font-size: 12px; margin: 0;">&copy; ${new Date().getFullYear()} ZvertexAI. All rights reserved.</p>
+        </td>
+      </tr>
+    </table>
   </div>
 `;
 
 const getAutoApplyEmail = (email, subscription, companies) => `
-  <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
-    <h2 style="color: #003087;">Auto-Apply Activated!</h2>
-    <p>Hello ${email},</p>
-    <p>Your auto-apply process is now active for the following companies:</p>
-    <ul>${companies.map((c) => `<li>${c}</li>`).join('')}</ul>
-    <p>We'll apply your resume to relevant jobs daily. Track your applications in the dashboard.</p>
-    <a href="${process.env.FRONTEND_URL}/dashboard" style="background-color: #003087; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Dashboard</a>
-    <p>Best regards,<br>The ZvertexAI Team</p>
+  <div style="font-family: Arial, sans-serif; background-color: #F0F8FF; color: #333; padding: 20px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: auto; background-color: #FFFFFF; border: 1px solid #87CEEB;">
+      <tr>
+        <td style="background-color: #87CEEB; padding: 20px; text-align: center;">
+          <h2 style="color: #FFFFFF; margin: 0;">Auto-Apply Activated</h2>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 20px;">
+          <p style="font-size: 16px;">Dear ${email},</p>
+          <p style="font-size: 16px;">Congratulations! Your auto-apply process with your ${subscription} plan is now active for the following companies:</p>
+          <ul style="font-size: 16px;">
+            ${companies.map((c) => `<li>${c}</li>`).join('')}
+          </ul>
+          <p style="font-size: 16px;">We will apply your resume to relevant jobs daily. You can track your applications and update your preferences at any time.</p>
+          <a href="${process.env.FRONTEND_URL}/dashboard" style="display: inline-block; background-color: #87CEEB; color: #FFFFFF; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-size: 16px;">View Dashboard</a>
+          <p style="font-size: 16px; margin-top: 20px;">Best regards,<br>The ZvertexAI Team</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="background-color: #87CEEB; padding: 10px; text-align: center;">
+          <p style="color: #FFFFFF; font-size: 12px; margin: 0;">&copy; ${new Date().getFullYear()} ZvertexAI. All rights reserved.</p>
+        </td>
+      </tr>
+    </table>
   </div>
 `;
 
 const getResetPasswordEmail = (email, resetLink) => `
-  <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
-    <h2 style="color: #003087;">Reset Your Password</h2>
-    <p>Hello ${email},</p>
-    <p>We received a request to reset your password. Click the link below to reset it:</p>
-    <a href="${resetLink}" style="background-color: #003087; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a>
-    <p>This link expires in 1 hour. If you didn’t request this, ignore this email.</p>
-    <p>Best regards,<br>The ZvertexAI Team</p>
+  <div style="font-family: Arial, sans-serif; background-color: #F0F8FF; color: #333; padding: 20px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: auto; background-color: #FFFFFF; border: 1px solid #87CEEB;">
+      <tr>
+        <td style="background-color: #87CEEB; padding: 20px; text-align: center;">
+          <h2 style="color: #FFFFFF; margin: 0;">Reset Your Password</h2>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 20px;">
+          <p style="font-size: 16px;">Dear ${email},</p>
+          <p style="font-size: 16px;">We received a request to reset your password. Please click the button below to reset it:</p>
+          <a href="${resetLink}" style="display: inline-block; background-color: #87CEEB; color: #FFFFFF; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-size: 16px;">Reset Password</a>
+          <p style="font-size: 16px;">This link will expire in 1 hour. If you did not request a password reset, please ignore this email.</p>
+          <p style="font-size: 16px;">Best regards,<br>The ZvertexAI Team</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="background-color: #87CEEB; padding: 10px; text-align: center;">
+          <p style="color: #FFFFFF; font-size: 12px; margin: 0;">&copy; ${new Date().getFullYear()} ZvertexAI. All rights reserved.</p>
+        </td>
+      </tr>
+    </table>
   </div>
 `;
 
