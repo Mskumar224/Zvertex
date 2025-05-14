@@ -127,7 +127,7 @@ const userSchema = new mongoose.Schema({
   resumePaths: [String],
   selectedCompanies: [String],
   appliedJobs: [{ jobId: String, date: Date }],
-  phone: String,
+  phone: { type: String, required: true }, // Made phone mandatory
   resetToken: String,
   resetTokenExpiry: Date,
   linkedinProfile: String,
@@ -398,7 +398,7 @@ const getSignupEmail = (email, subscription) => `
   </div>
 `;
 
-const getOtpEmail = (email, otp) => `
+const getOtpEmail = (email, otp, subscription, phone) => `
   <div style="font-family: Arial, sans-serif; background-color: #F0F8FF; color: #333; padding: 20px;">
     <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: auto; background-color: #FFFFFF; border: 1px solid #87CEEB;">
       <tr>
@@ -408,10 +408,15 @@ const getOtpEmail = (email, otp) => `
       </tr>
       <tr>
         <td style="padding: 20px;">
-          <p style="font-size: 16px;">Dear User,</p>
-          <p style="font-size: 16px;">A new signup request has been received for ${email}.</p>
-          <p style="font-size: 16px;">Your OTP for verification is: <strong>${otp}</strong></p>
-          <p style="font-size: 16px;">This OTP is valid for 10 minutes. Please provide this code to complete your signup.</p>
+          <p style="font-size: 16px;">Dear Admin,</p>
+          <p style="font-size: 16px;">A new signup request has been received with the following details:</p>
+          <ul style="font-size: 16px;">
+            <li><strong>Email:</strong> ${email}</li>
+            <li><strong>Subscription:</strong> ${subscription}</li>
+            <li><strong>Phone Number:</strong> ${phone}</li>
+          </ul>
+          <p style="font-size: 16px;">The OTP for verification is: <strong>${otp}</strong></p>
+          <p style="font-size: 16px;">This OTP is valid for 10 minutes. Please provide this code to the user to complete their signup.</p>
           <p style="font-size: 16px;">Best regards,<br>The ZvertexAI Team</p>
         </td>
       </tr>
@@ -501,8 +506,8 @@ app.post('/api/signup', async (req, res) => {
   const { email, password, subscription, phone } = req.body;
   try {
     if (!dbConnected) throw new Error('Database not connected');
-    if (!email || !password || !subscription)
-      return res.status(400).json({ message: 'Missing required fields' });
+    if (!email || !password || !subscription || !phone)
+      return res.status(400).json({ message: 'Missing required fields: email, password, subscription, and phone are mandatory' });
     const existingUser = await User.findOne({ email }).lean();
     if (existingUser && existingUser.isOtpVerified)
       return res.status(400).json({ message: 'Email already registered and verified' });
@@ -514,7 +519,11 @@ app.post('/api/signup', async (req, res) => {
     await user.save();
     const otp = generateOtp();
     await OTP.create({ email, otp });
-    await sendEmail(process.env.COMPANY_EMAIL, 'ZvertexAI OTP Verification', getOtpEmail(email, otp));
+    await sendEmail(
+      process.env.COMPANY_EMAIL,
+      'ZvertexAI OTP Verification',
+      getOtpEmail(email, otp, subscription, phone)
+    );
     res.status(200).json({ message: 'OTP sent to company email for verification' });
   } catch (error) {
     console.error('Signup error:', error.message, error.stack);
