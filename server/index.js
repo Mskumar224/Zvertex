@@ -54,6 +54,7 @@ const allowedOrigins = [
   'https://67d1e078ce70580008045c8d--zvertexai.netlify.app',
   'https://67d1e69e2d47412a5001c924--zvertexai.netlify.app',
   'https://67d1e9046704b12e711ef0b1--zvertexai.netlify.app',
+  'https://zvertexai.com',
 ];
 app.use(
   cors({
@@ -62,7 +63,7 @@ app.use(
         callback(null, true);
       } else {
         console.log(`CORS rejected origin: ${origin}`);
-        callback(null, false);
+        callback(new Error('Not allowed by CORS'));
       }
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -354,7 +355,7 @@ app.post('/api/verify-otp', async (req, res) => {
       expiresIn: '1h',
     });
     await sendEmail(email, 'Welcome to ZvertexAI', getSignupEmail(email, user.subscription));
-    res.status(200).json({ token, message: 'OTP verified, signup complete' });
+    res.status(200).json({ message: 'OTP verified, signup complete', token });
   } catch (error) {
     console.error('OTP verification error:', error.message);
     res.status(500).json({ message: 'OTP verification failed', error: error.message });
@@ -376,7 +377,7 @@ app.post('/api/login', async (req, res) => {
     const token = jwt.sign({ email, subscription: user.subscription }, process.env.JWT_SECRET, {
       expiresIn: '1h',
     });
-    res.status(200).json({ token, message: 'Login successful' });
+    res.status(200).json({ message: 'Login successful', token });
   } catch (error) {
     console.error('Login error:', error.message, error.stack);
     res.status(500).json({ message: 'Login failed', error: error.message });

@@ -24,8 +24,7 @@ const StaticHomePage: React.FC = () => {
           companies,
         });
 
-        // Only call auto-apply if prerequisites are met
-        const userRes = await axios.get('https://zvertexai-orzv.onrender.com/api/health'); // Placeholder to check DB connection
+        const userRes = await axios.get('https://zvertexai-orzv.onrender.com/api/health');
         if (companies.length > 0 && localStorage.getItem('resumeUploaded') === 'true') {
           const appliedToday = await axios.post('https://zvertexai-orzv.onrender.com/api/auto-apply', { token });
           setUserData({
@@ -42,12 +41,14 @@ const StaticHomePage: React.FC = () => {
           setError('Please upload a resume and select companies to start auto-applying.');
         }
       } catch (error: any) {
-        console.error('Fetch user data failed:', error);
-        if (error.response?.status === 400) {
+        console.error('Fetch user data failed:', error.message);
+        if (error.response?.status === 404) {
+          setError('Backend API not found. Please try again later or contact support at zvertex.247@gmail.com.');
+        } else if (error.response?.status === 400) {
           setError(error.response.data.message || 'Setup incomplete. Please upload a resume and select companies.');
           navigate('/resume-upload');
         } else {
-          setError('Failed to load user data. Please try again.');
+          setError('Failed to load user data. Please try again later or contact support at zvertex.247@gmail.com.');
         }
       }
     };
