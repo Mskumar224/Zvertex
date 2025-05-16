@@ -20,10 +20,6 @@ function App() {
   const [user, setUser] = useState(null);
   const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
-  if (!process.env.REACT_APP_API_URL) {
-    console.warn('REACT_APP_API_URL is not defined in .env. Using fallback:', apiUrl);
-  }
-
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -35,7 +31,7 @@ function App() {
           setUser(res.data);
         }
       } catch (err) {
-        console.error('Fetch user error:', err.message);
+        // Silently clear invalid token; user will be prompted to log in
         localStorage.removeItem('token');
       }
     };
