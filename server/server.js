@@ -12,7 +12,15 @@ const zgptRoutes = require('./routes/zgpt');
 
 const app = express();
 
-app.use(cors());
+// CORS configuration
+app.use(cors({
+  origin: ['https://zvertexai.com', 'https://your-site-name.netlify.app', 'http://localhost:3000'],
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'x-auth-token'],
+  credentials: true
+}));
+app.options('*', cors()); // Handle preflight requests
+
 app.use(express.json());
 app.use(fileUpload());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -22,8 +30,8 @@ mongoose
   .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 30000, // Increase timeout to 30s
-    socketTimeoutMS: 45000, // Increase socket timeout
+    serverSelectionTimeoutMS: 30000,
+    socketTimeoutMS: 45000,
   })
   .then(() => console.log('MongoDB connected'))
   .catch((err) => console.error('MongoDB connection error:', err));
@@ -37,6 +45,11 @@ app.use('/api/zgpt', zgptRoutes);
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'OK' });
+});
+
+// Catch-all for 404 errors
+app.use((req, res, next) => {
+  res.status(404).json({ msg: 'Resource not found' });
 });
 
 // Error handling middleware
