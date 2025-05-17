@@ -22,14 +22,14 @@ router.post('/register', async (req, res) => {
   }
 
   try {
-    // Check for verified user with the same email
-    let user = await User.findOne({ email, isVerified: true });
-    if (user) {
-      return res.status(400).json({ msg: 'User already exists and is verified' });
-    }
-
     // Delete any unverified users with the same email to allow re-registration
     await User.deleteMany({ email, isVerified: false });
+
+    // Check for verified user with the same email
+    const verifiedUser = await User.findOne({ email, isVerified: true });
+    if (verifiedUser) {
+      return res.status(400).json({ msg: 'Email is already registered and verified' });
+    }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -38,7 +38,7 @@ router.post('/register', async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    user = new User({
+    const user = new User({
       email,
       password: hashedPassword,
       phone,
