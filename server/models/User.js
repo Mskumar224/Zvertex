@@ -4,7 +4,6 @@ const UserSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
-    unique: true,
     index: true, // Add index for faster queries
   },
   password: {
@@ -24,6 +23,10 @@ const UserSchema = new mongoose.Schema({
     type: String,
     enum: ['PENDING', 'TRIAL', 'ACTIVE', 'EXPIRED'],
     default: 'PENDING',
+  },
+  isVerified: {
+    type: Boolean,
+    default: false, // Track OTP verification status
   },
   trialStart: {
     type: Date,
@@ -59,5 +62,8 @@ const UserSchema = new mongoose.Schema({
   resetPasswordToken: String,
   resetPasswordExpires: Date,
 });
+
+// Ensure unique email only for verified users
+UserSchema.index({ email: 1 }, { unique: true, partialFilterExpression: { isVerified: true } });
 
 module.exports = mongoose.model('User', UserSchema);

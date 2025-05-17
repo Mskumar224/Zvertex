@@ -22,10 +22,14 @@ router.post('/register', async (req, res) => {
   }
 
   try {
-    let user = await User.findOne({ email });
+    // Check for verified user with the same email
+    let user = await User.findOne({ email, isVerified: true });
     if (user) {
       return res.status(400).json({ msg: 'User already exists' });
     }
+
+    // Delete any unverified users with the same email
+    await User.deleteMany({ email, isVerified: false });
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -40,6 +44,7 @@ router.post('/register', async (req, res) => {
       phone,
       otp,
       otpExpires,
+      isVerified: false,
     });
 
     await user.save();
@@ -87,11 +92,17 @@ router.post('/verify-otp', async (req, res) => {
       return res.status(400).json({ msg: 'User not found' });
     }
 
+    if (user.isVerified) {
+      return res.status(400).json({ msg: 'User already verified' });
+    }
+
     if (user.otp !== otp || user.otpExpires < Date.now()) {
+      await User.deleteOne({ _id: userId }); // Delete unverified user on invalid/expired OTP
       return res.status(400).json({ msg: 'Invalid or expired OTP' });
     }
 
-    // Activate user
+    // Mark user as verified
+    user.isVerified = true;
     user.otp = undefined;
     user.otpExpires = undefined;
     user.subscriptionStatus = 'TRIAL';
@@ -111,13 +122,9 @@ router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email, isVerified: true });
     if (!user) {
       return res.status(400).json({ msg: 'Invalid credentials' });
-    }
-
-    if (user.subscriptionStatus === 'PENDING') {
-      return res.status(400).json({ msg: 'Please verify your account with OTP' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -164,7 +171,6 @@ router.post('/profile', auth, async (req, res) => {
       return res.status(400).json({ msg: 'Profile limit reached (5)' });
     }
 
-    // Parse resume if uploaded
     let parsedResume = {};
     if (req.files && req.files.resume) {
       const file = req.files.resume;
@@ -228,7 +234,7 @@ router.post('/create-recruiter', auth, async (req, res) => {
       return res.status(400).json({ msg: 'Recruiter limit reached (3)' });
     }
 
-    let user = await User.findOne({ email });
+    let user = await User.findOne({ email, isVerified: true });
     if (user) {
       return res.status(400).json({ msg: 'Recruiter already exists' });
     }
@@ -240,8 +246,9 @@ router.post('/create-recruiter', auth, async (req, res) => {
       email,
       password: hashedPassword,
       subscriptionType: 'RECRUITER',
-      phone: 'N/A', // Recruiters created by business may not need phone initially
+      phone: 'N/A',
       businessId,
+      isVerified: true, // Recruiters created by business are auto-verified
     });
 
     await user.save();
@@ -259,7 +266,7 @@ router.post('/forgot-password', async (req, res) => {
   const { email } = req.body;
 
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email, isVerified: true });
     if (!user) {
       return res.status(400).json({ msg: 'User not found' });
     }
@@ -305,6 +312,7 @@ router.post('/reset-password/:token', async (req, res) => {
       _id: decoded.userId,
       resetPasswordToken: token,
       resetPasswordExpires: { $gt: Date.now() },
+      isVerified: true,
     });
 
     if (!user) {

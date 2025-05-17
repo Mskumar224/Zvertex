@@ -10,8 +10,8 @@ function Login({ setUser }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRegister, setIsRegister] = useState(false);
-  const [registrationStep, setRegistrationStep] = useState('form'); // 'form' or 'otp'
-  const [tempUserData, setTempUserData] = useState(null); // Store user data during OTP step
+  const [showOtpField, setShowOtpField] = useState(false); // Control OTP field visibility
+  const [tempUserId, setTempUserId] = useState(null); // Store temporary user ID
   const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
   const handleLoginSubmit = async (e) => {
@@ -44,9 +44,9 @@ function Login({ setUser }) {
     setError('');
     try {
       const res = await axios.post(`${apiUrl}/api/auth/register`, formData);
-      setTempUserData(res.data); // Store temporary user data
-      setRegistrationStep('otp'); // Move to OTP step
-      setError('Please enter the OTP provided by the company');
+      setTempUserId(res.data.userId);
+      setShowOtpField(true); // Show OTP field on same page
+      setError('Please enter the OTP sent to the company email');
     } catch (err) {
       setError(err.response?.data?.msg || 'Registration failed');
       setLoading(false);
@@ -63,7 +63,7 @@ function Login({ setUser }) {
     setError('');
     try {
       const res = await axios.post(`${apiUrl}/api/auth/verify-otp`, {
-        userId: tempUserData.userId,
+        userId: tempUserId,
         otp,
       });
       localStorage.setItem('token', res.data.token);
@@ -132,8 +132,8 @@ function Login({ setUser }) {
                 </Button>
               </Typography>
             </Box>
-          ) : registrationStep === 'form' ? (
-            <Box component="form" onSubmit={handleRegisterSubmit}>
+          ) : (
+            <Box component="form" onSubmit={showOtpField ? handleOtpSubmit : handleRegisterSubmit}>
               <Grid container spacing={2}>
                 <Grid item xs={12}>
                   <TextField
@@ -142,6 +142,7 @@ function Login({ setUser }) {
                     fullWidth
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    disabled={showOtpField}
                     sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
                   />
                 </Grid>
@@ -152,6 +153,7 @@ function Login({ setUser }) {
                     fullWidth
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    disabled={showOtpField}
                     sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
                   />
                 </Grid>
@@ -162,9 +164,24 @@ function Login({ setUser }) {
                     fullWidth
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    disabled={showOtpField}
                     sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
                   />
                 </Grid>
+                {showOtpField && (
+                  <Grid item xs={12}>
+                    <Typography sx={{ color: 'white', mb: 2, textAlign: 'center' }}>
+                      Contact the company to obtain your OTP
+                    </Typography>
+                    <TextField
+                      label="Enter OTP"
+                      fullWidth
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
+                    />
+                  </Grid>
+                )}
                 <Grid item xs={12}>
                   <Button
                     type="submit"
@@ -173,7 +190,7 @@ function Login({ setUser }) {
                     disabled={loading}
                     sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
                   >
-                    {loading ? <CircularProgress size={24} color="inherit" /> : 'Register'}
+                    {loading ? <CircularProgress size={24} color="inherit" /> : showOtpField ? 'Verify OTP' : 'Register'}
                   </Button>
                 </Grid>
               </Grid>
@@ -181,40 +198,6 @@ function Login({ setUser }) {
                 Already have an account?{' '}
                 <Button sx={{ color: '#ff6d00' }} onClick={() => setIsRegister(false)}>
                   Login
-                </Button>
-              </Typography>
-            </Box>
-          ) : (
-            <Box component="form" onSubmit={handleOtpSubmit}>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <Typography sx={{ color: 'white', mb: 2, textAlign: 'center' }}>
-                    Contact the company to obtain your OTP
-                  </Typography>
-                  <TextField
-                    label="Enter OTP"
-                    fullWidth
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    fullWidth
-                    disabled={loading}
-                    sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
-                  >
-                    {loading ? <CircularProgress size={24} color="inherit" /> : 'Verify OTP'}
-                  </Button>
-                </Grid>
-              </Grid>
-              <Typography sx={{ color: 'white', mt: 2, textAlign: 'center' }}>
-                Back to registration?{' '}
-                <Button sx={{ color: '#ff6d00' }} onClick={() => setRegistrationStep('form')}>
-                  Register
                 </Button>
               </Typography>
             </Box>
