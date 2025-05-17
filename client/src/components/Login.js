@@ -142,7 +142,7 @@ function Login({ setUser }) {
                 </Grid>
               </Grid>
               <Typography sx={{ color: 'white', mt: 2, textAlign: 'center' }}>
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <Button sx={{ color: '#ff6d00' }} onClick={() => setIsRegister(true)}>
                   Register
                 </Button>

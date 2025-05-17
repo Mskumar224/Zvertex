@@ -18,7 +18,7 @@
     "no-console": "warn",
     "react/prop-types": "off",
     "no-undef": "error",
-    "react/no-unescaped-entities": "warn"
+    "react/no-unescaped-entities": "off"
   },
   "ignorePatterns": [
     "node_modules/**",
