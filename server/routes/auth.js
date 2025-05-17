@@ -15,22 +15,19 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ msg: 'Email, password, and phone are required' });
   }
 
-  // Basic phone number validation
   const phoneRegex = /\b(\+\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/;
   if (!phoneRegex.test(phone)) {
     return res.status(400).json({ msg: 'Invalid phone number format' });
   }
 
   try {
-    // Delete any users with the same email (verified or unverified)
     await User.deleteMany({ email });
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    const otpExpires = Date.now() + 10 * 60 * 1000;
 
     const user = new User({
       email,
@@ -43,7 +40,6 @@ router.post('/register', async (req, res) => {
 
     await user.save();
 
-    // Send OTP to company email
     const transporter = nodemailer.createTransport({
       service: 'Gmail',
       auth: {
@@ -91,12 +87,11 @@ router.post('/verify-otp', async (req, res) => {
       return res.status(400).json({ msg: 'User already verified' });
     }
 
-    if (user.otp !== otp || user.otpExpires < Date.now()) {
-      await User.deleteOne({ _id: userId }); // Delete unverified user on invalid/expired OTP
+    if (user.otp !== otp.trim() || user.otpExpires < Date.now()) {
+      await User.deleteOne({ _id: userId });
       return res.status(400).json({ msg: 'Invalid or expired OTP' });
     }
 
-    // Mark user as verified
     user.isVerified = true;
     user.otp = undefined;
     user.otpExpires = undefined;
@@ -106,7 +101,7 @@ router.post('/verify-otp', async (req, res) => {
     const payload = { user: { id: user.id } };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    res.json({ token, ...user._doc });
+    res.json({ token, user: { id: user.id, email: user.email, phone: user.phone, subscriptionType: user.subscriptionType, subscriptionStatus: user.subscriptionStatus } });
   } catch (err) {
     console.error('OTP verification error:', err.message);
     res.status(500).json({ msg: 'Server error' });
@@ -130,7 +125,7 @@ router.post('/login', async (req, res) => {
     const payload = { user: { id: user.id } };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    res.json({ token, ...user._doc });
+    res.json({ token, user: { id: user.id, email: user.email, phone: user.phone, subscriptionType: user.subscriptionType, subscriptionStatus: user.subscriptionStatus } });
   } catch (err) {
     console.error('Login error:', err.message);
     res.status(500).json({ msg: 'Server error' });
@@ -229,7 +224,7 @@ router.post('/create-recruiter', auth, async (req, res) => {
       return res.status(400).json({ msg: 'Recruiter limit reached (3)' });
     }
 
-    await User.deleteMany({ email }); // Delete any users with the same email
+    await User.deleteMany({ email });
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -240,7 +235,7 @@ router.post('/create-recruiter', auth, async (req, res) => {
       subscriptionType: 'RECRUITER',
       phone: 'N/A',
       businessId,
-      isVerified: true, // Recruiters created by business are auto-verified
+      isVerified: true,
     });
 
     await user.save();
@@ -265,7 +260,7 @@ router.post('/forgot-password', async (req, res) => {
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     user.resetPasswordToken = token;
-    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+    user.resetPasswordExpires = Date.now() + 3600000;
     await user.save();
 
     const transporter = nodemailer.createTransport({

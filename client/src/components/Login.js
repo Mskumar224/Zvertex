@@ -10,9 +10,9 @@ function Login({ setUser }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRegister, setIsRegister] = useState(false);
-  const [showOtpField, setShowOtpField] = useState(false); // Control OTP field visibility
-  const [tempUserId, setTempUserId] = useState(null); // Store temporary user ID
-  const [showForgotPassword, setShowForgotPassword] = useState(false); // Control forgot password form
+  const [showOtpField, setShowOtpField] = useState(false);
+  const [tempUserId, setTempUserId] = useState(null);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const apiUrl = process.env.REACT_APP_API_URL || 'https://zvertexai-orzv.onrender.com';
 
@@ -47,7 +47,7 @@ function Login({ setUser }) {
     try {
       const res = await axios.post(`${apiUrl}/api/auth/register`, formData);
       setTempUserId(res.data.userId);
-      setShowOtpField(true); // Show OTP field on same page
+      setShowOtpField(true);
       setError('Please enter the OTP sent to the company email');
     } catch (err) {
       setError(err.response?.data?.msg || 'Registration failed');
@@ -66,10 +66,13 @@ function Login({ setUser }) {
     try {
       const res = await axios.post(`${apiUrl}/api/auth/verify-otp`, {
         userId: tempUserId,
-        otp,
+        otp: otp.trim(),
       });
       localStorage.setItem('token', res.data.token);
       setUser(res.data);
+      setShowOtpField(false);
+      setFormData({ email: '', password: '', phone: '' });
+      setOtp('');
       history.push('/dashboard');
     } catch (err) {
       setError(err.response?.data?.msg || 'OTP verification failed');
