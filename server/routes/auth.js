@@ -22,14 +22,8 @@ router.post('/register', async (req, res) => {
   }
 
   try {
-    // Delete any unverified users with the same email to allow re-registration
-    await User.deleteMany({ email, isVerified: false });
-
-    // Check for verified user with the same email
-    const verifiedUser = await User.findOne({ email, isVerified: true });
-    if (verifiedUser) {
-      return res.status(400).json({ msg: 'Email is already registered and verified' });
-    }
+    // Delete any users with the same email (verified or unverified)
+    await User.deleteMany({ email });
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -125,12 +119,12 @@ router.post('/login', async (req, res) => {
   try {
     const user = await User.findOne({ email, isVerified: true });
     if (!user) {
-      return res.status(400).json({ msg: 'Invalid credentials or user not verified' });
+      return res.status(400).json({ msg: 'User not found or not verified. Please register or verify your account.' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ msg: 'Invalid credentials' });
+      return res.status(400).json({ msg: 'Invalid password' });
     }
 
     const payload = { user: { id: user.id } };
@@ -235,18 +229,12 @@ router.post('/create-recruiter', auth, async (req, res) => {
       return res.status(400).json({ msg: 'Recruiter limit reached (3)' });
     }
 
-    let user = await User.findOne({ email, isVerified: true });
-    if (user) {
-      return res.status(400).json({ msg: 'Recruiter already exists' });
-    }
-
-    // Delete unverified recruiters with the same email
-    await User.deleteMany({ email, isVerified: false });
+    await User.deleteMany({ email }); // Delete any users with the same email
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    user = new User({
+    const user = new User({
       email,
       password: hashedPassword,
       subscriptionType: 'RECRUITER',
@@ -272,12 +260,12 @@ router.post('/forgot-password', async (req, res) => {
   try {
     const user = await User.findOne({ email, isVerified: true });
     if (!user) {
-      return res.status(400).json({ msg: 'User not found' });
+      return res.status(400).json({ msg: 'User not found or not verified' });
     }
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     user.resetPasswordToken = token;
-    user.resetPasswordExpires = Date.now() + 3600000;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
     await user.save();
 
     const transporter = nodemailer.createTransport({
@@ -291,11 +279,11 @@ router.post('/forgot-password', async (req, res) => {
     const mailOptions = {
       to: user.email,
       from: process.env.EMAIL_USER,
-      subject: 'Password Reset',
-      text: `You are receiving this because you requested a password reset.\n\n
-        Click the following link to reset your password:\n
+      subject: 'Password Reset Request',
+      text: `You are receiving this email because you (or someone else) requested a password reset for your account.\n\n
+        Please click the following link to reset your password:\n
         ${process.env.CLIENT_URL}/reset-password/${token}\n\n
-        If you did not request this, please ignore this email.\n`,
+        This link will expire in 1 hour. If you did not request a password reset, please ignore this email.\n`,
     };
 
     await transporter.sendMail(mailOptions);
@@ -320,7 +308,7 @@ router.post('/reset-password/:token', async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ msg: 'Invalid or expired token' });
+      return res.status(400).json({ msg: 'Invalid or expired reset token' });
     }
 
     const salt = await bcrypt.genSalt(10);

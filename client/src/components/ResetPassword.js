@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { useHistory, useParams } from 'react-router-dom';
-import { Box, Typography, TextField, Button, Container, Grid, CircularProgress } from '@mui/material';
+import { useParams, useHistory } from 'react-router-dom';
+import { Box, Typography, TextField, Button, Container, CircularProgress } from '@mui/material';
 import axios from 'axios';
 
 function ResetPassword() {
-  const history = useHistory();
   const { token } = useParams();
-  const [formData, setFormData] = useState({ password: '' });
+  const history = useHistory();
+  const [formData, setFormData] = useState({ password: '', confirmPassword: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,13 +14,21 @@ function ResetPassword() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.password || !formData.confirmPassword) {
+      setError('Both password fields are required');
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
     setLoading(true);
     setError('');
     setSuccess('');
     try {
       await axios.post(`${apiUrl}/api/auth/reset-password/${token}`, { password: formData.password });
-      setSuccess('Password reset successfully');
-      setTimeout(() => history.push('/login'), 2000);
+      setSuccess('Password reset successfully. Redirecting to login...');
+      setTimeout(() => history.push('/login'), 3000);
     } catch (err) {
       setError(err.response?.data?.msg || 'Failed to reset password');
     } finally {
@@ -36,38 +44,34 @@ function ResetPassword() {
             Reset Password
           </Typography>
           {error && <Typography color="error" sx={{ mb: 2, textAlign: 'center' }}>{error}</Typography>}
-          {success && <Typography sx={{ color: 'white', mb: 2, textAlign: 'center' }}>{success}</Typography>}
+          {success && <Typography color="success.main" sx={{ mb: 2, textAlign: 'center' }}>{success}</Typography>}
           <Box component="form" onSubmit={handleSubmit}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <TextField
-                  label="New Password"
-                  type="password"
-                  fullWidth
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } } }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  fullWidth
-                  disabled={loading}
-                  sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
-                >
-                  {loading ? <CircularProgress size={24} color="inherit" /> : 'Reset Password'}
-                </Button>
-              </Grid>
-            </Grid>
-          </Box>
-          <Typography sx={{ color: 'white', mt: 2, textAlign: 'center' }}>
-            Back to{' '}
-            <Button sx={{ color: '#ff6d00' }} onClick={() => history.push('/login')}>
-              Login
+            <TextField
+              label="New Password"
+              type="password"
+              fullWidth
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } }, mb: 2 }}
+            />
+            <TextField
+              label="Confirm Password"
+              type="password"
+              fullWidth
+              value={formData.confirmPassword}
+              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+              sx={{ input: { color: 'white' }, label: { color: 'white' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'white' } }, mb: 2 }}
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              disabled={loading}
+              sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
+            >
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'Reset Password'}
             </Button>
-          </Typography>
+          </Box>
         </Box>
       </Container>
     </Box>

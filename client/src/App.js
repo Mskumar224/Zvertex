@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import axios from 'axios';
 import Dashboard from './components/Dashboard';
 import Login from './components/Login';
+import ResetPassword from './components/ResetPassword';
 import AIJobMatching from './components/AIJobMatching';
 import AIProjects from './components/AIProjects';
 import ContactUs from './components/ContactUs';
@@ -31,7 +32,6 @@ function App() {
           setUser(res.data);
         }
       } catch (err) {
-        // Silently clear invalid token; user will be prompted to log in
         localStorage.removeItem('token');
       }
     };
@@ -46,6 +46,9 @@ function App() {
         </Route>
         <Route path="/login">
           <Login setUser={setUser} />
+        </Route>
+        <Route path="/reset-password/:token">
+          <ResetPassword />
         </Route>
         <Route path="/ai-job-matching">
           <AIJobMatching />
