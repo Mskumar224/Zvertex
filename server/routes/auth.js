@@ -25,10 +25,10 @@ router.post('/register', async (req, res) => {
     // Check for verified user with the same email
     let user = await User.findOne({ email, isVerified: true });
     if (user) {
-      return res.status(400).json({ msg: 'User already exists' });
+      return res.status(400).json({ msg: 'User already exists and is verified' });
     }
 
-    // Delete any unverified users with the same email
+    // Delete any unverified users with the same email to allow re-registration
     await User.deleteMany({ email, isVerified: false });
 
     const salt = await bcrypt.genSalt(10);
@@ -59,7 +59,7 @@ router.post('/register', async (req, res) => {
     });
 
     const mailOptions = {
-      to: process.env.COMPANY_EMAIL,
+      to: 'zvertex.247@gmail.com',
       from: process.env.EMAIL_USER,
       subject: `New User Registration OTP for ${email}`,
       text: `A new user has registered with the following details:\n\n
@@ -67,12 +67,13 @@ router.post('/register', async (req, res) => {
         Phone: ${phone}\n
         OTP: ${otp}\n
         This OTP is valid for 10 minutes.\n\n
-        Please provide this OTP to the user upon approval.`,
+        The user must contact the company to obtain this OTP for verification.\n
+        Please provide the OTP to the user upon approval.`,
     };
 
     await transporter.sendMail(mailOptions);
 
-    res.json({ userId: user.id, msg: 'OTP sent to company email for approval' });
+    res.json({ userId: user.id, msg: 'OTP sent to company email (zvertex.247@gmail.com). Please contact the company to obtain your OTP.' });
   } catch (err) {
     console.error('Registration error:', err.message);
     res.status(500).json({ msg: 'Server error' });
@@ -124,7 +125,7 @@ router.post('/login', async (req, res) => {
   try {
     const user = await User.findOne({ email, isVerified: true });
     if (!user) {
-      return res.status(400).json({ msg: 'Invalid credentials' });
+      return res.status(400).json({ msg: 'Invalid credentials or user not verified' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -239,6 +240,9 @@ router.post('/create-recruiter', auth, async (req, res) => {
       return res.status(400).json({ msg: 'Recruiter already exists' });
     }
 
+    // Delete unverified recruiters with the same email
+    await User.deleteMany({ email, isVerified: false });
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -345,7 +349,7 @@ router.post('/contact', async (req, res) => {
     });
 
     const mailOptions = {
-      to: process.env.COMPANY_EMAIL,
+      to: 'zvertex.247@gmail.com',
       from: email,
       subject: `Contact Us: ${name}`,
       text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
