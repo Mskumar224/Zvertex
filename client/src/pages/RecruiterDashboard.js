@@ -9,7 +9,7 @@ function RecruiterDashboard() {
 
   return (
     <Container sx={{ py: 5 }}>
-      <Typography variant="h4" gutterBottom sx={{ color: '#1976d2' }}>Recruiter Dashboard</Typography>
+      <Typography variant="h4" gutterBottom sx={{ color: '#1976d2' }}>ZvertexAI Recruiter Dashboard</Typography>
       <Typography sx={{ mb: 3 }}>Max 5 Resumes | 45 Submissions/Day</Typography>
       <ResumeUpload onResumeParsed={setKeywords} />
       {keywords.length > 0 && <JobApply keywords={keywords} maxResumes={5} maxSubmissions={45} />}

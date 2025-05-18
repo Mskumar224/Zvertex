@@ -8,6 +8,9 @@ const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString()
 
 router.post('/signup', async (req, res) => {
   const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email and password are required' });
+  }
   try {
     let user = await User.findOne({ email });
     if (user) {
@@ -30,7 +33,7 @@ router.post('/signup', async (req, res) => {
       `A new user signed up with email: ${email}. OTP: ${otp}. Please provide this OTP to the user upon request.`
     );
 
-    res.status(201).json({ message: 'User created. Please request OTP from Zvertex team to verify your account.' });
+    res.status(201).json({ message: 'User created. Please request OTP from ZvertexAI team to verify your account.' });
   } catch (error) {
     res.status(500).json({ message: 'Signup failed', error: error.message });
   }

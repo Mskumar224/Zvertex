@@ -34,7 +34,7 @@ function Subscription() {
   return (
     <Container sx={{ py: 8, background: '#f5f5f5' }}>
       <Typography variant="h3" align="center" gutterBottom sx={{ color: '#1976d2', fontWeight: 'bold' }}>
-        Choose Your Subscription
+        Choose Your ZvertexAI Subscription
       </Typography>
       <Typography align="center" sx={{ mb: 5, color: '#616161' }}>
         Select a plan tailored to your career or business needs.

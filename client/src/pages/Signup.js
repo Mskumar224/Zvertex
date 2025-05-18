@@ -11,6 +11,10 @@ function Signup() {
   const history = useHistory();
 
   const handleSignup = async () => {
+    if (!email || !password) {
+      alert('Please provide both email and password.');
+      return;
+    }
     try {
       const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/signup`, { email, password });
       alert(response.data.message);

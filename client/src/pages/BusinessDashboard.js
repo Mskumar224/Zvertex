@@ -9,7 +9,7 @@ function BusinessDashboard() {
 
   return (
     <Container sx={{ py: 5 }}>
-      <Typography variant="h4" gutterBottom sx={{ color: '#1976d2' }}>Business Dashboard</Typography>
+      <Typography variant="h4" gutterBottom sx={{ color: '#1976d2' }}>ZvertexAI Business Dashboard</Typography>
       <Typography sx={{ mb: 3 }}>Max 3 Resumes | 145 Submissions/Day</Typography>
       <ResumeUpload onResumeParsed={setKeywords} />
       {keywords.length > 0 && <JobApply keywords={keywords} maxResumes={3} maxSubmissions={145} />}

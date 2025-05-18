@@ -6,7 +6,15 @@ function Navbar() {
   return (
     <AppBar position="static">
       <Toolbar>
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>ZvertexAGI</Typography>
+        <Typography 
+          variant="h6" 
+          sx={{ flexGrow: 1 }}
+          component={Link}
+          to="/"
+          style={{ textDecoration: 'none', color: 'inherit' }}
+        >
+          ZvertexAI
+        </Typography>
         <Button color="inherit" component={Link} to="/">Home</Button>
         <Button color="inherit" component={Link} to="/signup">Signup</Button>
         <Button color="inherit" component={Link} to="/login">Login</Button>
