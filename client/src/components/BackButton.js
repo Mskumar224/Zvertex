@@ -11,7 +11,7 @@ function BackButton() {
       variant="outlined"
       startIcon={<ArrowBackIcon />}
       onClick={() => history.goBack()}
-      sx={{ mb: 2, color: '#1976d2', borderColor: '#1976d2' }}
+      sx={{ mb: 2, color: 'white', borderColor: 'white', '&:hover': { borderColor: '#ff6d00', color: '#ff6d00' } }}
     >
       Back
     </Button>

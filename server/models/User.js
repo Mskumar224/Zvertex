@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: true }, // In production, hash with bcrypt
+  phone: { type: String, required: true },
+  password: { type: String, required: true },
   subscription: { type: String, default: 'NONE' },
   resumes: { type: Number, default: 0 },
   submissions: { type: Number, default: 0 },
@@ -10,8 +11,8 @@ const userSchema = new mongoose.Schema({
   resumesUploaded: { type: Number, default: 0 },
   submissionsToday: { type: Number, default: 0 },
   lastReset: { type: Date, default: Date.now },
-  otp: { type: String }, // Signup OTP
-  resetOtp: { type: String }, // Password reset OTP
+  otp: { type: String },
+  resetOtp: { type: String },
   isVerified: { type: Boolean, default: false },
   preferences: { type: Object, default: { companies: [], keywords: [] } }
 });

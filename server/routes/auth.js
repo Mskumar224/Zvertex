@@ -6,10 +6,32 @@ const { sendEmail } = require('../utils/email');
 
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
+const sendActivityEmail = async (email, subject, action, details) => {
+  const emailTemplate = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f5f5f5; padding: 20px;">
+      <div style="background-color: #1a2a44; padding: 10px; text-align: center;">
+        <h1 style="color: white; margin: 0;">ZvertexAI</h1>
+      </div>
+      <div style="background-color: white; padding: 20px; border-radius: 5px; margin-top: 10px;">
+        <h2 style="color: #1a2a44;">${subject}</h2>
+        <p>Dear ${email},</p>
+        <p>Your account has performed the following action: <strong>${action}</strong></p>
+        <p>Details: ${details}</p>
+        <p>If this was not you, please contact support immediately.</p>
+        <p>Best regards,<br>ZvertexAI Team</p>
+      </div>
+      <div style="text-align: center; color: #757575; margin-top: 10px;">
+        <p>© 2025 ZvertexAI. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+  await sendEmail(email, `ZvertexAI: ${subject}`, emailTemplate);
+};
+
 router.post('/signup', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ message: 'Email and password are required' });
+  const { email, phone, password } = req.body;
+  if (!email || !phone || !password) {
+    return res.status(400).json({ message: 'Email, phone, and password are required' });
   }
   try {
     let user = await User.findOne({ email });
@@ -22,14 +44,15 @@ router.post('/signup', async (req, res) => {
     }
 
     const otp = generateOTP();
-    user = new User({ email, password, otp });
+    user = new User({ email, phone, password, otp });
     await user.save();
 
     await sendEmail(
       'zvertex.247@gmail.com',
       'New User OTP Request',
-      `A new user signed up with email: ${email}. OTP: ${otp}. Please provide this OTP to the user upon request.`
+      `A new user signed up with email: ${email}, phone: ${phone}. OTP: ${otp}. Please provide this OTP to the user upon request.`
     );
+    await sendActivityEmail(email, 'Account Signup', 'Signup Initiated', `You have started the signup process. Please verify your OTP.`);
 
     res.status(201).json({ message: 'User created. Please request OTP from ZvertexAI team to verify your account.' });
   } catch (error) {
@@ -51,6 +74,7 @@ router.post('/verify-otp', async (req, res) => {
     await user.save();
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    await sendActivityEmail(email, 'Account Verification', 'OTP Verified', `Your account has been successfully verified.`);
     res.json({ token, message: 'OTP verified successfully' });
   } catch (error) {
     console.error('OTP verification error:', error);
@@ -67,6 +91,7 @@ router.post('/login', async (req, res) => {
     if (user.password !== password) return res.status(400).json({ message: 'Invalid credentials' });
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    await sendActivityEmail(email, 'Account Login', 'Successful Login', `You have logged into your ZvertexAI account.`);
     res.json({ token, message: 'Login successful' });
   } catch (error) {
     console.error('Login error:', error);
@@ -90,6 +115,7 @@ router.post('/forgot-password', async (req, res) => {
       'Password Reset OTP Request',
       `A password reset was requested for email: ${email}. Reset OTP: ${resetOtp}. Please provide this OTP to the user upon request.`
     );
+    await sendActivityEmail(email, 'Password Reset Request', 'OTP Sent', `A password reset OTP has been requested for your account.`);
 
     res.json({ message: 'Password reset OTP sent to ZvertexAI team. Please request the OTP to proceed.' });
   } catch (error) {
@@ -110,6 +136,7 @@ router.post('/reset-password', async (req, res) => {
     user.resetOtp = null;
     await user.save();
 
+    await sendActivityEmail(email, 'Password Reset', 'Password Changed', `Your account password has been successfully reset.`);
     res.json({ message: 'Password reset successfully' });
   } catch (error) {
     console.error('Reset password error:', error);
@@ -117,8 +144,20 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
-router.post('/logout', (req, res) => {
-  res.json({ message: 'Logout successful. Token should be cleared on client side.' });
+router.post('/logout', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(400).json({ message: 'No token provided' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (user) {
+      await sendActivityEmail(user.email, 'Account Logout', 'Successful Logout', `You have logged out of your ZvertexAI account.`);
+    }
+    res.json({ message: 'Logout successful. Token should be cleared on client side.' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ message: 'Logout failed', error: error.message });
+  }
 });
 
 module.exports = router;

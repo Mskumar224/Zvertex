@@ -6,9 +6,7 @@ import Signup from './pages/Signup';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import Subscription from './pages/Subscription';
-import StudentDashboard from './pages/StudentDashboard';
-import RecruiterDashboard from './pages/RecruiterDashboard';
-import BusinessDashboard from './pages/BusinessDashboard';
+import Dashboard from './pages/Dashboard';
 
 function App() {
   return (
@@ -20,9 +18,7 @@ function App() {
         <Route path="/login" component={Login} />
         <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/subscription" component={Subscription} />
-        <Route path="/student-dashboard" component={StudentDashboard} />
-        <Route path="/recruiter-dashboard" component={RecruiterDashboard} />
-        <Route path="/business-dashboard" component={BusinessDashboard} />
+        <Route path="/dashboard" component={Dashboard} />
       </Switch>
     </Router>
   );

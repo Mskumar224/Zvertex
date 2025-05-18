@@ -1,5 +1,5 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography, Button } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, Container } from '@mui/material';
 import { Link, useHistory } from 'react-router-dom';
 import axios from 'axios';
 
@@ -21,27 +21,29 @@ function Navbar() {
   };
 
   return (
-    <AppBar position="static">
-      <Toolbar>
-        <Typography 
-          variant="h6" 
-          sx={{ flexGrow: 1 }}
-          component={Link}
-          to="/"
-          style={{ textDecoration: 'none', color: 'inherit' }}
-        >
-          ZvertexAI
-        </Typography>
-        <Button color="inherit" component={Link} to="/">Home</Button>
-        {!token ? (
-          <>
-            <Button color="inherit" component={Link} to="/signup">Signup</Button>
-            <Button color="inherit" component={Link} to="/login">Login</Button>
-          </>
-        ) : (
-          <Button color="inherit" onClick={handleLogout}>Logout</Button>
-        )}
-      </Toolbar>
+    <AppBar position="static" sx={{ background: '#1a2a44' }}>
+      <Container maxWidth="lg">
+        <Toolbar>
+          <Typography 
+            variant="h6" 
+            sx={{ flexGrow: 1, color: 'white' }}
+            component={Link}
+            to="/"
+            style={{ textDecoration: 'none' }}
+          >
+            ZvertexAI
+          </Typography>
+          <Button color="inherit" component={Link} to="/" sx={{ color: 'white' }}>Home</Button>
+          {!token ? (
+            <>
+              <Button color="inherit" component={Link} to="/signup" sx={{ color: 'white' }}>Signup</Button>
+              <Button color="inherit" component={Link} to="/login" sx={{ color: 'white' }}>Login</Button>
+            </>
+          ) : (
+            <Button color="inherit" onClick={handleLogout} sx={{ color: 'white' }}>Logout</Button>
+          )}
+        </Toolbar>
+      </Container>
     </AppBar>
   );
 }

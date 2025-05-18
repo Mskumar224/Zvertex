@@ -38,7 +38,7 @@ app.get('/test', (req, res) => res.status(200).send('Server is alive'));
 // Health check endpoint for Render
 app.get('/health', (req, res) => res.status(200).send('OK'));
 
-// MongoDB connection with retry
+// MongoDB connection with keep-alive
 const mongoUri = process.env.MONGO_URI;
 if (!mongoUri) {
   console.error('MONGO_URI is not defined. Please set it in environment variables.');
@@ -51,12 +51,14 @@ const connectWithRetry = () => {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     serverSelectionTimeoutMS: 5000,
-    socketTimeoutMS: 45000
+    socketTimeoutMS: 45000,
+    keepAlive: true,
+    keepAliveInitialDelay: 300000
   })
     .then(() => console.log('MongoDB connected'))
     .catch((err) => {
       console.error('MongoDB connection error:', err.message);
-      setTimeout(connectWithRetry, 5000); // Retry after 5 seconds
+      setTimeout(connectWithRetry, 5000);
     });
 };
 connectWithRetry();

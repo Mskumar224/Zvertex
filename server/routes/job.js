@@ -7,6 +7,14 @@ const { sendEmail } = require('../utils/email');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 
+router.get('/user', async (req, res) => {
+  const token = req.headers.authorization.split(' ')[1];
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const user = await User.findById(decoded.id);
+  if (!user) return res.status(404).json({ message: 'User not found' });
+  res.json({ email: user.email, phone: user.phone, subscription: user.subscription, preferences: user.preferences });
+});
+
 router.post('/upload-resume', async (req, res) => {
   const token = req.headers.authorization.split(' ')[1];
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -21,6 +29,26 @@ router.post('/upload-resume', async (req, res) => {
   const keywords = await parseResume(resume);
   user.resumesUploaded += 1;
   await user.save();
+
+  const emailTemplate = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f5f5f5; padding: 20px;">
+      <div style="background-color: #1a2a44; padding: 10px; text-align: center;">
+        <h1 style="color: white; margin: 0;">ZvertexAI</h1>
+      </div>
+      <div style="background-color: white; padding: 20px; border-radius: 5px; margin-top: 10px;">
+        <h2 style="color: #1a2a44;">Resume Upload Confirmation</h2>
+        <p>Dear ${user.email},</p>
+        <p>You have successfully uploaded a resume. Extracted keywords: ${keywords.join(', ')}.</p>
+        <p>These will be used for job matching and auto-apply processes.</p>
+        <p>Best regards,<br>ZvertexAI Team</p>
+      </div>
+      <div style="text-align: center; color: #757575; margin-top: 10px;">
+        <p>© 2025 ZvertexAI. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+  await sendEmail(user.email, 'ZvertexAI Resume Upload Confirmation', emailTemplate);
+
   res.json({ keywords });
 });
 
@@ -45,6 +73,30 @@ router.post('/save-preferences', async (req, res) => {
   
   user.preferences = preferences;
   await user.save();
+
+  const emailTemplate = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f5f5f5; padding: 20px;">
+      <div style="background-color: #1a2a44; padding: 10px; text-align: center;">
+        <h1 style="color: white; margin: 0;">ZvertexAI</h1>
+      </div>
+      <div style="background-color: white; padding: 20px; border-radius: 5px; margin-top: 10px;">
+        <h2 style="color: #1a2a44;">Preferences Updated</h2>
+        <p>Dear ${user.email},</p>
+        <p>Your job application preferences have been updated:</p>
+        <ul>
+          <li><strong>Companies:</strong> ${preferences.companies.join(', ') || 'None'}</li>
+          <li><strong>Keywords:</strong> ${preferences.keywords.join(', ') || 'None'}</li>
+        </ul>
+        <p>These will be used for auto-apply processes.</p>
+        <p>Best regards,<br>ZvertexAI Team</p>
+      </div>
+      <div style="text-align: center; color: #757575; margin-top: 10px;">
+        <p>© 2025 ZvertexAI. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+  await sendEmail(user.email, 'ZvertexAI Preferences Updated', emailTemplate);
+
   res.json({ message: 'Preferences saved' });
 });
 
@@ -59,7 +111,7 @@ router.post('/fetch-jobs', async (req, res) => {
 });
 
 router.post('/apply', async (req, res) => {
-  const { jobId } = req.body;
+  const { jobId, company, link } = req.body;
   const token = req.headers.authorization.split(' ')[1];
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const user = await User.findById(decoded.id);
@@ -74,8 +126,8 @@ router.post('/apply', async (req, res) => {
     job = new Job({ 
       jobId, 
       title: `Job ${jobId}`, 
-      company: req.body.company || 'Detected Company', 
-      link: req.body.link || `https://example.com/job${jobId}`, 
+      company, 
+      link, 
       applied: true, 
       user: user._id, 
       requiresDocs: false 
@@ -87,23 +139,23 @@ router.post('/apply', async (req, res) => {
 
     const emailTemplate = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f5f5f5; padding: 20px;">
-        <div style="background-color: #1976d2; padding: 10px; text-align: center;">
+        <div style="background-color: #1a2a44; padding: 10px; text-align: center;">
           <h1 style="color: white; margin: 0;">ZvertexAI</h1>
         </div>
         <div style="background-color: white; padding: 20px; border-radius: 5px; margin-top: 10px;">
-          <h2 style="color: #1976d2;">Job Application Confirmation</h2>
+          <h2 style="color: #1a2a44;">Job Application Confirmation</h2>
           <p>Dear ${user.email},</p>
           <p>We have successfully applied to the following job on your behalf:</p>
           <ul>
             <li><strong>Job Title:</strong> ${job.title}</li>
             <li><strong>Company:</strong> ${job.company}</li>
-            <li><strong>Application Status:</strong> <a href="${job.link}" style="color: #1976d2;">Check Status</a></li>
+            <li><strong>Application Status:</strong> <a href="${job.link}" style="color: #ff6d00;">Check Status</a></li>
           </ul>
           <p>Thank you for choosing ZvertexAI!</p>
           <p>Best regards,<br>ZvertexAI Team</p>
         </div>
         <div style="text-align: center; color: #757575; margin-top: 10px;">
-          <p>&copy; 2025 ZvertexAI. All rights reserved.</p>
+          <p>© 2025 ZvertexAI. All rights reserved.</p>
         </div>
       </div>
     `;
@@ -114,7 +166,7 @@ router.post('/apply', async (req, res) => {
 });
 
 router.post('/apply-with-docs', async (req, res) => {
-  const { jobId } = req.body;
+  const { jobId, company, link } = req.body;
   const token = req.headers.authorization.split(' ')[1];
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const user = await User.findById(decoded.id);
@@ -127,8 +179,8 @@ router.post('/apply-with-docs', async (req, res) => {
   const job = new Job({ 
     jobId, 
     title: `Job ${jobId}`, 
-    company: req.body.company || 'Detected Company', 
-    link: req.body.link || `https://example.com/job${jobId}`, 
+    company, 
+    link, 
     applied: true, 
     user: user._id, 
     requiresDocs: true 
@@ -140,23 +192,23 @@ router.post('/apply-with-docs', async (req, res) => {
 
   const emailTemplate = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f5f5f5; padding: 20px;">
-      <div style="background-color: #1976d2; padding: 10px; text-align: center;">
+      <div style="background-color: #1a2a44; padding: 10px; text-align: center;">
         <h1 style="color: white; margin: 0;">ZvertexAI</h1>
       </div>
       <div style="background-color: white; padding: 20px; border-radius: 5px; margin-top: 10px;">
-        <h2 style="color: #1976d2;">Job Application Confirmation with Documents</h2>
+        <h2 style="color: #1a2a44;">Job Application Confirmation with Documents</h2>
         <p>Dear ${user.email},</p>
         <p>We have successfully applied to the following job with documents on your behalf:</p>
         <ul>
           <li><strong>Job Title:</strong> ${job.title}</li>
           <li><strong>Company:</strong> ${job.company}</li>
-          <li><strong>Application Status:</strong> <a href="${job.link}" style="color: #1976d2;">Check Status</a></li>
+          <li><strong>Application Status:</strong> <a href="${job.link}" style="color: #ff6d00;">Check Status</a></li>
         </ul>
         <p>Thank you for choosing ZvertexAI!</p>
         <p>Best regards,<br>ZvertexAI Team</p>
       </div>
       <div style="text-align: center; color: #757575; margin-top: 10px;">
-        <p>&copy; 2025 ZvertexAI. All rights reserved.</p>
+        <p>© 2025 ZvertexAI. All rights reserved.</p>
       </div>
     </div>
   `;
