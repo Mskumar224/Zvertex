@@ -20,8 +20,10 @@ const userSchema = new mongoose.Schema({
     lastName: { type: String, default: '' },
     experience: { type: String, default: '' },
     education: { type: String, default: '' },
-    isCompleted: { type: Boolean, default: false } // Track if profile is completed
-  }
+    isCompleted: { type: Boolean, default: false }
+  },
+  firstLoginEmailSent: { type: Boolean, default: false }, // Track first login email
+  firstLogoutEmailSent: { type: Boolean, default: false } // Track first logout email
 });
 
 module.exports = mongoose.model('User', userSchema);

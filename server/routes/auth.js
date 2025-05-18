@@ -42,7 +42,8 @@ router.get('/user', async (req, res) => {
       preferences: user.preferences,
       resumes: user.resumes,
       submissions: user.submissions,
-      profile: user.profile
+      profile: user.profile,
+      resumesUploaded: user.resumesUploaded
     });
   } catch (error) {
     console.error('Get user error:', error);
@@ -123,7 +124,13 @@ router.post('/login', async (req, res) => {
     if (user.password !== password) return res.status(400).json({ message: 'Invalid credentials' });
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    await sendActivityEmail(email, 'Account Login', 'Successful Login', `You have logged into your ZvertexAI account.`);
+
+    if (!user.firstLoginEmailSent) {
+      await sendActivityEmail(email, 'Account Login', 'Successful Login', `You have logged into your ZvertexAI account for the first time.`);
+      user.firstLoginEmailSent = true;
+      await user.save();
+    }
+
     res.json({ token, message: 'Login successful' });
   } catch (error) {
     console.error('Login error:', error);
@@ -182,8 +189,10 @@ router.post('/logout', async (req, res) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id);
-    if (user) {
-      await sendActivityEmail(user.email, 'Account Logout', 'Successful Logout', `You have logged out of your ZvertexAI account.`);
+    if (user && !user.firstLogoutEmailSent) {
+      await sendActivityEmail(user.email, 'Account Logout', 'Successful Logout', `You have logged out of your ZvertexAI account for the first time.`);
+      user.firstLogoutEmailSent = true;
+      await user.save();
     }
     res.json({ message: 'Logout successful. Token should be cleared on client side.' });
   } catch (error) {
@@ -200,10 +209,8 @@ router.post('/update-profile', async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
-
-    user.profile = { ...profile, isCompleted: true }; // Mark profile as completed
+    user.profile = { ...profile, isCompleted: true };
     await user.save();
-
     await sendActivityEmail(user.email, 'Profile Update', 'Profile Details Saved', `Your profile details have been updated successfully.`);
     res.json({ message: 'Profile updated successfully' });
   } catch (error) {
