@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Typography, Grid, Box, Button, TextField } from '@mui/material';
 import axios from 'axios';
 import { useHistory } from 'react-router-dom';
@@ -13,12 +13,34 @@ function Subscription() {
     education: ''
   });
   const [showProfileForm, setShowProfileForm] = useState(false);
+  const [user, setUser] = useState(null);
 
   const plans = [
     { title: 'STUDENT', price: 0, resumes: 1, submissions: 45, description: 'Perfect for students starting their career.' },
     { title: 'RECRUITER', price: 0, resumes: 5, submissions: 45, description: 'Ideal for recruiters managing multiple profiles.' },
     { title: 'BUSINESS', price: 0, resumes: 3, submissions: 145, description: 'Designed for businesses hiring at scale.' },
   ];
+
+  // Check if profile is already completed
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const { data } = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/user`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        setUser(data);
+        if (data.profile.isCompleted) {
+          history.push('/dashboard'); // Redirect to dashboard if profile is completed
+        } else {
+          setShowProfileForm(true); // Show profile form if not completed
+        }
+      } catch (error) {
+        alert('Failed to fetch user data!');
+        console.error(error);
+      }
+    };
+    fetchUser();
+  }, [history]);
 
   const handleProfileSubmit = async () => {
     try {

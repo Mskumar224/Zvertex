@@ -19,7 +19,8 @@ const userSchema = new mongoose.Schema({
     firstName: { type: String, default: '' },
     lastName: { type: String, default: '' },
     experience: { type: String, default: '' },
-    education: { type: String, default: '' }
+    education: { type: String, default: '' },
+    isCompleted: { type: Boolean, default: false } // Track if profile is completed
   }
 });
 

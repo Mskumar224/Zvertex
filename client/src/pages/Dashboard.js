@@ -6,13 +6,15 @@ import ResumeUpload from '../components/ResumeUpload';
 import DocumentUpload from '../components/DocumentUpload';
 
 function Dashboard() {
-  const [user, setUser] = useState({ email: '', phone: '', subscription: 'NONE', preferences: { companies: [], keywords: [] }, resumes: 0, submissions: 0 });
+  const [user, setUser] = useState({ email: '', phone: '', subscription: 'NONE', preferences: { companies: [], keywords: [] }, resumes: 0, submissions: 0, profile: { isCompleted: false } });
   const [company, setCompany] = useState('');
   const [manualCompany, setManualCompany] = useState('');
   const [keywords, setKeywords] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [trackedJobs, setTrackedJobs] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
+  const [showPreferences, setShowPreferences] = useState(false);
+  const [showResumeUpload, setShowResumeUpload] = useState(false);
 
   const companies = [
     'Google', 'Microsoft', 'Amazon', 'Apple', 'Facebook', 'Tesla', 'IBM', 'Oracle', 'Intel', 'Cisco',
@@ -29,6 +31,12 @@ function Dashboard() {
         });
         setUser(data);
         setKeywords(data.preferences.keywords || []);
+        setShowPreferences(data.preferences.companies.length === 0); // Show preferences only if no companies
+        setShowResumeUpload(data.resumesUploaded === 0); // Show resume upload only if none uploaded
+        // Fetch jobs for all preferred companies
+        if (data.preferences.companies.length > 0) {
+          data.preferences.companies.forEach(fetchJobs);
+        }
       } catch (error) {
         alert('Failed to fetch user data!');
         console.error(error);
@@ -81,6 +89,7 @@ function Dashboard() {
     const newPreferences = { ...user.preferences, keywords: newKeywords };
     setUser({ ...user, preferences: newPreferences });
     await savePreferences(newPreferences);
+    setShowResumeUpload(false); // Hide resume upload after successful upload
   };
 
   const handleCompanyDetect = async () => {
@@ -96,6 +105,7 @@ function Dashboard() {
         setUser({ ...user, preferences: newPreferences });
         await savePreferences(newPreferences);
         fetchJobs(data.company);
+        setShowPreferences(false); // Hide preferences after adding a company
       } else {
         alert('Company not detected online! Please select a valid company.');
       }
@@ -126,7 +136,7 @@ function Dashboard() {
         { company: companyName, keywords },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
-      setJobs(data.jobs);
+      setJobs((prevJobs) => [...prevJobs, ...data.jobs.filter((newJob) => !prevJobs.some((job) => job.id === newJob.id))]);
     } catch (error) {
       alert(error.response?.data?.error || 'Failed to fetch jobs!');
       console.error(error);
@@ -187,43 +197,70 @@ function Dashboard() {
           <Typography sx={{ color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>Subscription: {user.subscription}</Typography>
           <Typography sx={{ color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>Resumes Allowed: {user.resumes}</Typography>
           <Typography sx={{ color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>Submissions/Day: {user.submissions}</Typography>
+          <Typography sx={{ color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>First Name: {user.profile.firstName}</Typography>
+          <Typography sx={{ color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>Last Name: {user.profile.lastName}</Typography>
+          <Typography sx={{ color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>Experience: {user.profile.experience}</Typography>
+          <Typography sx={{ color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>Education: {user.profile.education}</Typography>
         </Box>
-        <Box sx={{ background: 'white', borderRadius: 2, boxShadow: 3, p: { xs: 2, sm: 4 }, mb: 4 }}>
-          <Typography variant="h5" sx={{ color: '#1a2a44', mb: 2, fontSize: { xs: '1.2rem', sm: '1.5rem' } }}>Preferences</Typography>
-          <Typography sx={{ color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>Companies: {user.preferences.companies.join(', ') || 'None'}</Typography>
-          <Typography sx={{ color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>Keywords: {user.preferences.keywords.join(', ') || 'None'}</Typography>
-          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mt: 3 }}>
-            <Select
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
-              displayEmpty
-              fullWidth
-              sx={{ maxWidth: { xs: '100%', sm: 300 }, background: 'white' }}
-            >
-              <MenuItem value="">Select from list</MenuItem>
-              {companies.map((c) => (
-                <MenuItem key={c} value={c}>{c}</MenuItem>
-              ))}
-            </Select>
-            <TextField
-              label="Or Enter Manually"
-              value={manualCompany}
-              onChange={(e) => setManualCompany(e.target.value)}
-              sx={{ flexGrow: 1, background: 'white' }}
-            />
-            <Button
-              variant="contained"
-              sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' }, fontSize: { xs: '0.875rem', sm: '1rem' } }}
-              onClick={handleCompanyDetect}
-            >
-              Detect & Add
-            </Button>
+        {showPreferences && (
+          <Box sx={{ background: 'white', borderRadius: 2, boxShadow: 3, p: { xs: 2, sm: 4 }, mb: 4 }}>
+            <Typography variant="h5" sx={{ color: '#1a2a44', mb: 2, fontSize: { xs: '1.2rem', sm: '1.5rem' } }}>Preferences</Typography>
+            <Typography sx={{ color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>Companies: {user.preferences.companies.join(', ') || 'None'}</Typography>
+            <Typography sx={{ color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>Keywords: {user.preferences.keywords.join(', ') || 'None'}</Typography>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mt: 3 }}>
+              <Select
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                displayEmpty
+                fullWidth
+                sx={{ maxWidth: { xs: '100%', sm: 300 }, background: 'white' }}
+              >
+                <MenuItem value="">Select from list</MenuItem>
+                {companies.map((c) => (
+                  <MenuItem key={c} value={c}>{c}</MenuItem>
+                ))}
+              </Select>
+              <TextField
+                label="Or Enter Manually"
+                value={manualCompany}
+                onChange={(e) => setManualCompany(e.target.value)}
+                sx={{ flexGrow: 1, background: 'white' }}
+              />
+              <Button
+                variant="contained"
+                sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' }, fontSize: { xs: '0.875rem', sm: '1rem' } }}
+                onClick={handleCompanyDetect}
+              >
+                Detect & Add
+              </Button>
+            </Box>
           </Box>
-          <Box sx={{ mt: 3 }}>
+        )}
+        {showResumeUpload && (
+          <Box sx={{ background: 'white', borderRadius: 2, boxShadow: 3, p: { xs: 2, sm: 4 }, mb: 4 }}>
             <Typography sx={{ color: '#1a2a44', mb: 2, fontSize: { xs: '1rem', sm: '1.25rem' } }}>Upload Resume</Typography>
             <ResumeUpload onResumeParsed={handleResumeParsed} />
           </Box>
-        </Box>
+        )}
+        {(user.preferences.companies.length > 0 || user.resumesUploaded > 0) && (
+          <Box sx={{ background: 'white', borderRadius: 2, boxShadow: 3, p: { xs: 2, sm: 4 }, mb: 4 }}>
+            <Typography variant="h5" sx={{ color: '#1a2a44', mb: 2, fontSize: { xs: '1.2rem', sm: '1.5rem' } }}>Update Preferences</Typography>
+            <Button
+              variant="outlined"
+              sx={{ color: '#1a2a44', borderColor: '#1a2a44', '&:hover': { borderColor: '#ff6d00', color: '#ff6d00' }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+              onClick={() => setShowPreferences(true)}
+            >
+              Update Companies
+            </Button>
+            <Button
+              variant="outlined"
+              sx={{ ml: 2, color: '#1a2a44', borderColor: '#1a2a44', '&:hover': { borderColor: '#ff6d00', color: '#ff6d00' }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+              onClick={() => setShowResumeUpload(true)}
+            >
+              Update Resume
+            </Button>
+          </Box>
+        )}
         <Box sx={{ background: 'white', borderRadius: 2, boxShadow: 3, p: { xs: 2, sm: 4 }, mb: 4 }}>
           <Typography variant="h5" sx={{ color: '#1a2a44', mb: 2, fontSize: { xs: '1.2rem', sm: '1.5rem' } }}>Available Jobs</Typography>
           {jobs.length > 0 ? (
