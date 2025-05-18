@@ -16,7 +16,7 @@ const corsOptions = {
     'https://67e23ab86a51458e138e0032--zvertexagi.netlify.app',
     'https://67e2641113aab6f39709cd06--zvertexagi.netlify.app',
     'http://localhost:3000',
-     'https://zvertexai.com/'
+    'https://zvertexai.com/'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -42,13 +42,23 @@ if (!mongoUri) {
   process.exit(1);
 } else {
   mongoose.set('strictQuery', true);
-  mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true })
+  mongoose.connect(mongoUri, { 
+    useNewUrlParser: true, 
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000
+  })
     .then(() => console.log('MongoDB connected'))
     .catch((err) => {
       console.error('MongoDB connection error:', err.message);
       process.exit(1);
     });
 }
+
+// Health check endpoint for Render
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
 
 scheduleDailyEmails();
 
@@ -58,4 +68,9 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err.message);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Rejection:', err.message);
 });
