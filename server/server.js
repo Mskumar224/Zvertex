@@ -15,8 +15,8 @@ const corsOptions = {
   origin: [
     'https://67e23ab86a51458e138e0032--zvertexagi.netlify.app',
     'https://67e2641113aab6f39709cd06--zvertexagi.netlify.app',
-    'http://localhost:3000',
-    'https://zvertexai.com/'
+    'https://zvertexai.com',
+    'http://localhost:3000'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
