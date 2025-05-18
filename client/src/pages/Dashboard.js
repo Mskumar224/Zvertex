@@ -6,7 +6,7 @@ import ResumeUpload from '../components/ResumeUpload';
 import DocumentUpload from '../components/DocumentUpload';
 
 function Dashboard() {
-  const [user, setUser] = useState({ email: '', phone: '', subscription: 'NONE', preferences: { companies: [], keywords: [] }, resumes: 0, submissions: 0, profile: { isCompleted: false } });
+  const [user, setUser] = useState({ email: '', phone: '', subscription: 'NONE', preferences: { companies: [], keywords: [] }, resumes: 0, submissions: 0, profile: { isCompleted: false }, resumesUploaded: 0 });
   const [company, setCompany] = useState('');
   const [manualCompany, setManualCompany] = useState('');
   const [keywords, setKeywords] = useState([]);
@@ -31,15 +31,16 @@ function Dashboard() {
         });
         setUser(data);
         setKeywords(data.preferences.keywords || []);
-        setShowPreferences(data.preferences.companies.length === 0); // Show preferences only if no companies
-        setShowResumeUpload(data.resumesUploaded === 0); // Show resume upload only if none uploaded
-        // Fetch jobs for all preferred companies
+        setShowPreferences(data.preferences.companies.length === 0);
+        setShowResumeUpload(data.resumesUploaded === 0);
         if (data.preferences.companies.length > 0) {
           data.preferences.companies.forEach(fetchJobs);
         }
       } catch (error) {
-        alert('Failed to fetch user data!');
+        alert('Failed to fetch user data! Please try logging in again.');
         console.error(error);
+        localStorage.removeItem('token');
+        window.location.href = '/login';
       }
     };
     const fetchTrackedJobs = async () => {
@@ -57,7 +58,18 @@ function Dashboard() {
     fetchTrackedJobs();
   }, []);
 
-  // Auto-apply jobs at equal intervals
+  // Auto-fetch jobs every 30 minutes
+  useEffect(() => {
+    if (user.preferences.companies.length === 0) return;
+
+    const fetchInterval = setInterval(() => {
+      user.preferences.companies.forEach(fetchJobs);
+    }, 30 * 60 * 1000); // Every 30 minutes
+
+    return () => clearInterval(fetchInterval);
+  }, [user.preferences.companies]);
+
+  // Auto-apply jobs every 30 minutes
   useEffect(() => {
     if (jobs.length === 0) return;
 
@@ -67,21 +79,13 @@ function Dashboard() {
 
     if (eligibleJobs.length === 0) return;
 
-    const intervalTime = 24 * 60 * 60 * 1000 / eligibleJobs.length; // Spread applications evenly over 24 hours
-    let currentIndex = 0;
-
     const applyInterval = setInterval(async () => {
-      if (currentIndex >= eligibleJobs.length) {
-        clearInterval(applyInterval);
-        return;
+      for (const job of eligibleJobs) {
+        await handleAutoApply(job);
       }
+    }, 30 * 60 * 1000); // Every 30 minutes
 
-      const job = eligibleJobs[currentIndex];
-      await handleAutoApply(job);
-      currentIndex += 1;
-    }, intervalTime);
-
-    return () => clearInterval(applyInterval); // Cleanup interval on component unmount
+    return () => clearInterval(applyInterval);
   }, [jobs, trackedJobs]);
 
   const handleResumeParsed = async (newKeywords) => {
@@ -89,7 +93,7 @@ function Dashboard() {
     const newPreferences = { ...user.preferences, keywords: newKeywords };
     setUser({ ...user, preferences: newPreferences });
     await savePreferences(newPreferences);
-    setShowResumeUpload(false); // Hide resume upload after successful upload
+    setShowResumeUpload(false);
   };
 
   const handleCompanyDetect = async () => {
@@ -105,7 +109,7 @@ function Dashboard() {
         setUser({ ...user, preferences: newPreferences });
         await savePreferences(newPreferences);
         fetchJobs(data.company);
-        setShowPreferences(false); // Hide preferences after adding a company
+        setShowPreferences(false);
       } else {
         alert('Company not detected online! Please select a valid company.');
       }
@@ -136,7 +140,10 @@ function Dashboard() {
         { company: companyName, keywords },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
-      setJobs((prevJobs) => [...prevJobs, ...data.jobs.filter((newJob) => !prevJobs.some((job) => job.id === newJob.id))]);
+      setJobs((prevJobs) => [
+        ...prevJobs,
+        ...data.jobs.filter((newJob) => !prevJobs.some((job) => job.id === newJob.id))
+      ]);
     } catch (error) {
       alert(error.response?.data?.error || 'Failed to fetch jobs!');
       console.error(error);

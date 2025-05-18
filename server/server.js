@@ -7,6 +7,7 @@ const authRoutes = require('./routes/auth');
 const subscriptionRoutes = require('./routes/subscription');
 const jobRoutes = require('./routes/job');
 const { scheduleDailyEmails } = require('./utils/dailyEmail');
+const axios = require('axios');
 
 const app = express();
 
@@ -21,11 +22,9 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
-  exposedHeaders: ['Access-Control-Allow-Origin'] // Ensure header is exposed
+  exposedHeaders: ['Access-Control-Allow-Origin']
 };
 app.use(cors(corsOptions));
-
-// Handle preflight requests
 app.options('*', cors(corsOptions));
 
 app.use(express.json());
@@ -38,6 +37,16 @@ app.get('/test', (req, res) => res.status(200).send('Server is alive'));
 
 // Health check endpoint for Render
 app.get('/health', (req, res) => res.status(200).send('OK'));
+
+// Keep-alive ping to prevent Render sleep
+setInterval(async () => {
+  try {
+    await axios.get(`${process.env.RENDER_EXTERNAL_URL || 'https://zvertexai-orzv.onrender.com'}/health`);
+    console.log('Keep-alive ping sent');
+  } catch (error) {
+    console.error('Keep-alive ping failed:', error.message);
+  }
+}, 5 * 60 * 1000); // Every 5 minutes
 
 // MongoDB connection with keep-alive
 const mongoUri = process.env.MONGO_URI;
