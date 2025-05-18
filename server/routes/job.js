@@ -35,6 +35,19 @@ router.post('/detect-company', async (req, res) => {
   }
 });
 
+router.post('/save-preferences', async (req, res) => {
+  const { preferences } = req.body;
+  const token = req.headers.authorization.split(' ')[1];
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const user = await User.findById(decoded.id);
+
+  if (!user.isVerified) return res.status(400).json({ error: 'Account not verified' });
+  
+  user.preferences = preferences;
+  await user.save();
+  res.json({ message: 'Preferences saved' });
+});
+
 router.post('/fetch-jobs', async (req, res) => {
   const { company, keywords } = req.body;
   // Mock job fetch (replace with real API like Indeed or LinkedIn)
@@ -58,12 +71,20 @@ router.post('/apply', async (req, res) => {
 
   let job = await Job.findOne({ jobId, user: user._id });
   if (!job) {
-    job = new Job({ jobId, title: `Job ${jobId}`, company: 'Detected Company', link: `http://example.com/job${jobId}`, applied: true, user: user._id, requiresDocs: false });
+    job = new Job({ 
+      jobId, 
+      title: `Job ${jobId}`, 
+      company: 'Detected Company', 
+      link: `http://example.com/job${jobId}`, 
+      applied: true, 
+      user: user._id, 
+      requiresDocs: false 
+    });
     await job.save();
     user.jobsApplied.push(job._id);
     user.submissionsToday += 1;
     await user.save();
-    await sendEmail(user.email, 'Job Applied', `Applied to Job ID: ${jobId}. Check status: ${job.link}`);
+    await sendEmail(user.email, 'Job Application Confirmation', `Applied to Job ID: ${jobId} at ${job.company}. Check status: ${job.link}`);
   }
   res.json({ message: 'Applied', job });
 });
@@ -79,12 +100,20 @@ router.post('/apply-with-docs', async (req, res) => {
     return res.status(400).json({ error: 'Daily submission limit reached' });
   }
 
-  const job = new Job({ jobId, title: `Job ${jobId}`, company: 'Detected Company', link: `http://example.com/job${jobId}`, applied: true, user: user._id, requiresDocs: true });
+  const job = new Job({ 
+    jobId, 
+    title: `Job ${jobId}`, 
+    company: 'Detected Company', 
+    link: `http://example.com/job${jobId}`, 
+    applied: true, 
+    user: user._id, 
+    requiresDocs: true 
+  });
   await job.save();
   user.jobsApplied.push(job._id);
   user.submissionsToday += 1;
   await user.save();
-  await sendEmail(user.email, 'Job Applied with Docs', `Applied to Job ID: ${jobId} with documents. Check status: ${job.link}`);
+  await sendEmail(user.email, 'Job Application Confirmation with Documents', `Applied to Job ID: ${jobId} with documents at ${job.company}. Check status: ${job.link}`);
   res.json({ message: 'Applied with documents' });
 });
 

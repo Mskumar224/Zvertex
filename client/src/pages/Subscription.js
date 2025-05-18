@@ -27,7 +27,7 @@ function Subscription() {
       };
       history.push(redirectMap[plan.title]);
     } catch (err) {
-      alert('Subscription failed!');
+      alert(err.response?.data?.error || 'Subscription failed!');
     }
   };
 

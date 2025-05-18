@@ -8,6 +8,7 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
   const [manualCompany, setManualCompany] = useState('');
   const [jobs, setJobs] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
+  const [preferences, setPreferences] = useState({ companies: [], keywords });
   const companies = [
     'Google', 'Microsoft', 'Amazon', 'Apple', 'Facebook', 'Tesla', 'IBM', 'Oracle', 'Intel', 'Cisco',
     'Netflix', 'Adobe', 'Salesforce', 'LinkedIn', 'Twitter', 'Uber', 'Lyft', 'Airbnb', 'Dropbox', 'Slack',
@@ -23,12 +24,26 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
       if (data.valid) {
+        setPreferences({ ...preferences, companies: [...preferences.companies, data.company] });
         fetchJobs(data.company);
       } else {
         alert('Company not detected online! Please select a valid company.');
       }
     } catch (error) {
       alert(error.response?.data?.error || 'Detection failed!');
+    }
+  };
+
+  const savePreferences = async () => {
+    try {
+      await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/job/save-preferences`,
+        { preferences },
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+      );
+      alert('Preferences saved successfully!');
+    } catch (error) {
+      alert(error.response?.data?.error || 'Failed to save preferences!');
     }
   };
 
@@ -59,7 +74,7 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
           { jobId: job.id },
           { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
         );
-        alert(`Applied to ${ RajaselviSundararajan/job.title} at ${job.company}! Check your email for confirmation.`);
+        alert(`Applied to ${job.title} at ${job.company}! Check your email for confirmation.`);
         setJobs(jobs.map(j => j.id === job.id ? { ...j, applied: true } : j));
       } catch (error) {
         alert(error.response?.data?.error || 'Application failed!');
@@ -91,6 +106,14 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
         />
         <Button variant="contained" color="primary" onClick={handleCompanyDetect}>
           Detect & Proceed
+        </Button>
+      </Box>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h6">Preferences</Typography>
+        <Typography>Companies: {preferences.companies.join(', ') || 'None'}</Typography>
+        <Typography>Keywords: {preferences.keywords.join(', ')}</Typography>
+        <Button variant="outlined" onClick={savePreferences} sx={{ mt: 2 }}>
+          Save Preferences
         </Button>
       </Box>
       {jobs.length > 0 && (

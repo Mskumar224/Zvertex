@@ -11,7 +11,8 @@ const userSchema = new mongoose.Schema({
   submissionsToday: { type: Number, default: 0 },
   lastReset: { type: Date, default: Date.now },
   otp: { type: String }, // Store OTP (in production, hash and add expiration)
-  isVerified: { type: Boolean, default: false }
+  isVerified: { type: Boolean, default: false },
+  preferences: { type: Object, default: { companies: [], keywords: [] } }
 });
 
 module.exports = mongoose.model('User', userSchema);
