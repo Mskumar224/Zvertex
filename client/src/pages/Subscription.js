@@ -16,7 +16,7 @@ function Subscription() {
 
   const plans = [
     { title: 'STUDENT', price: 0, resumes: 1, submissions: 45, description: 'Perfect for students starting their career.' },
-    { title: 'RECR COLLECTION', price: 0, resumes: 5, submissions: 45, description: 'Ideal for recruiters managing multiple profiles.' },
+    { title: 'RECRUITER', price: 0, resumes: 5, submissions: 45, description: 'Ideal for recruiters managing multiple profiles.' },
     { title: 'BUSINESS', price: 0, resumes: 3, submissions: 145, description: 'Designed for businesses hiring at scale.' },
   ];
 
@@ -29,6 +29,7 @@ function Subscription() {
       );
       alert('Profile details saved successfully!');
       setShowProfileForm(false);
+      history.push('/dashboard'); // Redirect to dashboard after saving profile
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to save profile details!');
     }
