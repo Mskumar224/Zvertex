@@ -10,7 +10,8 @@ const userSchema = new mongoose.Schema({
   resumesUploaded: { type: Number, default: 0 },
   submissionsToday: { type: Number, default: 0 },
   lastReset: { type: Date, default: Date.now },
-  otp: { type: String }, // Store OTP (in production, hash and add expiration)
+  otp: { type: String }, // Signup OTP
+  resetOtp: { type: String }, // Password reset OTP
   isVerified: { type: Boolean, default: false },
   preferences: { type: Object, default: { companies: [], keywords: [] } }
 });

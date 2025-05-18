@@ -13,6 +13,7 @@ function Login() {
       const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, { email, password });
       localStorage.setItem('token', data.token);
       history.push('/subscription');
+      alert(data.message);
     } catch (error) {
       alert(error.response?.data?.message || 'Login failed!');
     }
@@ -20,7 +21,7 @@ function Login() {
 
   return (
     <Container maxWidth="sm" sx={{ py: 5, background: '#fff', borderRadius: 2, boxShadow: 3 }}>
-      <Typography variant="h4" gutterBottom align="center" sx={{ color: '#1976d2' }}>Login</Typography>
+      <Typography variant="h4" gutterBottom align="center" sx={{ color: '#1976d2' }}>Login to ZvertexAI</Typography>
       <Box component="form" sx={{ mt: 3 }}>
         <TextField
           label="Email"
@@ -45,6 +46,9 @@ function Login() {
       </Box>
       <Typography sx={{ mt: 2, textAlign: 'center' }}>
         Don't have an account? <Link to="/signup">Sign Up</Link>
+      </Typography>
+      <Typography sx={{ mt: 1, textAlign: 'center' }}>
+        Forgot password? <Link to="/forgot-password">Reset Password</Link>
       </Typography>
     </Container>
   );

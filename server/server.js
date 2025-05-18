@@ -33,17 +33,22 @@ app.use('/api/auth', authRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/job', jobRoutes);
 
-app.get('/test', (req, res) => res.send('Server is alive'));
+app.get('/test', (req, res) => res.status(200).send('Server is alive'));
 
-// MongoDB connection
+// Health check endpoint for Render
+app.get('/health', (req, res) => res.status(200).send('OK'));
+
+// MongoDB connection with retry
 const mongoUri = process.env.MONGO_URI;
 if (!mongoUri) {
   console.error('MONGO_URI is not defined. Please set it in environment variables.');
   process.exit(1);
-} else {
+}
+
+const connectWithRetry = () => {
   mongoose.set('strictQuery', true);
-  mongoose.connect(mongoUri, { 
-    useNewUrlParser: true, 
+  mongoose.connect(mongoUri, {
+    useNewUrlParser: true,
     useUnifiedTopology: true,
     serverSelectionTimeoutMS: 5000,
     socketTimeoutMS: 45000
@@ -51,26 +56,21 @@ if (!mongoUri) {
     .then(() => console.log('MongoDB connected'))
     .catch((err) => {
       console.error('MongoDB connection error:', err.message);
-      process.exit(1);
+      setTimeout(connectWithRetry, 5000); // Retry after 5 seconds
     });
-}
-
-// Health check endpoint for Render
-app.get('/health', (req, res) => {
-  res.status(200).send('OK');
-});
+};
+connectWithRetry();
 
 scheduleDailyEmails();
 
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
-// Handle uncaught exceptions
+// Enhanced error handling
 process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err.message);
+  console.error('Uncaught Exception:', err.message, err.stack);
 });
 
-// Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Rejection:', err.message);
+  console.error('Unhandled Rejection:', err.message, err.stack);
 });
