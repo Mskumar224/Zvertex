@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import { Link, useHistory } from 'react-router-dom';
 import axios from 'axios';
+import BackButton from '../components/BackButton';
 
 function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [step, setStep] = useState('request'); // 'request' or 'reset'
+  const [step, setStep] = useState('request');
   const history = useHistory();
 
   const handleRequest = async () => {
@@ -32,6 +33,7 @@ function ForgotPassword() {
 
   return (
     <Container maxWidth="sm" sx={{ py: 5, background: '#fff', borderRadius: 2, boxShadow: 3 }}>
+      <BackButton />
       <Typography variant="h4" gutterBottom align="center" sx={{ color: '#1976d2' }}>
         {step === 'request' ? 'Forgot Password' : 'Reset Password'}
       </Typography>

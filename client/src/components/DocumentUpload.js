@@ -9,6 +9,8 @@ function DocumentUpload({ job, onClose }) {
     const formData = new FormData();
     formData.append('document', file);
     formData.append('jobId', job.id);
+    formData.append('company', job.company);
+    formData.append('link', job.link);
 
     try {
       await axios.post(`${process.env.REACT_APP_API_URL}/api/job/apply-with-docs`, formData, {

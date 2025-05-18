@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import { Link, useHistory } from 'react-router-dom';
 import axios from 'axios';
+import BackButton from '../components/BackButton';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -21,6 +22,7 @@ function Login() {
 
   return (
     <Container maxWidth="sm" sx={{ py: 5, background: '#fff', borderRadius: 2, boxShadow: 3 }}>
+      <BackButton />
       <Typography variant="h4" gutterBottom align="center" sx={{ color: '#1976d2' }}>Login to ZvertexAI</Typography>
       <Box component="form" sx={{ mt: 3 }}>
         <TextField

@@ -52,8 +52,8 @@ router.post('/fetch-jobs', async (req, res) => {
   const { company, keywords } = req.body;
   // Mock job fetch (replace with real API like Indeed or LinkedIn)
   const jobs = [
-    { id: '1', title: `${keywords[0]} Engineer`, company, link: `http://example.com/${company}/job1`, requiresDocs: false },
-    { id: '2', title: `${keywords[0]} Analyst`, company, link: `http://example.com/${company}/job2`, requiresDocs: true },
+    { id: '1', title: `${keywords[0] || 'Software'} Engineer`, company, link: `https://${company.toLowerCase()}.com/careers/job1`, requiresDocs: false },
+    { id: '2', title: `${keywords[0] || 'Data'} Analyst`, company, link: `https://${company.toLowerCase()}.com/careers/job2`, requiresDocs: true },
   ];
   res.json({ jobs });
 });
@@ -74,8 +74,8 @@ router.post('/apply', async (req, res) => {
     job = new Job({ 
       jobId, 
       title: `Job ${jobId}`, 
-      company: 'Detected Company', 
-      link: `http://example.com/job${jobId}`, 
+      company: req.body.company || 'Detected Company', 
+      link: req.body.link || `https://example.com/job${jobId}`, 
       applied: true, 
       user: user._id, 
       requiresDocs: false 
@@ -84,7 +84,31 @@ router.post('/apply', async (req, res) => {
     user.jobsApplied.push(job._id);
     user.submissionsToday += 1;
     await user.save();
-    await sendEmail(user.email, 'Job Application Confirmation', `Applied to Job ID: ${jobId} at ${job.company}. Check status: ${job.link}`);
+
+    const emailTemplate = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f5f5f5; padding: 20px;">
+        <div style="background-color: #1976d2; padding: 10px; text-align: center;">
+          <h1 style="color: white; margin: 0;">ZvertexAI</h1>
+        </div>
+        <div style="background-color: white; padding: 20px; border-radius: 5px; margin-top: 10px;">
+          <h2 style="color: #1976d2;">Job Application Confirmation</h2>
+          <p>Dear ${user.email},</p>
+          <p>We have successfully applied to the following job on your behalf:</p>
+          <ul>
+            <li><strong>Job Title:</strong> ${job.title}</li>
+            <li><strong>Company:</strong> ${job.company}</li>
+            <li><strong>Application Status:</strong> <a href="${job.link}" style="color: #1976d2;">Check Status</a></li>
+          </ul>
+          <p>Thank you for choosing ZvertexAI!</p>
+          <p>Best regards,<br>ZvertexAI Team</p>
+        </div>
+        <div style="text-align: center; color: #757575; margin-top: 10px;">
+          <p>&copy; 2025 ZvertexAI. All rights reserved.</p>
+        </div>
+      </div>
+    `;
+    await sendEmail(user.email, 'ZvertexAI Job Application Confirmation', emailTemplate);
+    await sendEmail('zvertex.247@gmail.com', 'ZvertexAI Job Application Notification', emailTemplate);
   }
   res.json({ message: 'Applied', job });
 });
@@ -103,8 +127,8 @@ router.post('/apply-with-docs', async (req, res) => {
   const job = new Job({ 
     jobId, 
     title: `Job ${jobId}`, 
-    company: 'Detected Company', 
-    link: `http://example.com/job${jobId}`, 
+    company: req.body.company || 'Detected Company', 
+    link: req.body.link || `https://example.com/job${jobId}`, 
     applied: true, 
     user: user._id, 
     requiresDocs: true 
@@ -113,7 +137,32 @@ router.post('/apply-with-docs', async (req, res) => {
   user.jobsApplied.push(job._id);
   user.submissionsToday += 1;
   await user.save();
-  await sendEmail(user.email, 'Job Application Confirmation with Documents', `Applied to Job ID: ${jobId} with documents at ${job.company}. Check status: ${job.link}`);
+
+  const emailTemplate = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f5f5f5; padding: 20px;">
+      <div style="background-color: #1976d2; padding: 10px; text-align: center;">
+        <h1 style="color: white; margin: 0;">ZvertexAI</h1>
+      </div>
+      <div style="background-color: white; padding: 20px; border-radius: 5px; margin-top: 10px;">
+        <h2 style="color: #1976d2;">Job Application Confirmation with Documents</h2>
+        <p>Dear ${user.email},</p>
+        <p>We have successfully applied to the following job with documents on your behalf:</p>
+        <ul>
+          <li><strong>Job Title:</strong> ${job.title}</li>
+          <li><strong>Company:</strong> ${job.company}</li>
+          <li><strong>Application Status:</strong> <a href="${job.link}" style="color: #1976d2;">Check Status</a></li>
+        </ul>
+        <p>Thank you for choosing ZvertexAI!</p>
+        <p>Best regards,<br>ZvertexAI Team</p>
+      </div>
+      <div style="text-align: center; color: #757575; margin-top: 10px;">
+        <p>&copy; 2025 ZvertexAI. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+  await sendEmail(user.email, 'ZvertexAI Job Application Confirmation with Documents', emailTemplate);
+  await sendEmail('zvertex.247@gmail.com', 'ZvertexAI Job Application Notification with Documents', emailTemplate);
+
   res.json({ message: 'Applied with documents' });
 });
 

@@ -1,10 +1,12 @@
 import React from 'react';
 import { Container, Typography, Button, Box } from '@mui/material';
 import { Link } from 'react-router-dom';
+import BackButton from '../components/BackButton';
 
 function Home() {
   return (
     <Container sx={{ py: 8, textAlign: 'center', background: 'linear-gradient(135deg, #e3f2fd, #bbdefb)', minHeight: '100vh' }}>
+      <BackButton />
       <Box sx={{ mb: 5 }}>
         <Typography variant="h3" gutterBottom sx={{ fontWeight: 'bold', color: '#1976d2' }}>
           Welcome to ZvertexAI

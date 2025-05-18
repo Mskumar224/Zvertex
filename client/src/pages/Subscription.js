@@ -3,6 +3,7 @@ import { Container, Typography, Grid, Box } from '@mui/material';
 import axios from 'axios';
 import { useHistory } from 'react-router-dom';
 import SubscriptionCard from '../components/SubscriptionCard';
+import BackButton from '../components/BackButton';
 
 function Subscription() {
   const history = useHistory();
@@ -33,6 +34,7 @@ function Subscription() {
 
   return (
     <Container sx={{ py: 8, background: '#f5f5f5' }}>
+      <BackButton />
       <Typography variant="h3" align="center" gutterBottom sx={{ color: '#1976d2', fontWeight: 'bold' }}>
         Choose Your ZvertexAI Subscription
       </Typography>

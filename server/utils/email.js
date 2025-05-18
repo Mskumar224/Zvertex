@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer');
 
-async function sendEmail(to, subject, text) {
+async function sendEmail(to, subject, html) {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -10,10 +10,10 @@ async function sendEmail(to, subject, text) {
   });
 
   await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+    from: '"ZvertexAI" <' + process.env.EMAIL_USER + '>',
     to,
     subject,
-    text
+    html
   });
 }
 

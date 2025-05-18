@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Container, Typography, TextField, Button, MenuItem, Select, Box } from '@mui/material';
 import axios from 'axios';
 import DocumentUpload from '../components/DocumentUpload';
+import BackButton from '../components/BackButton';
 
 function JobApply({ keywords, maxResumes, maxSubmissions }) {
   const [company, setCompany] = useState('');
@@ -24,7 +25,7 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
       if (data.valid) {
-        setPreferences({ ...preferences, companies: [...preferences.companies, data.company] });
+        setPreferences({ ...preferences, companies: [...new Set([...preferences.companies, data.company])] });
         fetchJobs(data.company);
       } else {
         alert('Company not detected online! Please select a valid company.');
@@ -71,7 +72,7 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
       try {
         await axios.post(
           `${process.env.REACT_APP_API_URL}/api/job/apply`,
-          { jobId: job.id },
+          { jobId: job.id, company: job.company, link: job.link },
           { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
         );
         alert(`Applied to ${job.title} at ${job.company}! Check your email for confirmation.`);
@@ -84,6 +85,7 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
 
   return (
     <Container sx={{ py: 5 }}>
+      <BackButton />
       <Typography variant="h5" gutterBottom>Select a Company</Typography>
       <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
         <Select

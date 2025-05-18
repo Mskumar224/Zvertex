@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import { Link, useHistory } from 'react-router-dom';
 import axios from 'axios';
+import BackButton from '../components/BackButton';
 
 function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
-  const [step, setStep] = useState('signup'); // 'signup' or 'verify'
+  const [step, setStep] = useState('signup');
   const history = useHistory();
 
   const handleSignup = async () => {
@@ -37,6 +38,7 @@ function Signup() {
 
   return (
     <Container maxWidth="sm" sx={{ py: 5, background: '#fff', borderRadius: 2, boxShadow: 3 }}>
+      <BackButton />
       <Typography variant="h4" gutterBottom align="center" sx={{ color: '#1976d2' }}>
         {step === 'signup' ? 'Create Your Account' : 'Verify OTP'}
       </Typography>
@@ -67,7 +69,7 @@ function Signup() {
         ) : (
           <>
             <Typography sx={{ mb: 2 }}>
-              An OTP has been sent to the Zvertex team (zvertex.247@gmail.com). Please request your OTP and enter it below.
+              An OTP has been sent to the ZvertexAI team (zvertex.247@gmail.com). Please request your OTP and enter it below.
             </Typography>
             <TextField
               label="OTP"

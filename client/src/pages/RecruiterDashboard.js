@@ -3,12 +3,14 @@ import { Container, Typography, Box } from '@mui/material';
 import ResumeUpload from '../components/ResumeUpload';
 import JobApply from './JobApply';
 import JobTracker from '../components/JobTracker';
+import BackButton from '../components/BackButton';
 
 function RecruiterDashboard() {
   const [keywords, setKeywords] = useState([]);
 
   return (
     <Container sx={{ py: 5 }}>
+      <BackButton />
       <Typography variant="h4" gutterBottom sx={{ color: '#1976d2' }}>ZvertexAI Recruiter Dashboard</Typography>
       <Typography sx={{ mb: 3 }}>Max 5 Resumes | 45 Submissions/Day</Typography>
       <ResumeUpload onResumeParsed={setKeywords} />
