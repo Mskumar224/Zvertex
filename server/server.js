@@ -1,74 +1,61 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const path = require('path');
 const fileUpload = require('express-fileupload');
-require('dotenv').config();
-
 const authRoutes = require('./routes/auth');
+const subscriptionRoutes = require('./routes/subscription');
 const jobRoutes = require('./routes/job');
-const resumeRoutes = require('./routes/resume');
-const zgptRoutes = require('./routes/zgpt');
+const { scheduleDailyEmails } = require('./utils/dailyEmail');
 
 const app = express();
 
 // CORS configuration
-app.use(cors({
-  origin: ['https://zvertexai.com', 'https://zvertexai-client.netlify.app', 'http://localhost:3000'],
-  methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'x-auth-token', 'Authorization'],
-  credentials: true,
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-}));
-app.options('*', cors()); // Explicitly handle all preflight requests
+const corsOptions = {
+  origin: [
+    'https://67e23ab86a51458e138e0032--zvertexagi.netlify.app',
+    'https://67e2641113aab6f39709cd06--zvertexagi.netlify.app',
+    'http://localhost:3000',
+     'https://zvertexai.com/'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+app.use(cors(corsOptions));
 
-// Basic middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+// Handle preflight requests
+app.options('*', cors(corsOptions));
+
+app.use(express.json());
 app.use(fileUpload());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use('/api/auth', authRoutes);
+app.use('/api/subscription', subscriptionRoutes);
+app.use('/api/job', jobRoutes);
+
+app.get('/test', (req, res) => res.send('Server is alive'));
 
 // MongoDB connection
-mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 30000,
-    socketTimeoutMS: 45000,
-    connectTimeoutMS: 30000,
-    retryWrites: true,
-    maxPoolSize: 10,
-    serverApi: {
-      version: '1',
-      strict: true,
-      deprecationErrors: true
-    }
-  })
-  .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.error('MongoDB connection error:', err));
+const mongoUri = process.env.MONGO_URI;
+if (!mongoUri) {
+  console.error('MONGO_URI is not defined. Please set it in environment variables.');
+  process.exit(1);
+} else {
+  mongoose.set('strictQuery', true);
+  mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => console.log('MongoDB connected'))
+    .catch((err) => {
+      console.error('MongoDB connection error:', err.message);
+      process.exit(1);
+    });
+}
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/job', jobRoutes);
-app.use('/api/resume', resumeRoutes);
-app.use('/api/zgpt', zgptRoutes);
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', mongodb: mongoose.connection.readyState });
-});
-
-// Catch-all for 404 errors
-app.use((req, res, next) => {
-  res.status(404).json({ msg: 'Resource not found' });
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Server error:', err.stack);
-  res.status(500).json({ msg: 'Server error', error: err.message });
-});
+scheduleDailyEmails();
 
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err.message);
+});

@@ -1,36 +1,23 @@
 body {
   margin: 0;
-  font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
-  background-color: #F5F6F5;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f5f5f5;
 }
 
-.glass-card {
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px);
-  padding: 20px;
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
 }
 
-.twitter-layout {
-  display: flex;
-  gap: 20px;
-  padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
+a {
+  text-decoration: none;
+  color: #1976d2;
 }
 
-.left-sidebar, .right-sidebar {
-  flex: 1;
-  min-width: 200px;
-}
-
-.middle-content {
-  flex: 2;
-}
-
-@media (max-width: 768px) {
-  .twitter-layout {
-    flex-direction: column;
-  }
+a:hover {
+  text-decoration: underline;
 }
