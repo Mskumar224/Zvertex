@@ -2,14 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Container, Typography, Box, Button, TextField, Select, MenuItem, Grid, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import axios from 'axios';
 import BackButton from '../components/BackButton';
+import ResumeUpload from '../components/ResumeUpload';
+import DocumentUpload from '../components/DocumentUpload';
 
 function Dashboard() {
-  const [user, setUser] = useState({ email: '', phone: '', subscription: 'NONE', preferences: { companies: [], keywords: [] } });
+  const [user, setUser] = useState({ email: '', phone: '', subscription: 'NONE', preferences: { companies: [], keywords: [] }, resumes: 0, submissions: 0 });
   const [company, setCompany] = useState('');
   const [manualCompany, setManualCompany] = useState('');
   const [keywords, setKeywords] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [trackedJobs, setTrackedJobs] = useState([]);
+  const [selectedJob, setSelectedJob] = useState(null);
   const companies = [
     'Google', 'Microsoft', 'Amazon', 'Apple', 'Facebook', 'Tesla', 'IBM', 'Oracle', 'Intel', 'Cisco',
     'Netflix', 'Adobe', 'Salesforce', 'LinkedIn', 'Twitter', 'Uber', 'Lyft', 'Airbnb', 'Dropbox', 'Slack',
@@ -27,6 +30,7 @@ function Dashboard() {
         setKeywords(data.preferences.keywords || []);
       } catch (error) {
         alert('Failed to fetch user data!');
+        console.error(error);
       }
     };
     const fetchTrackedJobs = async () => {
@@ -37,29 +41,18 @@ function Dashboard() {
         setTrackedJobs(data);
       } catch (error) {
         alert('Failed to fetch job tracker!');
+        console.error(error);
       }
     };
     fetchUser();
     fetchTrackedJobs();
   }, []);
 
-  const handleResumeUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('resume', file);
-
-    try {
-      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/job/upload-resume`, formData, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'multipart/form-data' }
-      });
-      setKeywords(data.keywords);
-      setUser({ ...user, preferences: { ...user.preferences, keywords: data.keywords } });
-      await savePreferences({ ...user.preferences, keywords: data.keywords });
-    } catch (error) {
-      alert(error.response?.data?.error || 'Resume upload failed!');
-    }
+  const handleResumeParsed = async (newKeywords) => {
+    setKeywords(newKeywords);
+    const newPreferences = { ...user.preferences, keywords: newKeywords };
+    setUser({ ...user, preferences: newPreferences });
+    await savePreferences(newPreferences);
   };
 
   const handleCompanyDetect = async () => {
@@ -71,14 +64,16 @@ function Dashboard() {
       );
       if (data.valid) {
         const newCompanies = [...new Set([...user.preferences.companies, data.company])];
-        setUser({ ...user, preferences: { ...user.preferences, companies: newCompanies } });
-        await savePreferences({ ...user.preferences, companies: newCompanies });
+        const newPreferences = { ...user.preferences, companies: newCompanies };
+        setUser({ ...user, preferences: newPreferences });
+        await savePreferences(newPreferences);
         fetchJobs(data.company);
       } else {
         alert('Company not detected online! Please select a valid company.');
       }
     } catch (error) {
       alert(error.response?.data?.error || 'Detection failed!');
+      console.error(error);
     }
   };
 
@@ -92,6 +87,7 @@ function Dashboard() {
       alert('Preferences saved successfully!');
     } catch (error) {
       alert(error.response?.data?.error || 'Failed to save preferences!');
+      console.error(error);
     }
   };
 
@@ -103,7 +99,6 @@ function Dashboard() {
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
       setJobs(data.jobs);
-      // Initiate auto-apply for detected jobs
       for (const job of data.jobs) {
         if (!trackedJobs.some(tj => tj.jobId === job.id)) {
           await handleAutoApply(job);
@@ -111,12 +106,13 @@ function Dashboard() {
       }
     } catch (error) {
       alert(error.response?.data?.error || 'Failed to fetch jobs!');
+      console.error(error);
     }
   };
 
   const handleAutoApply = async (job) => {
     if (job.applied) return;
-    if (job.requiresDocs) return; // Skip jobs requiring documents
+    if (job.requiresDocs) return;
     try {
       await axios.post(
         `${process.env.REACT_APP_API_URL}/api/job/apply`,
@@ -130,30 +126,56 @@ function Dashboard() {
     }
   };
 
+  const handleManualApply = async (job) => {
+    if (job.applied) {
+      alert('This job has already been applied to!');
+      return;
+    }
+    if (job.requiresDocs) {
+      setSelectedJob(job);
+    } else {
+      try {
+        await axios.post(
+          `${process.env.REACT_APP_API_URL}/api/job/apply`,
+          { jobId: job.id, company: job.company, link: job.link },
+          { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+        );
+        alert(`Applied to ${job.title} at ${job.company}! Check your email for confirmation.`);
+        setJobs(jobs.map(j => j.id === job.id ? { ...j, applied: true } : j));
+        setTrackedJobs([...trackedJobs, { ...job, applied: true, createdAt: new Date() }]);
+      } catch (error) {
+        alert(error.response?.data?.error || 'Application failed!');
+        console.error(error);
+      }
+    }
+  };
+
   return (
-    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', py: 4 }}>
+    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a2a44 0%, #2e4b7a 100%)', py: { xs: 2, sm: 4 } }}>
       <Container maxWidth="lg">
         <BackButton />
-        <Typography variant="h3" gutterBottom sx={{ color: 'white', fontWeight: 'bold' }}>
+        <Typography variant="h3" gutterBottom sx={{ color: 'white', fontWeight: 'bold', fontSize: { xs: '1.8rem', sm: '2.5rem' } }}>
           ZvertexAI Dashboard
         </Typography>
-        <Box sx={{ background: 'white', borderRadius: 2, boxShadow: 3, p: 4, mb: 4 }}>
-          <Typography variant="h5" sx={{ color: '#1a2a44', mb: 2 }}>User Profile</Typography>
-          <Typography sx={{ color: '#1a2a44' }}>Email: {user.email}</Typography>
-          <Typography sx={{ color: '#1a2a44' }}>Phone: {user.phone}</Typography>
-          <Typography sx={{ color: '#1a2a44' }}>Subscription: {user.subscription}</Typography>
+        <Box sx={{ background: 'white', borderRadius: 2, boxShadow: 3, p: { xs: 2, sm: 4 }, mb: 4 }}>
+          <Typography variant="h5" sx={{ color: '#1a2a44', mb: 2, fontSize: { xs: '1.2rem', sm: '1.5rem' } }}>User Profile</Typography>
+          <Typography sx={{ color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>Email: {user.email}</Typography>
+          <Typography sx={{ color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>Phone: {user.phone}</Typography>
+          <Typography sx={{ color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>Subscription: {user.subscription}</Typography>
+          <Typography sx={{ color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>Resumes Allowed: {user.resumes}</Typography>
+          <Typography sx={{ color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>Submissions/Day: {user.submissions}</Typography>
         </Box>
-        <Box sx={{ background: 'white', borderRadius: 2, boxShadow: 3, p: 4, mb: 4 }}>
-          <Typography variant="h5" sx={{ color: '#1a2a44', mb: 2 }}>Preferences</Typography>
-          <Typography sx={{ color: '#1a2a44' }}>Companies: {user.preferences.companies.join(', ') || 'None'}</Typography>
-          <Typography sx={{ color: '#1a2a44' }}>Keywords: {user.preferences.keywords.join(', ') || 'None'}</Typography>
-          <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
+        <Box sx={{ background: 'white', borderRadius: 2, boxShadow: 3, p: { xs: 2, sm: 4 }, mb: 4 }}>
+          <Typography variant="h5" sx={{ color: '#1a2a44', mb: 2, fontSize: { xs: '1.2rem', sm: '1.5rem' } }}>Preferences</Typography>
+          <Typography sx={{ color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>Companies: {user.preferences.companies.join(', ') || 'None'}</Typography>
+          <Typography sx={{ color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>Keywords: {user.preferences.keywords.join(', ') || 'None'}</Typography>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mt: 3 }}>
             <Select
               value={company}
               onChange={(e) => setCompany(e.target.value)}
               displayEmpty
               fullWidth
-              sx={{ maxWidth: 300, background: 'white' }}
+              sx={{ maxWidth: { xs: '100%', sm: 300 }, background: 'white' }}
             >
               <MenuItem value="">Select from list</MenuItem>
               {companies.map((c) => (
@@ -168,48 +190,67 @@ function Dashboard() {
             />
             <Button
               variant="contained"
-              sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' } }}
+              sx={{ backgroundColor: '#ff6d00', '&:hover': { backgroundColor: '#e65100' }, fontSize: { xs: '0.875rem', sm: '1rem' } }}
               onClick={handleCompanyDetect}
             >
               Detect & Add
             </Button>
           </Box>
           <Box sx={{ mt: 3 }}>
-            <Typography sx={{ color: '#1a2a44', mb: 2 }}>Upload Resume</Typography>
-            <input
-              type="file"
-              accept=".pdf,.doc,.docx,.txt"
-              onChange={handleResumeUpload}
-              style={{ display: 'block', marginBottom: '16px' }}
-            />
+            <Typography sx={{ color: '#1a2a44', mb: 2, fontSize: { xs: '1rem', sm: '1.25rem' } }}>Upload Resume</Typography>
+            <ResumeUpload onResumeParsed={handleResumeParsed} />
           </Box>
         </Box>
-        <Box sx={{ background: 'white', borderRadius: 2, boxShadow: 3, p: 4 }}>
-          <Typography variant="h5" sx={{ color: '#1a2a44', mb: 2 }}>Job Application Tracker</Typography>
+        <Box sx={{ background: 'white', borderRadius: 2, boxShadow: 3, p: { xs: 2, sm: 4 }, mb: 4 }}>
+          <Typography variant="h5" sx={{ color: '#1a2a44', mb: 2, fontSize: { xs: '1.2rem', sm: '1.5rem' } }}>Available Jobs</Typography>
+          {jobs.length > 0 ? (
+            jobs.map((job) => (
+              <Box key={job.id} sx={{ p: 2, border: '1px solid #e0e0e0', mb: 2, borderRadius: 2 }}>
+                <Typography sx={{ color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>{job.title} - {job.company}</Typography>
+                <Typography variant="body2" sx={{ color: '#1a2a44', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                  <a href={job.link} target="_blank" rel="noopener noreferrer" style={{ color: '#ff6d00' }}>{job.link}</a>
+                </Typography>
+                <Button
+                  variant="contained"
+                  sx={{ mt: 1, backgroundColor: job.applied ? '#757575' : '#ff6d00', '&:hover': { backgroundColor: job.applied ? '#616161' : '#e65100' }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                  onClick={() => handleManualApply(job)}
+                  disabled={job.applied}
+                >
+                  {job.applied ? 'Applied' : 'Apply Now'}
+                </Button>
+              </Box>
+            ))
+          ) : (
+            <Typography sx={{ color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>No jobs available. Add companies to fetch jobs.</Typography>
+          )}
+        </Box>
+        <Box sx={{ background: 'white', borderRadius: 2, boxShadow: 3, p: { xs: 2, sm: 4 } }}>
+          <Typography variant="h5" sx={{ color: '#1a2a44', mb: 2, fontSize: { xs: '1.2rem', sm: '1.5rem' } }}>Job Application Tracker</Typography>
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ color: '#1a2a44' }}>Job Title</TableCell>
-                <TableCell sx={{ color: '#1a2a44' }}>Company</TableCell>
-                <TableCell sx={{ color: '#1a2a44' }}>Link</TableCell>
-                <TableCell sx={{ color: '#1a2a44' }}>Date Applied</TableCell>
+                <TableCell sx={{ color: '#1a2a44', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Job Title</TableCell>
+                <TableCell sx={{ color: '#1a2a44', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Company</TableCell>
+                <TableCell sx={{ color: '#1a2a44', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Link</TableCell>
+                <TableCell sx={{ color: '#1a2a44', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Date Applied</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {trackedJobs.map((job) => (
                 <TableRow key={job.jobId}>
-                  <TableCell sx={{ color: '#1a2a44' }}>{job.title}</TableCell>
-                  <TableCell sx={{ color: '#1a2a44' }}>{job.company}</TableCell>
+                  <TableCell sx={{ color: '#1a2a44', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>{job.title}</TableCell>
+                  <TableCell sx={{ color: '#1a2a44', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>{job.company}</TableCell>
                   <TableCell>
-                    <a href={job.link} target="_blank" rel="noopener noreferrer" style={{ color: '#ff6d00' }}>{job.link}</a>
+                    <a href={job.link} target="_blank" rel="noopener noreferrer" style={{ color: '#ff6d00', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>{job.link}</a>
                   </TableCell>
-                  <TableCell sx={{ color: '#1a2a44' }}>{new Date(job.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell sx={{ color: '#1a2a44', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>{new Date(job.createdAt).toLocaleDateString()}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-          <Typography sx={{ mt: 2, color: '#1a2a44' }}>Total Applied: {trackedJobs.length}</Typography>
+          <Typography sx={{ mt: 2, color: '#1a2a44', fontSize: { xs: '0.875rem', sm: '1rem' } }}>Total Applied: {trackedJobs.length}</Typography>
         </Box>
+        {selectedJob && <DocumentUpload job={selectedJob} onClose={() => setSelectedJob(null)} />}
       </Container>
     </Box>
   );

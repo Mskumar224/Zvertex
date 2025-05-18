@@ -15,9 +15,38 @@ code {
 
 a {
   text-decoration: none;
-  color: #1976d2;
+  color: #ff6d00;
 }
 
 a:hover {
   text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .MuiContainer-root {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .MuiTypography-h3 {
+    font-size: 1.8rem;
+  }
+
+  .MuiTypography-h4 {
+    font-size: 1.5rem;
+  }
+
+  .MuiTypography-h5 {
+    font-size: 1.2rem;
+  }
+
+  .MuiButton-root {
+    padding: 8px 16px;
+    font-size: 0.875rem;
+  }
+
+  .MuiGrid-item {
+    padding: 8px;
+  }
 }

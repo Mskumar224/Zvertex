@@ -28,11 +28,43 @@ const sendActivityEmail = async (email, subject, action, details) => {
   await sendEmail(email, `ZvertexAI: ${subject}`, emailTemplate);
 };
 
+router.get('/user', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'No token provided' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({
+      email: user.email,
+      phone: user.phone,
+      subscription: user.subscription,
+      preferences: user.preferences,
+      resumes: user.resumes,
+      submissions: user.submissions,
+      profile: user.profile
+    });
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ message: 'Failed to fetch user data', error: error.message });
+  }
+});
+
 router.post('/signup', async (req, res) => {
   const { email, phone, password } = req.body;
   if (!email || !phone || !password) {
     return res.status(400).json({ message: 'Email, phone, and password are required' });
   }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ message: 'Invalid email format' });
+  }
+  if (!phoneRegex.test(phone)) {
+    return res.status(400).json({ message: 'Invalid phone number format' });
+  }
+
   try {
     let user = await User.findOne({ email });
     if (user) {
@@ -52,9 +84,9 @@ router.post('/signup', async (req, res) => {
       'New User OTP Request',
       `A new user signed up with email: ${email}, phone: ${phone}. OTP: ${otp}. Please provide this OTP to the user upon request.`
     );
-    await sendActivityEmail(email, 'Account Signup', 'Signup Initiated', `You have started the signup process. Please verify your OTP.`);
+    await sendActivityEmail(email, 'Account Signup', 'Signup Initiated', `You have started the signup process. Our team will reach out to you soon over the provided phone or email to provide your OTP.`);
 
-    res.status(201).json({ message: 'User created. Please request OTP from ZvertexAI team to verify your account.' });
+    res.status(201).json({ message: 'User created. Please request OTP from ZvertexAI team to verify your account. Our team will reach out to you soon.' });
   } catch (error) {
     console.error('Signup error:', error);
     res.status(500).json({ message: 'Signup failed', error: error.message });
@@ -115,9 +147,9 @@ router.post('/forgot-password', async (req, res) => {
       'Password Reset OTP Request',
       `A password reset was requested for email: ${email}. Reset OTP: ${resetOtp}. Please provide this OTP to the user upon request.`
     );
-    await sendActivityEmail(email, 'Password Reset Request', 'OTP Sent', `A password reset OTP has been requested for your account.`);
+    await sendActivityEmail(email, 'Password Reset Request', 'OTP Sent', `A password reset OTP has been requested for your account. Our team will reach out to you soon over the provided phone or email to provide your OTP.`);
 
-    res.json({ message: 'Password reset OTP sent to ZvertexAI team. Please request the OTP to proceed.' });
+    res.json({ message: 'Password reset OTP sent to ZvertexAI team. Please request the OTP to proceed. Our team will reach out to you soon.' });
   } catch (error) {
     console.error('Forgot password error:', error);
     res.status(500).json({ message: 'Forgot password failed', error: error.message });
@@ -157,6 +189,24 @@ router.post('/logout', async (req, res) => {
   } catch (error) {
     console.error('Logout error:', error);
     res.status(500).json({ message: 'Logout failed', error: error.message });
+  }
+});
+
+router.post('/update-profile', async (req, res) => {
+  const { profile } = req.body;
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ message: 'No token provided' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    user.profile = profile;
+    await user.save();
+    await sendActivityEmail(user.email, 'Profile Update', 'Profile Details Saved', `Your profile details have been updated successfully.`);
+    res.json({ message: 'Profile updated successfully' });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ message: 'Failed to update profile', error: error.message });
   }
 });
 

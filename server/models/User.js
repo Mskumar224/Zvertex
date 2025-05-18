@@ -14,7 +14,13 @@ const userSchema = new mongoose.Schema({
   otp: { type: String },
   resetOtp: { type: String },
   isVerified: { type: Boolean, default: false },
-  preferences: { type: Object, default: { companies: [], keywords: [] } }
+  preferences: { type: Object, default: { companies: [], keywords: [] } },
+  profile: {
+    firstName: { type: String, default: '' },
+    lastName: { type: String, default: '' },
+    experience: { type: String, default: '' },
+    education: { type: String, default: '' }
+  }
 });
 
 module.exports = mongoose.model('User', userSchema);
