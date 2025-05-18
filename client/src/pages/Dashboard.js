@@ -13,6 +13,7 @@ function Dashboard() {
   const [jobs, setJobs] = useState([]);
   const [trackedJobs, setTrackedJobs] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
+
   const companies = [
     'Google', 'Microsoft', 'Amazon', 'Apple', 'Facebook', 'Tesla', 'IBM', 'Oracle', 'Intel', 'Cisco',
     'Netflix', 'Adobe', 'Salesforce', 'LinkedIn', 'Twitter', 'Uber', 'Lyft', 'Airbnb', 'Dropbox', 'Slack',
@@ -47,6 +48,33 @@ function Dashboard() {
     fetchUser();
     fetchTrackedJobs();
   }, []);
+
+  // Auto-apply jobs at equal intervals
+  useEffect(() => {
+    if (jobs.length === 0) return;
+
+    const eligibleJobs = jobs.filter(
+      (job) => !job.applied && !job.requiresDocs && !trackedJobs.some((tj) => tj.jobId === job.id)
+    );
+
+    if (eligibleJobs.length === 0) return;
+
+    const intervalTime = 24 * 60 * 60 * 1000 / eligibleJobs.length; // Spread applications evenly over 24 hours
+    let currentIndex = 0;
+
+    const applyInterval = setInterval(async () => {
+      if (currentIndex >= eligibleJobs.length) {
+        clearInterval(applyInterval);
+        return;
+      }
+
+      const job = eligibleJobs[currentIndex];
+      await handleAutoApply(job);
+      currentIndex += 1;
+    }, intervalTime);
+
+    return () => clearInterval(applyInterval); // Cleanup interval on component unmount
+  }, [jobs, trackedJobs]);
 
   const handleResumeParsed = async (newKeywords) => {
     setKeywords(newKeywords);
@@ -99,11 +127,6 @@ function Dashboard() {
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
       setJobs(data.jobs);
-      for (const job of data.jobs) {
-        if (!trackedJobs.some(tj => tj.jobId === job.id)) {
-          await handleAutoApply(job);
-        }
-      }
     } catch (error) {
       alert(error.response?.data?.error || 'Failed to fetch jobs!');
       console.error(error);
